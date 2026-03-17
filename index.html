@@ -51,22 +51,12 @@
         </p>
       </div>
 
-        <div class="hero-actions hero-actions-leaderboard">
-    <section class="hero-leaderboard glass">
-      <div class="hero-leaderboard-head">
-        <div>
-          <div class="panel-kicker">Online</div>
-          <h3>Endless Bonus Top 5</h3>
-        </div>
-        <button class="btn btn-secondary hero-refresh-btn" id="refreshLeaderboardBtn" type="button">Refresh</button>
-      </div>
-      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Caut cele mai bune bonus score-uri...</div>
-      <div class="hero-leaderboard-list" id="bonusLeaderboardList">
-        <div class="leaderboard-empty">Nicio înregistrare încă.</div>
+      <div class="hero-actions">
+        <button class="btn btn-primary" id="heroStart">Start Wave</button>
+        <button class="btn btn-secondary" id="heroPause">Pause</button>
+        <button class="btn btn-secondary" id="heroReset">Reset</button>
       </div>
     </section>
-  </div>
-</section>
 
     <section class="layout">
       <section class="game-panel glass">
@@ -97,6 +87,23 @@
             <button class="map-btn map-btn-pause" id="pauseBtn" title="Pause"><span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span></button>
             <button class="map-btn map-btn-reset" id="resetBtn" title="Reset Run">✕</button>
             <button class="map-btn map-btn-camera" id="resetCameraBtn" title="Reset Camera">◉</button>
+          </div>
+          <div class="spell-controls" id="spellControls">
+            <button class="spell-btn frost" id="frostSpellBtn" title="Frost Nova" type="button">
+              <span class="spell-icon">❄</span>
+              <span class="spell-name">Frost</span>
+              <span class="spell-cooldown" id="frostSpellCooldown">Ready</span>
+            </button>
+            <button class="spell-btn meteor" id="meteorSpellBtn" title="Meteor Strike" type="button">
+              <span class="spell-icon">☄</span>
+              <span class="spell-name">Meteor</span>
+              <span class="spell-cooldown" id="meteorSpellCooldown">Ready</span>
+            </button>
+            <button class="spell-btn lightning" id="lightningSpellBtn" title="Chain Lightning" type="button">
+              <span class="spell-icon">⚡</span>
+              <span class="spell-name">Bolt</span>
+              <span class="spell-cooldown" id="lightningSpellCooldown">Ready</span>
+            </button>
           </div>
 
           <aside class="unit-info-panel hidden" id="unitInfoPanel">

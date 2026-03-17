@@ -1,5 +1,4 @@
 const { neon } = require("@netlify/neon");
-
 const sql = neon();
 
 exports.handler = async function handler() {
@@ -11,13 +10,12 @@ exports.handler = async function handler() {
       order by bonus_score desc, wave_reached desc, created_at asc
       limit 5
     `;
-
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       body: JSON.stringify(rows)
     };
-  } catch (error) {
+  } catch {
     return {
       statusCode: 500,
       headers: { "Content-Type": "application/json" },

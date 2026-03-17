@@ -1629,151 +1629,60 @@ kbd{
 }
 
 
-/* Global endless bonus leaderboard */
-.hero-actions-leaderboard{
-  width:min(100%, 360px);
-  align-self:stretch;
-}
-
-.hero-leaderboard{
-  width:100%;
-  padding:16px 18px;
-  border-radius:22px;
-  background:linear-gradient(180deg, rgba(12,22,40,.9), rgba(8,17,31,.92));
-  border:1px solid rgba(148,163,184,.16);
-}
-
-.hero-leaderboard-head{
+/* Player spell controls */
+.spell-controls{
+  position:absolute;
+  left:18px;
+  top:18px;
+  z-index:16;
   display:flex;
-  justify-content:space-between;
-  align-items:flex-start;
-  gap:12px;
-  margin-bottom:8px;
-}
-
-.hero-leaderboard-head h3{
-  margin:2px 0 0;
-  font-size:18px;
-}
-
-.hero-refresh-btn{
-  padding:9px 12px;
-  min-height:40px;
-  font-size:13px;
-}
-
-.hero-leaderboard-sub{
-  color:var(--muted);
-  font-size:12px;
-  line-height:1.45;
-  margin-bottom:10px;
-}
-
-.hero-leaderboard-list{
-  display:grid;
-  gap:8px;
-}
-
-.leaderboard-row{
-  display:grid;
-  grid-template-columns:26px 1fr auto;
-  align-items:center;
   gap:10px;
+  flex-wrap:wrap;
+  width:min(360px, calc(100% - 36px));
+}
+.spell-btn{
+  flex:1 1 104px;
+  min-width:104px;
+  min-height:64px;
   padding:10px 12px;
-  border-radius:14px;
-  background:rgba(8,17,31,.72);
-  border:1px solid rgba(148,163,184,.10);
-}
-
-.leaderboard-rank{
-  width:26px;
-  height:26px;
-  border-radius:999px;
+  border-radius:18px;
+  border:1px solid rgba(148,163,184,.24);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.14), transparent 34%),
+    linear-gradient(180deg, rgba(18,46,78,.96), rgba(8,17,31,.96));
+  box-shadow:
+    0 12px 30px rgba(0,0,0,.24),
+    inset 0 0 0 1px rgba(255,255,255,.04);
+  color:#e5eefc;
+  cursor:pointer;
   display:grid;
-  place-items:center;
-  font-size:12px;
-  font-weight:900;
-  color:#dbeafe;
-  background:rgba(56,189,248,.16);
-  border:1px solid rgba(56,189,248,.2);
+  grid-template-columns:auto 1fr;
+  grid-template-areas:"icon name" "cooldown cooldown";
+  align-items:center;
+  column-gap:8px;
+  row-gap:4px;
+  transition:transform .14s ease, border-color .14s ease, opacity .14s ease, box-shadow .14s ease;
 }
-
-.leaderboard-main{
-  min-width:0;
+.spell-btn:hover{ transform:translateY(-1px); }
+.spell-btn.active{
+  border-color:rgba(255,255,255,.74);
+  box-shadow:0 0 0 1px rgba(255,255,255,.12), 0 14px 32px rgba(0,0,0,.28);
 }
-
-.leaderboard-name{
-  display:block;
-  font-weight:800;
-  font-size:13px;
-  color:#f8fafc;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+.spell-btn:disabled{
+  opacity:.72;
+  cursor:not-allowed;
+  transform:none;
 }
-
-.leaderboard-meta{
-  display:block;
-  margin-top:2px;
-  font-size:11px;
-  color:var(--muted);
-}
-
-.leaderboard-score{
-  font-size:13px;
-  font-weight:900;
-  color:#fde68a;
-  white-space:nowrap;
-}
-
-.leaderboard-empty{
-  padding:12px;
-  border-radius:14px;
-  color:var(--muted);
-  background:rgba(8,17,31,.6);
-  border:1px dashed rgba(148,163,184,.12);
-  font-size:13px;
-}
-
-@media (max-width:1080px){
-  .hero-actions-leaderboard{
-    width:100%;
-  }
-}
-
+.spell-btn.frost{ border-color:rgba(147,197,253,.34); }
+.spell-btn.meteor{ border-color:rgba(251,146,60,.36); }
+.spell-btn.lightning{ border-color:rgba(250,204,21,.36); }
+.spell-icon{ grid-area:icon; font-size:22px; line-height:1; }
+.spell-name{ grid-area:name; font-weight:900; letter-spacing:.05em; text-transform:uppercase; font-size:13px; }
+.spell-cooldown{ grid-area:cooldown; font-size:12px; color:#cbd5e1; opacity:.95; }
 @media (max-width:700px){
-  .hero-leaderboard{
-    padding:12px 14px;
-    border-radius:18px;
-  }
-
-  .hero-leaderboard-head h3{
-    font-size:16px;
-  }
-
-  .hero-refresh-btn{
-    min-height:36px;
-    padding:8px 10px;
-    font-size:12px;
-  }
-
-  .leaderboard-row{
-    grid-template-columns:22px 1fr auto;
-    gap:8px;
-    padding:9px 10px;
-  }
-
-  .leaderboard-rank{
-    width:22px;
-    height:22px;
-    font-size:11px;
-  }
-
-  .leaderboard-name{
-    font-size:12px;
-  }
-
-  .leaderboard-score{
-    font-size:12px;
-  }
+  .spell-controls{ left:12px; top:12px; width:min(320px, calc(100% - 24px)); gap:8px; }
+  .spell-btn{ min-width:92px; min-height:58px; padding:8px 10px; border-radius:16px; }
+  .spell-icon{ font-size:20px; }
+  .spell-name{ font-size:12px; }
+  .spell-cooldown{ font-size:11px; }
 }
