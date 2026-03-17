@@ -2,6 +2,6 @@
   "name": "dark-defense",
   "version": "1.0.0",
   "dependencies": {
-    "@netlify/neon": "^0.2.0"
+    "@netlify/neon": "^0.1.2"
   }
 }
