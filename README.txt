@@ -1,20 +1,17 @@
-Skeleton Defense - pachet reparat
+Skeleton Defense - Bonus Leaderboard UI update
 
-Bug reparat:
-- varianta anterioară pornea din ES modules, iar deschiderea directă din ZIP/file:// putea bloca JavaScript-ul în browser.
-- această variantă rulează direct prin index.html, fără server local.
+Ce s-a schimbat:
+- am scos butoanele Start Wave / Pause / Reset din hero-ul din dreapta sus
+- în locul lor apare un card compact: Online Endless Bonus Top 5
+- cardul citește topul global din /.netlify/functions/get-bonus-leaderboard
+- la Game Over în Endless Mode, jocul trimite bonus score-ul în leaderboard
 
-Fișier de pornire:
-- deschide index.html
+Ce mai trebuie:
+1. rulează sql/setup_leaderboard.sql în Neon / Netlify DB
+2. deploy pe Netlify cu package.json inclus
+3. verifică Functions logs dacă leaderboard-ul nu răspunde
 
-Conține și sursa refactorizată:
-- js_refactor_source/
-
-Patch v2:
-- reparat crash JavaScript la pornire (audioCtx declarat de două ori).
-
-
-Spell system added:
-- Frost Nova: slows enemies in an area
-- Meteor Strike: heavy AoE damage
-- Chain Lightning: hits multiple nearby enemies
+Spell system restored:
+- Frost Nova: slow AoE
+- Meteor Strike: damage AoE
+- Chain Lightning: multi-target hit

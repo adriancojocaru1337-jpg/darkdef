@@ -43,15 +43,15 @@ const startWaveBtn = document.getElementById("startWaveBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const resetBtn = document.getElementById("resetBtn");
 const resetCameraBtn = document.getElementById("resetCameraBtn");
-const frostSpellBtn = document.getElementById("frostSpellBtn");
-const frostSpellCooldown = document.getElementById("frostSpellCooldown");
-const meteorSpellBtn = document.getElementById("meteorSpellBtn");
-const meteorSpellCooldown = document.getElementById("meteorSpellCooldown");
-const lightningSpellBtn = document.getElementById("lightningSpellBtn");
-const lightningSpellCooldown = document.getElementById("lightningSpellCooldown");
-const heroStart = document.getElementById("heroStart");
-const heroPause = document.getElementById("heroPause");
-const heroReset = document.getElementById("heroReset");
+const spellSlowBtn = document.getElementById("spellSlowBtn");
+const spellDamageBtn = document.getElementById("spellDamageBtn");
+const spellBombBtn = document.getElementById("spellBombBtn");
+const spellSlowTimer = document.getElementById("spellSlowTimer");
+const spellDamageTimer = document.getElementById("spellDamageTimer");
+const spellBombTimer = document.getElementById("spellBombTimer");
+const refreshLeaderboardBtn = document.getElementById("refreshLeaderboardBtn");
+const bonusLeaderboardList = document.getElementById("bonusLeaderboardList");
+const bonusLeaderboardSubtitle = document.getElementById("bonusLeaderboardSubtitle");
 
 const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
@@ -137,9 +137,84 @@ let view = { scale: 1, minScale: 1, maxScale: 1.45, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 let isMuted = false;
 let selectedSpell = null;
-const spellState = { frost: { cooldown: 0, maxCooldown: 18, radius: 92, slowFactor: 0.45, duration: 3.2 }, meteor: { cooldown: 0, maxCooldown: 24, radius: 84, damage: 160 }, lightning: { cooldown: 0, maxCooldown: 16, damage: 90, chains: 4, chainRange: 120 } };
+const spellCooldown = { slow:0, damage:0, bomb:0 };
+const spellConfig = {
+  slow: { cooldown: 18, radius: 92, factor: 0.45, duration: 3.2 },
+  damage: { cooldown: 24, radius: 84, damage: 160 },
+  bomb: { cooldown: 16, range: 120, damage: 90, chains: 4 }
+};
 
 const achievements = { first_kill:false, builder:false, boss_hunter:false, rich:false, wave_master:false, survivor:false };
+
+
+async function loadBonusLeaderboard(){
+  if(!bonusLeaderboardList) return;
+  bonusLeaderboardSubtitle.textContent = "Încarc topul global pentru Endless bonus score...";
+  try{
+    const response = await fetch("/.netlify/functions/get-bonus-leaderboard", { cache: "no-store" });
+    if(!response.ok) throw new Error("Leaderboard unavailable");
+    const rows = await response.json();
+    if(!Array.isArray(rows) || rows.length === 0){
+      bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Nicio rundă Endless trimisă încă.</div>';
+      bonusLeaderboardSubtitle.textContent = "Fii primul care urcă un bonus score.";
+      return;
+    }
+    bonusLeaderboardList.innerHTML = rows.slice(0,5).map((row, index) => {
+      const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+      const bonus = Number(row.bonus_score || 0);
+      const waveReached = Number(row.wave_reached || 0);
+      return `
+        <div class="leaderboard-row">
+          <div class="leaderboard-rank">${index + 1}</div>
+          <div class="leaderboard-main">
+            <span class="leaderboard-name">${safeName}</span>
+            <span class="leaderboard-meta">Wave ${waveReached}</span>
+          </div>
+          <div class="leaderboard-score">+${bonus}</div>
+        </div>
+      `;
+    }).join("");
+    const best = rows[0];
+    bonusLeaderboardSubtitle.textContent = `Record: ${best.player_name} cu bonus +${best.bonus_score}.`;
+  }catch(error){
+    bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Leaderboard indisponibil momentan.</div>';
+    bonusLeaderboardSubtitle.textContent = "Conectează Netlify Functions + Neon pentru top global.";
+  }
+}
+
+async function submitBonusLeaderboardScore(){
+  if(currentMode !== "endless" || bonusScore <= 0) return;
+  let playerName = "";
+  try{
+    playerName = localStorage.getItem("sdcPlayerName") || "";
+  }catch(e){}
+  if(!playerName){
+    playerName = prompt("Numele pentru Endless Bonus leaderboard:") || "";
+  }
+  playerName = playerName.trim().slice(0, 20);
+  if(!playerName) return;
+  try{
+    localStorage.setItem("sdcPlayerName", playerName);
+  }catch(e){}
+  try{
+    const response = await fetch("/.netlify/functions/submit-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: playerName,
+        score: totalScore(),
+        bonusScore: bonusScore,
+        wave: wave,
+        kills: kills
+      })
+    });
+    if(!response.ok) throw new Error("submit failed");
+    await loadBonusLeaderboard();
+    pushNotification("achievement", "Leaderboard trimis", `${playerName} a urcat bonus +${bonusScore} în topul global.`);
+  }catch(error){
+    pushNotification("stage", "Leaderboard offline", "Scorul global nu a putut fi trimis acum.");
+  }
+}
 
 
 let audioCtx = null;
@@ -267,28 +342,29 @@ function updateAudioToggle(){
   audioToggle.title = isMuted ? "Sunet oprit" : "Sunet pornit";
 }
 
-function updateSpellUI(){
-  const defs = [
-    ["frost", frostSpellBtn, frostSpellCooldown],
-    ["meteor", meteorSpellBtn, meteorSpellCooldown],
-    ["lightning", lightningSpellBtn, lightningSpellCooldown]
+
+function updateSpellButtons(){
+  const map = [
+    ["slow", spellSlowBtn, spellSlowTimer],
+    ["damage", spellDamageBtn, spellDamageTimer],
+    ["bomb", spellBombBtn, spellBombTimer]
   ];
-  defs.forEach(([key, btn, label])=>{
-    if(!btn || !label) return;
-    const cd = spellState[key].cooldown;
+  for(const [key, btn, timerEl] of map){
+    if(!btn || !timerEl) continue;
+    const cd = spellCooldown[key];
     const ready = cd <= 0;
     btn.disabled = !hasStarted || lives<=0 || !ready;
     btn.classList.toggle("active", selectedSpell === key);
-    label.textContent = ready ? (selectedSpell===key ? "Target" : "Ready") : `${cd.toFixed(1)}s`;
-  });
+    timerEl.textContent = ready ? (selectedSpell===key ? "Target" : "Ready") : `${cd.toFixed(1)}s`;
+  }
 }
 
 function cancelSpellSelection(){
   selectedSpell = null;
-  updateSpellUI();
+  updateSpellButtons();
 }
 
-function burstParticles(x, y, colorA, colorB, count=18){
+function burstSpellParticles(x, y, colorA, colorB, count=18){
   for(let i=0;i<count;i++){
     const angle = (Math.PI * 2 * i) / count + Math.random() * 0.2;
     const speed = 40 + Math.random() * 70;
@@ -296,89 +372,87 @@ function burstParticles(x, y, colorA, colorB, count=18){
       x, y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      life: .25 + Math.random() * .18,
+      life: .24 + Math.random() * .16,
       maxLife: .42,
       color: i % 2 ? colorA : colorB
     });
   }
 }
 
-function castFrostSpell(x, y){
-  const spell = spellState.frost;
-  if(spell.cooldown > 0) return false;
+function castSlowSpell(x, y){
+  if(spellCooldown.slow > 0) return false;
+  const cfg = spellConfig.slow;
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
-    if(distance({x,y}, pos) <= spell.radius){
-      enemy.spellSlowFactor = Math.min(enemy.spellSlowFactor || 1, spell.slowFactor);
-      enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, spell.duration);
+    if(distance({x,y}, pos) <= cfg.radius){
+      enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, cfg.duration);
+      enemy.spellSlowFactor = Math.min(enemy.spellSlowFactor || 1, cfg.factor);
       affected += 1;
       addHitParticles(pos.x, pos.y, 6, "#93c5fd");
       showPopup(pos.x, pos.y - 10, "Slow!", "#93c5fd");
     }
   }
-  placementEffects.push({x, y, color:"#93c5fd", life:.45, maxLife:.45});
-  burstParticles(x, y, "#dbeafe", "#93c5fd", 18);
-  spell.cooldown = spell.maxCooldown;
+  placementEffects.push({x,y,color:"#93c5fd",life:.45,maxLife:.45});
+  burstSpellParticles(x, y, "#dbeafe", "#93c5fd", 18);
+  spellCooldown.slow = cfg.cooldown;
   cancelSpellSelection();
-  setMessage(affected>0 ? `Frost Nova a încetinit ${affected} inamici.` : "Frost Nova lansată.");
+  setMessage(affected ? `Frost Nova a încetinit ${affected} inamici.` : "Frost Nova lansată.");
   updateUI();
   return true;
 }
 
-function castMeteorSpell(x, y){
-  const spell = spellState.meteor;
-  if(spell.cooldown > 0) return false;
+function castDamageSpell(x, y){
+  if(spellCooldown.damage > 0) return false;
+  const cfg = spellConfig.damage;
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
-    if(distance({x,y}, pos) <= spell.radius){
-      enemy.hp -= spell.damage;
+    if(distance({x,y}, pos) <= cfg.radius){
+      enemy.hp -= cfg.damage;
       affected += 1;
       addHitParticles(pos.x, pos.y, 10, "#fb923c");
-      showPopup(pos.x, pos.y - 10, `-${spell.damage}`, "#fb923c");
+      showPopup(pos.x, pos.y - 10, `-${cfg.damage}`, "#fb923c");
     }
   }
-  placementEffects.push({x, y, color:"#fb923c", life:.52, maxLife:.52});
-  burstParticles(x, y, "#fdba74", "#fb923c", 22);
-  showPopup(x, y - spell.radius - 6, "Meteor!", "#fdba74");
-  spell.cooldown = spell.maxCooldown;
+  placementEffects.push({x,y,color:"#fb923c",life:.52,maxLife:.52});
+  burstSpellParticles(x, y, "#fdba74", "#fb923c", 22);
+  showPopup(x, y - cfg.radius - 6, "Meteor!", "#fdba74");
+  spellCooldown.damage = cfg.cooldown;
   cancelSpellSelection();
-  setMessage(affected>0 ? `Meteor Strike a lovit ${affected} inamici.` : "Meteor Strike lansat.");
+  setMessage(affected ? `Meteor Strike a lovit ${affected} inamici.` : "Meteor Strike lansat.");
   updateUI();
   return true;
 }
 
-function castLightningSpell(x, y){
-  const spell = spellState.lightning;
-  if(spell.cooldown > 0) return false;
+function castBombSpell(x, y){
+  if(spellCooldown.bomb > 0) return false;
+  const cfg = spellConfig.bomb;
   const inRange = enemies
-    .map(enemy => ({ enemy, pos: getPathPosition(enemy.progress), dist: distance({x,y}, getPathPosition(enemy.progress)) }))
-    .filter(item => item.dist <= spell.chainRange)
+    .map(enemy => {
+      const pos = getPathPosition(enemy.progress);
+      return { enemy, pos, dist: distance({x,y}, pos) };
+    })
+    .filter(item => item.dist <= cfg.range)
     .sort((a,b)=>a.dist-b.dist)
-    .slice(0, spell.chains);
+    .slice(0, cfg.chains);
 
   let affected = 0;
-  let lastPoint = { x, y };
   for(const item of inRange){
-    item.enemy.hp -= spell.damage;
+    item.enemy.hp -= cfg.damage;
     affected += 1;
-    particles.push({ x:lastPoint.x, y:lastPoint.y, vx:0, vy:0, life:.12, maxLife:.12, color:"#fde047" });
-    particles.push({ x:item.pos.x, y:item.pos.y, vx:0, vy:0, life:.12, maxLife:.12, color:"#fde047" });
     addHitParticles(item.pos.x, item.pos.y, 8, "#fde047");
-    showPopup(item.pos.x, item.pos.y - 10, `-${spell.damage}`, "#fde047");
-    lastPoint = item.pos;
+    showPopup(item.pos.x, item.pos.y - 10, `-${cfg.damage}`, "#fde047");
   }
 
-  placementEffects.push({x, y, color:"#fde047", life:.28, maxLife:.28});
-  burstParticles(x, y, "#fde68a", "#fde047", 14);
-  spell.cooldown = spell.maxCooldown;
+  placementEffects.push({x,y,color:"#fde047",life:.32,maxLife:.32});
+  burstSpellParticles(x, y, "#fde68a", "#fde047", 14);
+  spellCooldown.bomb = cfg.cooldown;
   cancelSpellSelection();
-  setMessage(affected>0 ? `Chain Lightning a lovit ${affected} inamici.` : "Lightning lansat.");
+  setMessage(affected ? `Chain Lightning a lovit ${affected} inamici.` : "Chain Lightning lansat.");
   updateUI();
   return true;
 }
-
 
 
 function resetCamera(){
@@ -605,9 +679,7 @@ function updateUI(){
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
 
   startWaveBtn.disabled=waveActive || lives<=0 || isPaused;
-  heroStart.disabled=waveActive || lives<=0 || isPaused;
   pauseBtn.textContent=isPaused?"Resume":"Pause";
-  heroPause.textContent=isPaused?"Resume":"Pause";
 
   Object.entries(reserveBadgeEls).forEach(([key,el])=>{ if(el) el.textContent=String(reserveCount(key)); });
   Object.entries(reservePanelEls).forEach(([key,el])=>{ if(el) el.textContent=String(reserveCount(key)); });
@@ -615,7 +687,7 @@ function updateUI(){
   Object.entries(reserveLevelEls).forEach(([key,el])=>{ if(el) el.textContent=reserveLevelLabel(key); });
   updateSelectedPanel();
   checkAchievements();
-  updateSpellUI();
+  updateSpellButtons();
 }
 
 function resetAchievementsUI(){}
@@ -629,9 +701,9 @@ function applyStage(stageNumber, resetRun=false){
   waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; isPaused=false; stageWave=1;
   stopBossLoop();
   cancelSpellSelection();
-  spellState.frost.cooldown = 0;
-  spellState.meteor.cooldown = 0;
-  spellState.lightning.cooldown = 0;
+  spellCooldown.slow = 0;
+  spellCooldown.damage = 0;
+  spellCooldown.bomb = 0;
 
   if(resetRun){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
@@ -816,9 +888,9 @@ function update(dt){
   if(lives<=0 || isPaused) return;
   bossBannerTimer=Math.max(0,bossBannerTimer-dt);
   bossFxTimer=Math.max(0,bossFxTimer-dt);
-  spellState.frost.cooldown = Math.max(0, spellState.frost.cooldown - dt);
-  spellState.meteor.cooldown = Math.max(0, spellState.meteor.cooldown - dt);
-  spellState.lightning.cooldown = Math.max(0, spellState.lightning.cooldown - dt);
+  spellCooldown.slow = Math.max(0, spellCooldown.slow - dt);
+  spellCooldown.damage = Math.max(0, spellCooldown.damage - dt);
+  spellCooldown.bomb = Math.max(0, spellCooldown.bomb - dt);
 
   if(waveActive && spawnLeft>0){
     spawnTimer += dt;
@@ -843,6 +915,7 @@ function update(dt){
         gameOverText.textContent=`Ai ajuns până la ${currentMode==="campaign" ? "stage "+currentStage : "wave "+wave} cu score ${totalScore()}.`;
         gameOverOverlay.classList.remove("hidden");
         saveProgress();
+        if(currentMode==="endless") submitBonusLeaderboardScore();
         setMessage("Game over. Scheleții au trecut de poartă.");
       }
       updateUI();
@@ -1248,29 +1321,26 @@ function drawGate(){
 }
 function drawPlacementPreview(){
   if(selectedSpell && hoveredCell){
-    const pos = { x:hoveredCell.x, y:hoveredCell.y };
-    let radius = 0;
-    let title = "";
-    let fill = "rgba(147,197,253,.10)";
-    let stroke = "rgba(147,197,253,.48)";
-    if(selectedSpell==="frost"){ radius = spellState.frost.radius; title = "Frost Nova"; }
-    if(selectedSpell==="meteor"){ radius = spellState.meteor.radius; title = "Meteor"; fill = "rgba(251,146,60,.10)"; stroke = "rgba(251,146,60,.46)"; }
-    if(selectedSpell==="lightning"){ radius = spellState.lightning.chainRange; title = "Lightning"; fill = "rgba(250,204,21,.10)"; stroke = "rgba(250,204,21,.48)"; }
+    const pos=cellCenter(hoveredCell.c, hoveredCell.r);
+    let radius=0, title="", fill="rgba(147,197,253,.10)", stroke="rgba(147,197,253,.48)";
+    if(selectedSpell==="slow"){ radius=spellConfig.slow.radius; title="Frost Nova"; }
+    if(selectedSpell==="damage"){ radius=spellConfig.damage.radius; title="Meteor"; fill="rgba(251,146,60,.10)"; stroke="rgba(251,146,60,.46)"; }
+    if(selectedSpell==="bomb"){ radius=spellConfig.bomb.range; title="Lightning"; fill="rgba(250,204,21,.10)"; stroke="rgba(250,204,21,.48)"; }
     ctx.save();
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, radius, 0, Math.PI*2);
-    ctx.fillStyle = fill;
+    ctx.arc(pos.x,pos.y,radius,0,Math.PI*2);
+    ctx.fillStyle=fill;
     ctx.fill();
-    ctx.strokeStyle = stroke;
+    ctx.strokeStyle=stroke;
     ctx.setLineDash([8,8]);
-    ctx.lineWidth = 2;
+    ctx.lineWidth=2;
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = "#f8fafc";
-    ctx.font = "bold 12px Arial";
-    ctx.textAlign = "center";
+    ctx.fillStyle="#f8fafc";
+    ctx.font="bold 12px Arial";
+    ctx.textAlign="center";
     ctx.fillText(title, pos.x, pos.y - radius - 10);
-    ctx.textAlign = "start";
+    ctx.textAlign="start";
     ctx.restore();
     return;
   }
@@ -1632,9 +1702,9 @@ canvas.addEventListener("click",(event)=>{
   ensureAudio(); hasStarted=true;
   const {x,y,c,r}=getMousePos(event);
 
-  if(selectedSpell === "frost"){ castFrostSpell(x, y); return; }
-  if(selectedSpell === "meteor"){ castMeteorSpell(x, y); return; }
-  if(selectedSpell === "lightning"){ castLightningSpell(x, y); return; }
+  if(selectedSpell === "slow"){ castSlowSpell(x, y); return; }
+  if(selectedSpell === "damage"){ castDamageSpell(x, y); return; }
+  if(selectedSpell === "bomb"){ castBombSpell(x, y); return; }
 
   let clickedUnit=null;
   for(const unit of units){
@@ -1687,11 +1757,32 @@ towerSellBtn?.addEventListener("click",(event)=>{
   sellSelectedUnit();
 });
 startWaveBtn.addEventListener("click",startWave);
-heroStart.addEventListener("click",startWave);
 pauseBtn.addEventListener("click",togglePause);
-heroPause.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
 
+spellSlowBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!hasStarted || lives<=0 || spellCooldown.slow > 0) return;
+  selectedSpell = selectedSpell === "slow" ? null : "slow";
+  setMessage(selectedSpell === "slow" ? "Alege zona pentru Frost Nova." : "Spell anulat.");
+  updateSpellButtons();
+});
+
+spellDamageBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!hasStarted || lives<=0 || spellCooldown.damage > 0) return;
+  selectedSpell = selectedSpell === "damage" ? null : "damage";
+  setMessage(selectedSpell === "damage" ? "Alege zona pentru Meteor Strike." : "Spell anulat.");
+  updateSpellButtons();
+});
+
+spellBombBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!hasStarted || lives<=0 || spellCooldown.bomb > 0) return;
+  selectedSpell = selectedSpell === "bomb" ? null : "bomb";
+  setMessage(selectedSpell === "bomb" ? "Alege zona pentru Chain Lightning." : "Spell anulat.");
+  updateSpellButtons();
+});
 
 resetCameraBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
@@ -1699,35 +1790,12 @@ resetCameraBtn?.addEventListener("click",(event)=>{
   setMessage(unitInfoPanel?.classList.contains("hidden") ? "Panou unități închis." : "Panou unități deschis.");
   updateUI();
 });
-heroReset.addEventListener("click",resetGame);
-
-
-frostSpellBtn?.addEventListener("click",(event)=>{
-  event.stopPropagation();
-  if(!hasStarted || lives<=0 || spellState.frost.cooldown > 0) return;
-  selectedSpell = selectedSpell === "frost" ? null : "frost";
-  setMessage(selectedSpell === "frost" ? "Alege zona pentru Frost Nova." : "Spell anulat.");
-  updateSpellUI();
-});
-meteorSpellBtn?.addEventListener("click",(event)=>{
-  event.stopPropagation();
-  if(!hasStarted || lives<=0 || spellState.meteor.cooldown > 0) return;
-  selectedSpell = selectedSpell === "meteor" ? null : "meteor";
-  setMessage(selectedSpell === "meteor" ? "Alege zona pentru Meteor Strike." : "Spell anulat.");
-  updateSpellUI();
-});
-lightningSpellBtn?.addEventListener("click",(event)=>{
-  event.stopPropagation();
-  if(!hasStarted || lives<=0 || spellState.lightning.cooldown > 0) return;
-  selectedSpell = selectedSpell === "lightning" ? null : "lightning";
-  setMessage(selectedSpell === "lightning" ? "Alege zona pentru Chain Lightning." : "Spell anulat.");
-  updateSpellUI();
-});
 
 startGameBtn.addEventListener("click",()=>{
   hasStarted=true; ensureAudio();
   startOverlay.classList.add("hidden");
   loadProgressNotice();
+  loadBonusLeaderboard();
   setMessage("Campania a început. Plasează unități, pornește wave-ul și folosește spell-urile la nevoie.");
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
@@ -1737,6 +1805,7 @@ restartFromGameOverBtn.addEventListener("click",()=>{
 
 updateAudioToggle();
 applyStage(1,true);
+loadBonusLeaderboard();
 draw();
 requestAnimationFrame(gameLoop);
 
@@ -1886,3 +1955,5 @@ notificationToggle?.addEventListener("click",()=>{
     notificationBadge?.classList.add("hidden");
   }
 });
+
+refreshLeaderboardBtn?.addEventListener("click", ()=>{ loadBonusLeaderboard(); });
