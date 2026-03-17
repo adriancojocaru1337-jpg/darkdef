@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skeleton Defense Campaign</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="page-shell"></div>
+
+  <div class="screen-overlay visible" id="startOverlay">
+    <div class="overlay-card">
+      <h1>Skeleton Defense</h1>
+      <p>
+        Campanie fantasy tower defense. Treci prin mai multe stage-uri, bate boss-ul de la finalul fiecărei hărți,
+        apoi deblochează Endless Mode.
+      </p>
+      <div class="overlay-quick-guide">
+        <div class="quick-guide-title">Shortcut-uri</div>
+        <div class="quick-guide-grid">
+          <span><kbd>Space</kbd> Start / Pause</span>
+          <span><kbd>R</kbd> Reset run</span>
+          <span><kbd>V</kbd> Unit panel</span>
+          <span><kbd>Esc</kbd> Închide meniuri</span>
+        </div>
+      </div>
+      <div class="overlay-actions">
+        <button class="btn btn-primary" id="startGameBtn">Play Campaign</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-overlay hidden" id="gameOverOverlay">
+    <div class="overlay-card overlay-danger">
+      <h1>Armata scheleților a trecut</h1>
+      <p id="gameOverText">Încearcă din nou și optimizează pozițiile unităților.</p>
+      <div class="overlay-actions">
+        <button class="btn btn-primary" id="restartFromGameOverBtn">Restart</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="app">
+    <section class="hero glass">
+      <div class="hero-copy">
+        <h1>Skeleton Defense Campaign</h1>
+        <p>
+          Forest, Ruins, Graveyard, Castle, Catacombs, Dark Portal. Fiecare stage devine mai greu,
+          iar după campanie deblochezi Endless Mode.
+        </p>
+      </div>
+
+        <div class="hero-actions hero-actions-leaderboard">
+    <section class="hero-leaderboard glass">
+      <div class="hero-leaderboard-head">
+        <div>
+          <div class="panel-kicker">Online</div>
+          <h3>Endless Bonus Top 5</h3>
+        </div>
+        <button class="btn btn-secondary hero-refresh-btn" id="refreshLeaderboardBtn" type="button">Refresh</button>
+      </div>
+      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Caut cele mai bune bonus score-uri...</div>
+      <div class="hero-leaderboard-list" id="bonusLeaderboardList">
+        <div class="leaderboard-empty">Nicio înregistrare încă.</div>
+      </div>
+    </section>
+  </div>
+</section>
+
+    <section class="layout">
+      <section class="game-panel glass">
+        <header class="panel-header">
+          <div>
+            <div class="panel-kicker">Battlefield</div>
+            <h2>Apără drumul până la poartă</h2>
+          </div>
+
+
+        </header>
+
+        <div class="canvas-wrap" id="canvasWrap">
+          <button class="audio-toggle" id="audioToggle" aria-label="Sunet pornit" title="Toggle audio">🔊</button>
+          <canvas id="gameCanvas" width="672" height="448"></canvas>
+          <div class="canvas-overlay">
+            <div class="overlay-chip" id="hintChip">Click pe celule libere pentru plasare. Click pe unități pentru upgrade.</div>
+            <div class="canvas-top-hud single-row">
+              <div class="badge money" id="moneyBadge">💰 150</div>
+              <div class="badge lives" id="livesBadge">❤️ 20</div>
+              <div class="badge wave" id="waveBadge">🌊 Wave 1</div>
+              <div class="badge level" id="stageBadge">🗺️ Stage 1 · Forest</div>
+            </div>
+          </div>
+
+          <div class="map-controls" id="mapControls">
+            <button class="map-btn map-btn-start" id="startWaveBtn" title="Start Wave">✦</button>
+            <button class="map-btn map-btn-pause" id="pauseBtn" title="Pause"><span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span></button>
+            <button class="map-btn map-btn-reset" id="resetBtn" title="Reset Run">✕</button>
+            <button class="map-btn map-btn-camera" id="resetCameraBtn" title="Reset Camera">◉</button>
+          </div>
+
+          <aside class="unit-info-panel hidden" id="unitInfoPanel">
+            <div class="unit-info-header">
+              <strong>Unități</strong>
+            </div>
+
+            <button class="unit-info-card active" data-type="archer">
+              <div class="unit-info-top">
+                <strong>🏹 Archer</strong>
+                <span class="unit-info-count" id="panel-reserve-archer">0</span>
+              </div>
+              <div class="unit-info-meta">Cost 50 · Range 120 · Fast</div>
+            </button>
+
+            <button class="unit-info-card" data-type="hunter">
+              <div class="unit-info-top">
+                <strong>🎯 Hunter</strong>
+                <span class="unit-info-count" id="panel-reserve-hunter">0</span>
+              </div>
+              <div class="unit-info-meta">Cost 90 · Range 178 · Power</div>
+            </button>
+
+            <button class="unit-info-card" data-type="mage">
+              <div class="unit-info-top">
+                <strong>🔮 Mage</strong>
+                <span class="unit-info-count" id="panel-reserve-mage">0</span>
+              </div>
+              <div class="unit-info-meta">Cost 120 · Range 150 · Splash</div>
+            </button>
+
+            <button class="unit-info-card" data-type="bomb">
+              <div class="unit-info-top">
+                <strong>💣 Bomb</strong>
+                <span class="unit-info-count" id="panel-reserve-bomb">0</span>
+              </div>
+              <div class="unit-info-meta">Cost 140 · Range 140 · Blast</div>
+            </button>
+          </aside>
+
+          <div id="towerMenu" class="tower-menu hidden">
+            <div class="tower-menu-header">
+              <strong id="towerMenuName">Archer</strong>
+              <span id="towerMenuLevel">Lv.1</span>
+            </div>
+            <div class="tower-menu-stats" id="towerMenuStats">Damage 18 · Range 120</div>
+            <div class="tower-menu-actions">
+              <button class="btn btn-primary" id="towerUpgradeBtn">⬆ Upgrade</button>
+              <button class="btn btn-secondary" id="towerSellBtn">💰 Sell</button>
+            </div>
+          </div>
+        </div>
+
+        <section class="glass notification-panel collapsed" id="notificationPanel">
+          <div class="notification-header">
+            <h3>Notificări</h3>
+            <div class="notification-header-actions">
+              <span class="mini-pill neutral hidden" id="notificationBadge">Nou</span>
+              <button class="notification-toggle" id="notificationToggle" aria-label="Expandă notificările">▾</button>
+            </div>
+          </div>
+          <div id="notificationEmpty" class="notification-empty">Momentan nu există notificări.</div>
+          <div id="notificationFeed" class="notification-feed hidden"></div>
+        </section>
+      </section>
+
+      <aside class="sidebar">
+        <section class="glass side-card">
+          <div class="side-title-row">
+            <h3>Control</h3>
+            <span class="mini-pill" id="statusPill">Ready</span>
+          </div>
+
+          <div class="progress-box">
+            <div class="progress-row">
+              <span>Progres wave</span>
+              <span id="progressText">Pregătit</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="waveFill"></div>
+            </div>
+          </div>
+
+
+
+          <div class="message-box" id="messageBox">Plasează unități și pornește primul wave.</div>
+        </section>
+<section class="glass side-card stats-card">
+          <h3>Statistici</h3>
+          <div class="stats-grid">
+            <div class="stat-item"><span>Inamici pe hartă</span><strong id="enemyCountStat">0</strong></div>
+            <div class="stat-item"><span>Unități plasate</span><strong id="towerCountStat">0</strong></div>
+            <div class="stat-item"><span>Eliminări</span><strong id="killsStat">0</strong></div>
+            <div class="stat-item"><span>Boss wave</span><strong id="bossInfoStat">5</strong></div>
+          </div>
+        </section>
+
+        <section class="glass side-card stats-card">
+          <h3>Score</h3>
+          <div class="stats-grid">
+            <div class="stat-item"><span>Score total</span><strong id="scoreStat">0</strong></div>
+            <div class="stat-item"><span>Bonus score</span><strong id="bonusScoreStat">0</strong></div>
+            <div class="stat-item"><span>Stage curent</span><strong id="stageNumberStat">1</strong></div>
+            <div class="stat-item"><span>Wave în stage</span><strong id="stageWaveStat">1</strong></div>
+          </div>
+        </section>
+
+        <section class="glass side-card shortcuts-card">
+          <h3>Shortcut-uri</h3>
+          <div class="shortcut-list">
+            <div class="shortcut-item"><kbd>Space</kbd><span>Start wave / Pause / Resume</span></div>
+            <div class="shortcut-item"><kbd>R</kbd><span>Reset run</span></div>
+            <div class="shortcut-item"><kbd>V</kbd><span>Arată / ascunde panoul unități</span></div>
+            <div class="shortcut-item"><kbd>Esc</kbd><span>Închide meniuri și selecții</span></div>
+            <div class="shortcut-item"><kbd>1-4</kbd><span>Selectează rapid unitatea</span></div>
+          </div>
+        </section>
+
+        <section class="glass side-card stats-card">
+          <h3>Mode</h3>
+          <div class="stats-grid">
+            <div class="stat-item"><span>Mod activ</span><strong id="modeStat">Campaign</strong></div>
+            <div class="stat-item"><span>Best score</span><strong id="bestScoreStat">0</strong></div>
+            <div class="stat-item"><span>Furthest stage</span><strong id="furthestStageStat">1</strong></div>
+            <div class="stat-item"><span>Endless</span><strong id="endlessUnlockedStat">No</strong></div>
+          </div>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

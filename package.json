@@ -1,0 +1,8 @@
+{
+  "name": "skeleton-defense-global-bonus-leaderboard",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@netlify/neon": "^0.2.0"
+  }
+}
