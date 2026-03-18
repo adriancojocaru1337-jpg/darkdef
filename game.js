@@ -496,6 +496,32 @@ function screenToWorld(x, y){
 }
 
 
+
+
+function updateMobileViewportLayout(){
+  const viewport = window.visualViewport;
+  const viewportWidth = viewport?.width || window.innerWidth;
+  const viewportHeight = viewport?.height || window.innerHeight;
+  const isMobile = viewportWidth <= 700;
+  document.body.classList.toggle("mobile-focus-mode", isMobile);
+  document.documentElement.style.setProperty("--app-vh", `${viewportHeight}px`);
+
+  if(!isMobile){
+    document.documentElement.style.setProperty("--mobile-top-ui", `150px`);
+    document.documentElement.style.setProperty("--mobile-bottom-ui", `185px`);
+    return;
+  }
+
+  const hero = document.querySelector('.hero');
+  const panelHeader = document.querySelector('.panel-header');
+  const sidebar = document.querySelector('.sidebar');
+  const topUi = Math.max(92, Math.ceil((hero?.getBoundingClientRect().height || 76) + (panelHeader?.getBoundingClientRect().height || 42) + 10));
+  const bottomUi = Math.max(150, Math.ceil((sidebar?.getBoundingClientRect().height || 150) + 24));
+
+  document.documentElement.style.setProperty("--mobile-top-ui", `${topUi}px`);
+  document.documentElement.style.setProperty("--mobile-bottom-ui", `${bottomUi}px`);
+}
+
 function hideUnitInfoPanel(){
   unitInfoPanel?.classList.add("hidden");
   resetCameraBtn?.classList.remove("active");
@@ -1803,6 +1829,12 @@ restartFromGameOverBtn.addEventListener("click",()=>{
   resetGame();
 });
 
+
+updateMobileViewportLayout();
+window.addEventListener("resize", updateMobileViewportLayout);
+window.addEventListener("orientationchange", updateMobileViewportLayout);
+window.visualViewport?.addEventListener("resize", updateMobileViewportLayout);
+
 updateAudioToggle();
 applyStage(1,true);
 loadBonusLeaderboard();
@@ -1893,7 +1925,13 @@ audioToggle?.addEventListener("click",(event)=>{
     Object.values(audioAssets).forEach((pool)=>pool.setMuted(isMuted));
   }
   if(isMuted) stopBossLoop();
-  updateAudioToggle();
+  
+updateMobileViewportLayout();
+window.addEventListener("resize", updateMobileViewportLayout);
+window.addEventListener("orientationchange", updateMobileViewportLayout);
+window.visualViewport?.addEventListener("resize", updateMobileViewportLayout);
+
+updateAudioToggle();
   setMessage(isMuted ? "Sunet oprit." : "Sunet pornit.");
 });
 

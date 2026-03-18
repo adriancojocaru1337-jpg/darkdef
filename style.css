@@ -1852,3 +1852,195 @@ kbd{
   .spell-caption{ font-size:9px; }
   .spell-timer{ font-size:10px; }
 }
+
+
+/* Mobile near-fullscreen battlefield */
+html, body {
+  overflow-x: hidden;
+}
+
+#gameCanvas {
+  touch-action: none;
+}
+
+:root {
+  --app-vh: 100vh;
+  --mobile-top-ui: 150px;
+  --mobile-bottom-ui: 185px;
+}
+
+@media (max-width:700px){
+  body.mobile-focus-mode {
+    overscroll-behavior-y: contain;
+  }
+
+  body.mobile-focus-mode .page-shell {
+    display:none;
+  }
+
+  body.mobile-focus-mode .app {
+    max-width:none;
+    padding:0;
+  }
+
+  body.mobile-focus-mode .hero {
+    margin:0;
+    border-radius:0 0 18px 18px;
+    padding:10px 12px 12px;
+    gap:10px;
+  }
+
+  body.mobile-focus-mode .hero h1 {
+    font-size:22px;
+    margin-bottom:6px;
+  }
+
+  body.mobile-focus-mode .hero p {
+    font-size:13px;
+    line-height:1.4;
+  }
+
+  body.mobile-focus-mode .hero-actions,
+  body.mobile-focus-mode .hero-copy p,
+  body.mobile-focus-mode .hero-leaderboard,
+  body.mobile-focus-mode .shortcuts-card,
+  body.mobile-focus-mode .stats-card {
+    display:none;
+  }
+
+  body.mobile-focus-mode .layout {
+    display:block;
+    gap:0;
+  }
+
+  body.mobile-focus-mode .game-panel {
+    border-radius:0;
+    border-left:none;
+    border-right:none;
+    min-height:calc(var(--app-vh) - var(--mobile-top-ui));
+    box-shadow:none;
+    background:linear-gradient(180deg, rgba(11,18,32,.82), rgba(8,17,31,.9));
+  }
+
+  body.mobile-focus-mode .panel-header {
+    padding:8px 10px 6px;
+  }
+
+  body.mobile-focus-mode .panel-header h2 {
+    font-size:14px;
+  }
+
+  body.mobile-focus-mode .canvas-wrap {
+    min-height:calc(var(--app-vh) - var(--mobile-top-ui) - var(--mobile-bottom-ui));
+    padding:6px 6px 120px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  body.mobile-focus-mode #gameCanvas {
+    width:min(100vw - 12px, calc((var(--app-vh) - var(--mobile-top-ui) - var(--mobile-bottom-ui)) * 1.5));
+    max-width:100%;
+    height:auto;
+    max-height:calc(var(--app-vh) - var(--mobile-top-ui) - var(--mobile-bottom-ui));
+    margin:0 auto;
+    border-radius:18px;
+  }
+
+  body.mobile-focus-mode .canvas-overlay {
+    top:10px;
+    left:10px;
+    right:10px;
+  }
+
+  body.mobile-focus-mode #hintChip {
+    display:none;
+  }
+
+  body.mobile-focus-mode .canvas-top-hud.single-row {
+    left:10px;
+    right:10px;
+    top:8px;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+    gap:4px;
+  }
+
+  body.mobile-focus-mode .canvas-top-hud.single-row .badge {
+    font-size:10px;
+    padding:4px 6px;
+    border-radius:9px;
+  }
+
+  body.mobile-focus-mode .map-controls {
+    right:10px;
+    bottom:10px;
+    grid-template-columns:repeat(2, 48px);
+    gap:8px;
+  }
+
+  body.mobile-focus-mode .map-btn,
+  body.mobile-focus-mode .map-btn-pause {
+    width:48px;
+    height:48px;
+    min-height:48px;
+    border-radius:15px;
+  }
+
+  body.mobile-focus-mode .map-btn {
+    font-size:18px;
+  }
+
+  body.mobile-focus-mode .map-btn::before,
+  body.mobile-focus-mode .map-btn-pause::before {
+    font-size:7px;
+    bottom:3px;
+  }
+
+  body.mobile-focus-mode .map-spells {
+    left:10px;
+    right:72px;
+    bottom:10px;
+    gap:8px;
+  }
+
+  body.mobile-focus-mode .spell-btn {
+    min-height:54px;
+    border-radius:16px;
+    padding:8px 10px;
+  }
+
+  body.mobile-focus-mode .spell-caption {
+    font-size:11px;
+  }
+
+  body.mobile-focus-mode .spell-timer {
+    font-size:10px;
+  }
+
+  body.mobile-focus-mode .tower-menu {
+    max-width:172px;
+  }
+
+  body.mobile-focus-mode .notification-panel,
+  body.mobile-focus-mode .sidebar {
+    margin:0;
+  }
+
+  body.mobile-focus-mode .sidebar {
+    padding:10px 10px calc(env(safe-area-inset-bottom, 0px) + 10px);
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+
+  body.mobile-focus-mode .side-card {
+    border-radius:18px;
+    padding:14px;
+  }
+
+  body.mobile-focus-mode .message-box {
+    margin-top:10px;
+    min-height:auto;
+  }
+}
