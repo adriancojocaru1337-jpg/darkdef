@@ -191,6 +191,9 @@ let pendingAuraDraft = null;
 let pendingAuraChoice = null;
 let pendingBossResolution = null;
 
+let leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
+let leaderboardRunPromise = null;
+
 const achievements = { first_kill:false, builder:false, boss_hunter:false, rich:false, wave_master:false, survivor:false };
 
 
@@ -393,7 +396,7 @@ function resolveBossWaveCompletion(){
     wave += 1;
     moveUnitsToReserve();
     saveProgress();
-    setMessage(`Campania e completă! Endless Mode a fost deblocat.`);
+    setMessage(`Ai terminat povestea principală. Endless Mode a fost deblocat.`);
   } else if(resolution.type === "endless-next") {
     stageWave += 1;
     wave += 1;
@@ -405,6 +408,47 @@ function resolveBossWaveCompletion(){
   updateUI();
 }
 
+
+
+async function requestLeaderboardRun(modeHint=currentMode){
+  try{
+    const response = await fetch("/.netlify/functions/start-run", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ mode: modeHint === "endless" ? "endless" : "campaign" })
+    });
+    if(!response.ok) throw new Error("run token unavailable");
+    const data = await response.json();
+    if(!data?.runId || !data?.runToken) throw new Error("invalid run token");
+    leaderboardRun = {
+      runId: data.runId,
+      runToken: data.runToken,
+      expiresAt: Number(data.expiresAt || 0),
+      clientStartedAt: Date.now(),
+      mode: data.mode || modeHint || currentMode
+    };
+    return leaderboardRun;
+  }catch(error){
+    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:modeHint || currentMode };
+    throw error;
+  }
+}
+
+function prewarmLeaderboardRun(modeHint=currentMode){
+  leaderboardRunPromise = requestLeaderboardRun(modeHint).catch(()=>null).finally(()=>{ leaderboardRunPromise = null; });
+  return leaderboardRunPromise;
+}
+
+async function ensureLeaderboardRun(modeHint=currentMode){
+  const mode = modeHint || currentMode;
+  const stillValid = leaderboardRun.runId && leaderboardRun.runToken && leaderboardRun.expiresAt > (Date.now() + 5000) && leaderboardRun.mode === mode;
+  if(stillValid) return leaderboardRun;
+  if(leaderboardRunPromise) {
+    try{ await leaderboardRunPromise; }catch(e){}
+    if(leaderboardRun.runId && leaderboardRun.runToken && leaderboardRun.expiresAt > (Date.now() + 5000) && leaderboardRun.mode === mode) return leaderboardRun;
+  }
+  return await requestLeaderboardRun(mode);
+}
 
 async function loadBonusLeaderboard(){
   if(!bonusLeaderboardList) return;
@@ -456,6 +500,7 @@ async function submitBonusLeaderboardScore(){
     localStorage.setItem("sdcPlayerName", playerName);
   }catch(e){}
   try{
+    await ensureLeaderboardRun("endless");
     const response = await fetch("/.netlify/functions/submit-score", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -464,10 +509,15 @@ async function submitBonusLeaderboardScore(){
         score: totalScore(),
         bonusScore: bonusScore,
         wave: wave,
-        kills: kills
+        kills: kills,
+        runId: leaderboardRun.runId,
+        runToken: leaderboardRun.runToken,
+        clientStartedAt: leaderboardRun.clientStartedAt,
+        elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
       })
     });
     if(!response.ok) throw new Error("submit failed");
+    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"endless" };
     await loadBonusLeaderboard();
     pushNotification("achievement", "Leaderboard trimis", `${playerName} a urcat bonus +${bonusScore} în topul global.`);
   }catch(error){
@@ -934,7 +984,7 @@ function updateUI(){
   bonusScoreStat.textContent=String(bonusScore);
   stageNumberStat.textContent=String(currentStage);
   stageWaveStat.textContent=String(stageWave);
-  modeStat.textContent=currentMode==="campaign" ? "Campaign" : "Endless";
+  modeStat.textContent=currentMode==="campaign" ? "Story" : "Endless";
   bestScoreStat.textContent=String(Number(localStorage.getItem("sdcBestScore")||0));
   furthestStageStat.textContent=String(Number(localStorage.getItem("sdcFurthestStage")||1));
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
@@ -983,7 +1033,7 @@ function applyStage(stageNumber, resetRun=false){
   setMessage(`A început Stage ${currentStage} — ${STAGES[currentStage].name}. Replasează unitățile din rezervă fără cost.`);
   updateUI();
 }
-const resetGame=()=>{ showHintChip(); resetCamera(); applyStage(1,true); };
+const resetGame=()=>{ showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
 
 function startWave(){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
@@ -2163,7 +2213,7 @@ startGameBtn.addEventListener("click",()=>{
   startOverlay.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
-  setMessage("Campania a început. Plasează unități, pornește wave-ul și folosește spell-urile la nevoie.");
+  setMessage("Dark Defense a început. Plasează unități, pornește wave-ul și folosește spell-urile la nevoie.");
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
@@ -2173,6 +2223,7 @@ restartFromGameOverBtn.addEventListener("click",()=>{
 updateAudioToggle();
 applyStage(1,true);
 loadBonusLeaderboard();
+prewarmLeaderboardRun("campaign");
 draw();
 requestAnimationFrame(gameLoop);
 

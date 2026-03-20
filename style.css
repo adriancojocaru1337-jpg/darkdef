@@ -1940,3 +1940,63 @@ kbd{
 @media (max-width:780px){
   .reward-grid{ grid-template-columns:1fr; }
 }
+
+
+.seo-copy{
+  margin-bottom:22px;
+  padding:22px 24px;
+  border-radius:28px;
+}
+
+.seo-copy-grid{
+  display:grid;
+  grid-template-columns:1.3fr 1fr;
+  gap:22px;
+  align-items:start;
+}
+
+.seo-copy h2{
+  margin:8px 0 10px;
+  font-size:clamp(22px, 2.4vw, 32px);
+}
+
+.seo-copy p{
+  margin:0;
+  color:var(--muted);
+  line-height:1.7;
+}
+
+.seo-feature-list{
+  margin:8px 0 0;
+  padding-left:18px;
+  color:#dbe7f7;
+  line-height:1.7;
+}
+
+.seo-feature-list li + li{
+  margin-top:4px;
+}
+
+@media (max-width:900px){
+  .seo-copy-grid{
+    grid-template-columns:1fr;
+    gap:16px;
+  }
+}
+
+@media (max-width:700px){
+  .seo-copy{
+    padding:16px;
+    border-radius:22px;
+    margin-bottom:14px;
+  }
+
+  .seo-copy h2{
+    font-size:20px;
+  }
+
+  .seo-copy p,
+  .seo-feature-list{
+    font-size:13px;
+  }
+}

@@ -3,18 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Skeleton Defense Campaign</title>
+  <title>Dark Defense - Fantasy Tower Defense Browser Game</title>
+  <meta name="description" content="Dark Defense is a fantasy tower defense browser game with boss fights, endless mode, upgrades, spells, legendary auras, and an online leaderboard." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="keywords" content="dark defense, tower defense browser game, fantasy tower defense, html5 tower defense, browser strategy game, endless mode game, dark fantasy defense game" />
+  <meta name="author" content="Dark Defense" />
+  <meta name="theme-color" content="#08111f" />
+  <meta name="application-name" content="Dark Defense" />
+  <meta name="apple-mobile-web-app-title" content="Dark Defense" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Dark Defense" />
+  <meta property="og:title" content="Dark Defense - Fantasy Tower Defense Browser Game" />
+  <meta property="og:description" content="Defend the road, beat bosses, unlock endless mode, and climb the online leaderboard in Dark Defense." />
+  <meta property="og:locale" content="ro_RO" />
+  <meta property="og:url" content="https://darkdefense.netlify.app/" />
+  <meta property="og:image" content="https://darkdefense.netlify.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:image" content="https://darkdefense.netlify.app/og-image.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Dark Defense - Fantasy Tower Defense Browser Game" />
+  <meta name="twitter:description" content="Play Dark Defense in your browser: boss fights, spells, upgrades, endless mode, and leaderboard runs." />
+  <link rel="canonical" href="https://darkdefense.netlify.app/" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="icon" href="/favicon.png" />
   <link rel="stylesheet" href="style.css" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Dark Defense",
+    "url": "https://darkdefense.netlify.app/",
+    "image": "https://darkdefense.netlify.app/og-image.png",
+    "description": "Dark Defense is a fantasy tower defense browser game with boss fights, endless mode, spells, upgrades, and an online leaderboard.",
+    "genre": ["Tower Defense", "Strategy", "Fantasy"],
+    "playMode": "SinglePlayer",
+    "applicationCategory": "Game",
+    "operatingSystem": "Web Browser",
+    "inLanguage": ["ro", "en"]
+  }
+  </script>
 </head>
 <body>
   <div class="page-shell"></div>
 
   <div class="screen-overlay visible" id="startOverlay">
     <div class="overlay-card">
-      <h1>Skeleton Defense</h1>
+      <h1>Dark Defense</h1>
       <p>
-        Campanie fantasy tower defense. Treci prin mai multe stage-uri, bate boss-ul de la finalul fiecărei hărți,
-        apoi deblochează Endless Mode.
+        Fantasy tower defense în browser. Apără drumul, învinge boss-ii, upgradează turnurile, folosește spell-uri și urcă în top în Endless Mode cu leaderboard securizat.
       </p>
       <div class="overlay-quick-guide">
         <div class="quick-guide-title">Shortcut-uri</div>
@@ -26,7 +63,7 @@
         </div>
       </div>
       <div class="overlay-actions">
-        <button class="btn btn-primary" id="startGameBtn">Play Campaign</button>
+        <button class="btn btn-primary" id="startGameBtn">Play</button>
       </div>
     </div>
   </div>
@@ -54,10 +91,9 @@
   <main class="app">
     <section class="hero glass">
       <div class="hero-copy">
-        <h1>Skeleton Defense Campaign</h1>
+        <h1>Dark Defense</h1>
         <p>
-          Forest, Ruins, Graveyard, Castle, Catacombs, Dark Portal. Fiecare stage devine mai greu,
-          iar după campanie deblochezi Endless Mode.
+          Fantasy tower defense cu boss fights, upgrade-uri, spell-uri, auras legendare și Endless Mode. Joacă direct în browser și urcă în leaderboard.
         </p>
       </div>
 
@@ -77,6 +113,25 @@
     </section>
   </div>
 </section>
+
+    <section class="glass seo-copy" aria-labelledby="aboutDarkDefenseTitle">
+      <div class="seo-copy-grid">
+        <div>
+          <div class="panel-kicker">About</div>
+          <h2 id="aboutDarkDefenseTitle">Fantasy tower defense playable instantly in browser</h2>
+          <p>Dark Defense este un joc tower defense fantasy HTML5 în care aperi traseul, investești în turnuri, alegi spell-uri, învingi boss-i și supraviețuiești valurilor din ce în ce mai grele.</p>
+        </div>
+        <div>
+          <div class="panel-kicker">Features</div>
+          <ul class="seo-feature-list">
+            <li>Boss fights pe mai multe hărți</li>
+            <li>Spells active: Frost Nova, Meteor Strike, Chain Lightning</li>
+            <li>Endless Mode și bonus leaderboard online</li>
+            <li>Upgrade-uri, auras legendare și progres local</li>
+          </ul>
+        </div>
+      </div>
+    </section>
 
     <section class="layout">
       <section class="game-panel glass">

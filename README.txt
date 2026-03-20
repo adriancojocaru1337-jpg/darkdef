@@ -1,4 +1,4 @@
-Skeleton Defense - Bonus Leaderboard UI update
+Dark Defense - Bonus Leaderboard UI update
 
 Ce s-a schimbat:
 - am scos butoanele Start Wave / Pause / Reset din hero-ul din dreapta sus
@@ -15,3 +15,9 @@ Spell system restored:
 - Frost Nova: slow AoE
 - Meteor Strike: damage AoE
 - Chain Lightning: multi-target hit
+
+
+Serious anti-cheat update:
+- create /.netlify/functions/start-run before a real run
+- submit-score validates signed run tokens, DB-backed rate limits, IP/user-agent fingerprint, single-use run IDs, and plausibility checks
+- run setup_leaderboard.sql again after this update
