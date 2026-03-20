@@ -136,8 +136,8 @@ const AURA_REWARDS = {
     icon:"🔥",
     className:"inferno",
     color:"#fb923c",
-    desc:"Arde țintele agresiv și face explozie la kill pentru clear de valuri.",
-    bullets:["Burn 3s","35% damage/sec din lovitură","Explozie 60% damage la kill"]
+    desc:"Aggressively burns targets and triggers an explosion on kill for strong wave clear.",
+    bullets:["Burn 3s","35% damage/sec from hit","60% damage explosion on kill"]
   },
   frost: {
     id:"frost",
@@ -145,8 +145,8 @@ const AURA_REWARDS = {
     icon:"❄",
     className:"frost",
     color:"#67e8f9",
-    desc:"Slow puternic, apoi freeze real după câteva lovituri pe aceeași țintă.",
-    bullets:["Slow 22% timp de 1.8s","Freeze 0.9s după 4 hituri","Freeze cooldown 4s / enemy"]
+    desc:"Applies a heavy slow, then a real freeze after repeated hits on the same target.",
+    bullets:["22% slow for 1.8s","Freeze 0.9s after 4 hits","Freeze cooldown 4s / enemy"]
   },
   storm: {
     id:"storm",
@@ -154,8 +154,8 @@ const AURA_REWARDS = {
     icon:"⚡",
     className:"storm",
     color:"#fde047",
-    desc:"Lovește ținta principală și sare instant spre alte ținte apropiate.",
-    bullets:["2 chain jumps","65% chain damage","+20% damage dacă e single target"]
+    desc:"Hits the main target and instantly jumps to nearby enemies.",
+    bullets:["2 chain jumps","65% chain damage","+20% damage if single target"]
   },
   wealth: {
     id:"wealth",
@@ -163,7 +163,7 @@ const AURA_REWARDS = {
     icon:"💰",
     className:"wealth",
     color:"#fbbf24",
-    desc:"Transformă turnul într-un motor de snowball cu gold, score și buff temporar.",
+    desc:"Turns the tower into a snowball engine with extra gold, score, and a temporary buff.",
     bullets:["+40% gold la kill","+25 bonus score la kill","Pact Surge la fiecare 8 killuri"]
   }
 };
@@ -339,8 +339,8 @@ function showAuraRewardOverlay(){
   pendingAuraDraft = randomAuraDraft(3);
   pendingAuraChoice = null;
   renderAuraRewardCards();
-  auraRewardText.textContent = "Boss-ul a fost învins. Alege 1 din 3 aura legendare, apoi aplic-o pe un singur turn. Aura rămâne pe acel turn și în stage-urile următoare.";
-  auraRewardNote.textContent = units.length ? "Alege reward-ul, apoi dă click pe turnul pe care vrei să rămână aura." : "Nu ai niciun turn pe hartă. Reward-ul va fi sărit.";
+  auraRewardText.textContent = "The boss has been defeated. Choose 1 of 3 legendary auras, then apply it to a single tower. That aura stays on the tower in future stages.";
+  auraRewardNote.textContent = units.length ? "Choose the reward, then click the tower that should keep the aura." : "You have no towers on the map. The reward will be skipped.";
   auraRewardOverlay.classList.remove("hidden");
   isPaused = true;
   updateUI();
@@ -352,7 +352,7 @@ function hideAuraRewardOverlay(){
 
 function beginBossAuraReward(){
   if(!units.length){
-    pushNotification("stage", "Aura ratată", "Nu exista niciun turn pe hartă pentru reward-ul de boss.");
+    pushNotification("stage", "Aura missed", "There was no tower on the field for the boss reward.");
     resolveBossWaveCompletion();
     return;
   }
@@ -366,8 +366,8 @@ function applyPendingAuraToUnit(unit){
   unit.auraIcon = pendingAuraChoice.icon;
   pendingAuraChoice = null;
   hideAuraRewardOverlay();
-  pushNotification("achievement", "Aura aplicată", `${unit.name} a primit ${unit.auraName}. Va păstra aura și în stage-urile următoare.`);
-  setMessage(`${unit.name} a primit ${unit.auraName}.`);
+  pushNotification("achievement", "Aura applied", `${unit.name} received ${unit.auraName}. It will keep the aura in future stages.`);
+  setMessage(`${unit.name} received ${unit.auraName}.`);
   showPopup(cellCenter(unit.c, unit.r).x, cellCenter(unit.c, unit.r).y - 18, unit.auraName, getAuraData(unit.auraType)?.color || "#fde68a");
   resolveBossWaveCompletion();
   return true;
@@ -383,13 +383,13 @@ function resolveBossWaveCompletion(){
     wave += 1;
     moveUnitsToReserve();
     applyStage(resolution.nextStage,false);
-    pushNotification("stage","Stage Clear",`Ai trecut în Stage ${currentStage} — ${STAGES[currentStage].name}. Unitățile tale au fost mutate în rezervă.`);
+    pushNotification("stage","Stage Clear",`You reached Stage ${currentStage} — ${STAGES[currentStage].name}. Your towers were moved to reserve.`);
     saveProgress();
-    setMessage(`Stage clear! Ai ajuns în Stage ${currentStage} — ${STAGES[currentStage].name}.`);
+    setMessage(`Stage clear! You reached Stage ${currentStage} — ${STAGES[currentStage].name}.`);
   } else if(resolution.type === "unlock-endless") {
     endlessUnlocked = true;
     try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
-    pushNotification("stage","Endless Mode unlocked",`Ai terminat campania. Endless Mode este acum deblocat!`);
+    pushNotification("stage","Endless Mode unlocked",`You finished the campaign. Endless Mode is now unlocked!`);
     currentMode="endless";
     currentStage=6;
     path=STAGES[6].route; pathCells=buildPathCells(path);
@@ -397,13 +397,13 @@ function resolveBossWaveCompletion(){
     wave += 1;
     moveUnitsToReserve();
     saveProgress();
-    setMessage(`Ai terminat povestea principală. Endless Mode a fost deblocat.`);
+    setMessage(`You finished the main campaign. Endless Mode has been unlocked.`);
   } else if(resolution.type === "endless-next") {
     stageWave += 1;
     wave += 1;
     money += 50;
     bonusScore += 80;
-    pushNotification("stage","Endless Boss down",`Continuă! Endless wave ${stageWave} urmează.`);
+    pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next.`);
   }
   isPaused = false;
   updateUI();
@@ -453,14 +453,14 @@ async function ensureLeaderboardRun(modeHint=currentMode){
 
 async function loadBonusLeaderboard(){
   if(!bonusLeaderboardList) return;
-  bonusLeaderboardSubtitle.textContent = "Încarc topul global pentru Endless bonus score...";
+  bonusLeaderboardSubtitle.textContent = "Loading the global Endless bonus scoreboard...";
   try{
     const response = await fetch("/.netlify/functions/get-bonus-leaderboard", { cache: "no-store" });
     if(!response.ok) throw new Error("Leaderboard unavailable");
     const rows = await response.json();
     if(!Array.isArray(rows) || rows.length === 0){
-      bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Nicio rundă Endless trimisă încă.</div>';
-      bonusLeaderboardSubtitle.textContent = "Fii primul care urcă un bonus score.";
+      bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">No Endless runs submitted yet.</div>';
+      bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
       return;
     }
     bonusLeaderboardList.innerHTML = rows.slice(0,5).map((row, index) => {
@@ -481,8 +481,8 @@ async function loadBonusLeaderboard(){
     const best = rows[0];
     bonusLeaderboardSubtitle.textContent = `Record: ${best.player_name} cu bonus +${best.bonus_score}.`;
   }catch(error){
-    bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Leaderboard indisponibil momentan.</div>';
-    bonusLeaderboardSubtitle.textContent = "Conectează Netlify Functions + Neon pentru top global.";
+    bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Leaderboard is temporarily unavailable.</div>';
+    bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global leaderboard.";
   }
 }
 
@@ -493,7 +493,7 @@ async function submitBonusLeaderboardScore(){
     playerName = localStorage.getItem("sdcPlayerName") || "";
   }catch(e){}
   if(!playerName){
-    playerName = prompt("Numele pentru Endless Bonus leaderboard:") || "";
+    playerName = prompt("Name for the Endless Bonus leaderboard:") || "";
   }
   playerName = playerName.trim().slice(0, 20);
   if(!playerName) return;
@@ -520,9 +520,9 @@ async function submitBonusLeaderboardScore(){
     if(!response.ok) throw new Error("submit failed");
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"endless" };
     await loadBonusLeaderboard();
-    pushNotification("achievement", "Leaderboard trimis", `${playerName} a urcat bonus +${bonusScore} în topul global.`);
+    pushNotification("achievement", "Leaderboard submitted", `${playerName} submitted bonus +${bonusScore} to the global leaderboard.`);
   }catch(error){
-    pushNotification("stage", "Leaderboard offline", "Scorul global nu a putut fi trimis acum.");
+    pushNotification("stage", "Leaderboard offline", "The global score could not be submitted right now.");
   }
 }
 
@@ -638,25 +638,25 @@ function updateHintChip(){
   if(!hintChip) return;
   let text = "Click pe celule libere pentru plasare.";
   if(pendingAuraChoice){
-    text = "Alege turnul care primește aura legendară.";
+    text = "Choose the tower that will receive the legendary aura.";
   } else if(selectedSpell === "slow"){
-    text = "Target Frost Nova pe zona dorită.";
+    text = "Target Frost Nova at the desired area.";
   } else if(selectedSpell === "damage"){
-    text = "Target Meteor Strike pe grupul de inamici.";
+    text = "Target Meteor Strike pe grupul de enemies.";
   } else if(selectedSpell === "bomb"){
-    text = "Target Chain Lightning aproape de ținte.";
+    text = "Target Chain Lightning near the enemies.";
   } else if(selectedPlacedUnitId){
-    text = "Turn selectat — upgrade sau sell din meniul popup.";
+    text = "Tower selected — upgrade or sell from the popup menu.";
   } else if(unitInfoPanel && !unitInfoPanel.classList.contains("hidden")){
-    text = "Shop deschis — alege unitatea potrivită pentru wave.";
+    text = "Shop open — choose the right tower for the wave.";
   } else if(waveActive){
-    text = "Wave activ — folosește spells și urmărește boss wave.";
+    text = "Wave active — use spells and watch for the boss wave.";
   }
   hintChip.textContent = text;
 }
 const getUnitById=(id)=>units.find(u=>u.id===id)||null;
 const reserveCount=(type)=>reservePool[type]?.length||0;
-const reserveLevelLabel=(type)=>{ const pool=reservePool[type]||[]; return pool.length ? "Rezervă: "+pool.map(u=>`Lv.${u.level||1}`).join(", ") : ""; };
+const reserveLevelLabel=(type)=>{ const pool=reservePool[type]||[]; return pool.length ? "Reserve: "+pool.map(u=>`Lv.${u.level||1}`).join(", ") : ""; };
 
 function vibrate(pattern){
   try{
@@ -727,7 +727,7 @@ function castSlowSpell(x, y){
   burstSpellParticles(x, y, "#dbeafe", "#93c5fd", 18);
   spellCooldown.slow = cfg.cooldown;
   cancelSpellSelection();
-  setMessage(affected ? `Frost Nova a încetinit ${affected} inamici.` : "Frost Nova lansată.");
+  setMessage(affected ? `Frost Nova slowed ${affected} enemies.` : "Frost Nova cast.");
   updateUI();
   return true;
 }
@@ -750,7 +750,7 @@ function castDamageSpell(x, y){
   showPopup(x, y - cfg.radius - 6, "Meteor!", "#fdba74");
   spellCooldown.damage = cfg.cooldown;
   cancelSpellSelection();
-  setMessage(affected ? `Meteor Strike a lovit ${affected} inamici.` : "Meteor Strike lansat.");
+  setMessage(affected ? `Meteor Strike hit ${affected} enemies.` : "Meteor Strike cast.");
   updateUI();
   return true;
 }
@@ -779,7 +779,7 @@ function castBombSpell(x, y){
   burstSpellParticles(x, y, "#fde68a", "#fde047", 14);
   spellCooldown.bomb = cfg.cooldown;
   cancelSpellSelection();
-  setMessage(affected ? `Chain Lightning a lovit ${affected} inamici.` : "Chain Lightning lansat.");
+  setMessage(affected ? `Chain Lightning hit ${affected} enemies.` : "Chain Lightning cast.");
   updateUI();
   return true;
 }
@@ -965,7 +965,7 @@ function loadProgressNotice(){
     const furthest=Number(localStorage.getItem("sdcFurthestStage")||1);
     endlessUnlocked = localStorage.getItem("sdcEndlessUnlocked")==="1";
     if(best>0 || furthest>1 || endlessUnlocked){
-      pushNotification("stage","Progres salvat",`Best score: ${best} · Furthest stage: ${furthest}${endlessUnlocked ? " · Endless unlocked" : ""}`);
+      pushNotification("stage","Progress loaded",`Best score: ${best} · Furthest stage: ${furthest}${endlessUnlocked ? " · Endless unlocked" : ""}`);
     }
   }catch(e){}
 }
@@ -975,7 +975,7 @@ function unlockAchievement(key){
   achievements[key]=true;
   const titles={first_kill:"First Blood",builder:"Builder",boss_hunter:"Boss Hunter",rich:"Treasurer",wave_master:"Wave Master",survivor:"Survivor"};
   showPopup(canvas.width/2,40,"Achievement unlocked!","#bbf7d0");
-  pushNotification("achievement",`🏆 ${titles[key]||"Achievement"}`,"Achievement nou deblocat.");
+  pushNotification("achievement",`🏆 ${titles[key]||"Achievement"}`,"New achievement unlocked.");
 }
 function checkAchievements(){
   if(kills>=1) unlockAchievement("first_kill");
@@ -1006,7 +1006,7 @@ function updateUI(){
     statusPill.textContent=isPaused?"Paused":"Battle";
   }else{
     waveFill.style.width="0%";
-    progressText.textContent=isPaused?"Pauză":"Pregătit";
+    progressText.textContent=isPaused?"Pause":"Ready";
     statusPill.textContent=lives<=0?"Game Over":(isPaused?"Paused":"Ready");
   }
   enemyCountStat.textContent=String(enemies.length);
@@ -1063,12 +1063,12 @@ function applyStage(stageNumber, resetRun=false){
     resetAchievementsUI(); clearNotifications();
     currentMode="campaign";
   }else{
-    pushNotification("stage","Stage nou",`Ai intrat în Stage ${currentStage} — ${STAGES[currentStage].name}. Boss: ${STAGE_BOSS[currentStage].name}. Unitățile tale sunt în rezervă.`);
+    pushNotification("stage","New stage",`You entered Stage ${currentStage} — ${STAGES[currentStage].name}. Boss: ${STAGE_BOSS[currentStage].name}. Your towers are in reserve.`);
   }
 
   stageStartLives=lives;
   resetCamera();
-  setMessage(`A început Stage ${currentStage} — ${STAGES[currentStage].name}. Replasează unitățile din rezervă fără cost.`);
+  setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.`);
   updateUI();
 }
 const resetGame=()=>{ showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
@@ -1083,10 +1083,10 @@ function startWave(){
   playWaveSound();
   hideHintChip();
   hideTowerMenu();
-  setMessage(stageWave===stage.bossWave?`${STAGE_BOSS[currentStage]?.name || "Boss"} a apărut!`:`Wave ${stageWave} a început.`);
+  setMessage(stageWave===stage.bossWave?`${STAGE_BOSS[currentStage]?.name || "Boss"} appeared!`:`Wave ${stageWave} started.`);
   updateUI();
 }
-function togglePause(){ if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution) return; isPaused=!isPaused; setMessage(isPaused?"Joc pus pe pauză.":"Joc reluat."); updateUI(); }
+function togglePause(){ if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution) return; isPaused=!isPaused; setMessage(isPaused?"Game paused.":"Game resumed."); updateUI(); }
 
 function enemyTemplateForSpawn(indexFromEnd){
   const stage=STAGES[currentStage], boss=stageWave===stage.bossWave && indexFromEnd===1;
@@ -1106,10 +1106,10 @@ function spawnEnemy(){
 function placeUnit(c,r){
   if(lives<=0) return;
   const key=`${c}-${r}`;
-  if(pathCells.has(key)){ setMessage("Nu poți plasa unități pe traseu."); return; }
+  if(pathCells.has(key)){ setMessage("You cannot place towers on the path."); return; }
 
   const existing=units.find(t=>t.c===c && t.r===r);
-  if(existing){ selectedPlacedUnitId=existing.id; setMessage(`Ai selectat ${existing.name}.`); updateUI(); return; }
+  if(existing){ selectedPlacedUnitId=existing.id; setMessage(`You selected ${existing.name}.`); updateUI(); return; }
 
   const type=UNIT_TYPES[selectedUnitType];
   let unit=null, usedReserve=false;
@@ -1119,7 +1119,7 @@ function placeUnit(c,r){
     usedReserve=!!unit;
   }
   if(!unit){
-    if(money < type.cost){ setMessage("Nu ai destui bani pentru unitatea aleasă."); return; }
+    if(money < type.cost){ setMessage("You do not have enough gold for the selected tower."); return; }
     money -= type.cost;
     unit = createFreshUnitForPlacement(selectedUnitType,c,r);
   }
@@ -1129,13 +1129,13 @@ function placeUnit(c,r){
   hideTowerMenu();
   const fxPos = cellCenter(c, r);
   addPlacementEffect(fxPos.x, fxPos.y, type.color || "#7dd3fc");
-  setMessage(usedReserve ? `${type.name} replasat din rezervă.` : `${type.name} cumpărat și plasat.`);
+  setMessage(usedReserve ? `${type.name} re-placed from reserve.` : `${type.name} purchased and placed.`);
   updateUI();
 }
 
 function upgradeSelectedUnit(){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit) return;
-  if(money<unit.nextUpgradeCost){ setMessage("Nu ai destui bani pentru upgrade."); return; }
+  if(money<unit.nextUpgradeCost){ setMessage("You do not have enough gold for the upgrade."); return; }
   money-=unit.nextUpgradeCost; unit.totalSpent+=unit.nextUpgradeCost; unit.level+=1;
   unit.damage*=unit.type==="bomb"?1.3:1.22; unit.range*=1.08; unit.fireRate*=.94;
   if(unit.projectileSpeed) unit.projectileSpeed*=1.05;
@@ -1144,7 +1144,7 @@ function upgradeSelectedUnit(){
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
   playUpgradeSound();
-  setMessage(`${unit.name} a fost upgradat la Lv.${unit.level}.`);
+  setMessage(`${unit.name} was upgraded to Lv.${unit.level}.`);
   updateUI();
 }
 function sellSelectedUnit(){
@@ -1153,7 +1153,7 @@ function sellSelectedUnit(){
   money += refund;
   units=units.filter(u=>u.id!==unit.id);
   selectedPlacedUnitId=null;
-  setMessage(`${unit.name} vândut pentru ${refund} gold.`);
+  setMessage(`${unit.name} sold for ${refund} gold.`);
   updateUI();
 }
 
@@ -1220,7 +1220,7 @@ function rewardKill(enemy,pos){
         owner.wealthSurgeTimer = 5;
         const ownerPos = cellCenter(owner.c, owner.r);
         showPopup(ownerPos.x, ownerPos.y - 22, "Pact Surge!", "#fbbf24");
-        pushNotification("achievement", "Golden Pact surge", `${owner.name} a intrat în Pact Surge pentru 5 secunde.`);
+        pushNotification("achievement", "Golden Pact surge", `${owner.name} entered Pact Surge for 5 seconds.`);
       }
     }
   }
@@ -1302,11 +1302,11 @@ function update(dt){
       lives=Math.max(0,lives-(enemy.type==="boss"?3:1));
       if(lives<=0){
         waveActive=false;
-        gameOverText.textContent=`Ai ajuns până la ${currentMode==="campaign" ? "stage "+currentStage : "wave "+wave} cu score ${totalScore()}.`;
+        gameOverText.textContent=`You reached ${currentMode==="campaign" ? "stage "+currentStage : "wave "+wave} with a score of ${totalScore()}.`;
         gameOverOverlay.classList.remove("hidden");
         saveProgress();
         if(currentMode==="endless") submitBonusLeaderboardScore();
-        setMessage("Game over. Scheleții au trecut de poartă.");
+        setMessage("Game over. The skeletons broke through the gate.");
       }
       updateUI();
     }
@@ -1419,7 +1419,7 @@ function update(dt){
     wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
     bonusScore += 20;
-    setMessage(`Wave complet. Următorul wave în stage: ${stageWave}.`);
+    setMessage(`Wave complete. Next wave in this stage: ${stageWave}.`);
     updateUI();
   }
 }
@@ -2153,7 +2153,7 @@ canvas.addEventListener("click",(event)=>{
         return;
       }
     }
-    setMessage("Alege un turn pentru aura legendară.");
+    setMessage("Choose a tower for the legendary aura.");
     return;
   }
 
@@ -2175,7 +2175,7 @@ canvas.addEventListener("click",(event)=>{
       return;
     }
     selectedPlacedUnitId=clickedUnit.id;
-    setMessage(`Ai selectat ${clickedUnit.name}.`);
+    setMessage(`You selected ${clickedUnit.name}.`);
     updateUI();
     return;
   }
@@ -2194,7 +2194,7 @@ function bindUnitSelectorButtons(buttonList){
       selectedPlacedUnitId = null;
       hideTowerMenu();
       syncUnitSelectors();
-      const t = UNIT_TYPES[selectedUnitType]; setMessage(`Ai selectat ${t.name} · Cost ${t.cost} · Range ${Math.round(t.range)}`);
+      const t = UNIT_TYPES[selectedUnitType]; setMessage(`You selected ${t.name} · Cost ${t.cost} · Range ${Math.round(t.range)}`);
       updateUI();
     });
   });
@@ -2219,7 +2219,7 @@ spellSlowBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   if(!hasStarted || lives<=0 || spellCooldown.slow > 0) return;
   selectedSpell = selectedSpell === "slow" ? null : "slow";
-  setMessage(selectedSpell === "slow" ? "Alege zona pentru Frost Nova." : "Spell anulat.");
+  setMessage(selectedSpell === "slow" ? "Choose the target area for Frost Nova." : "Spell canceled.");
   updateSpellButtons();
 });
 
@@ -2227,7 +2227,7 @@ spellDamageBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   if(!hasStarted || lives<=0 || spellCooldown.damage > 0) return;
   selectedSpell = selectedSpell === "damage" ? null : "damage";
-  setMessage(selectedSpell === "damage" ? "Alege zona pentru Meteor Strike." : "Spell anulat.");
+  setMessage(selectedSpell === "damage" ? "Choose the target area for Meteor Strike." : "Spell canceled.");
   updateSpellButtons();
 });
 
@@ -2235,14 +2235,14 @@ spellBombBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   if(!hasStarted || lives<=0 || spellCooldown.bomb > 0) return;
   selectedSpell = selectedSpell === "bomb" ? null : "bomb";
-  setMessage(selectedSpell === "bomb" ? "Alege zona pentru Chain Lightning." : "Spell anulat.");
+  setMessage(selectedSpell === "bomb" ? "Choose the target area for Chain Lightning." : "Spell canceled.");
   updateSpellButtons();
 });
 
 resetCameraBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   toggleUnitInfoPanel();
-  setMessage(unitInfoPanel?.classList.contains("hidden") ? "Panou unități închis." : "Panou unități deschis.");
+  setMessage(unitInfoPanel?.classList.contains("hidden") ? "Tower panel closed." : "Tower panel opened.");
   updateUI();
 });
 
@@ -2251,7 +2251,7 @@ startGameBtn.addEventListener("click",()=>{
   startOverlay.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
-  setMessage("Dark Defense a început. Plasează unități, pornește wave-ul și folosește spell-urile la nevoie.");
+  setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
@@ -2400,7 +2400,7 @@ document.addEventListener("keydown",(event)=>{
   hideTowerMenu();
   selectedPlacedUnitId = null;
   const t = UNIT_TYPES[selectedUnitType];
-  setMessage(`Ai selectat ${t.name} · Cost ${t.cost} · Range ${Math.round(t.range)}`);
+  setMessage(`You selected ${t.name} · Cost ${t.cost} · Range ${Math.round(t.range)}`);
   updateUI();
 });
 
@@ -2420,8 +2420,8 @@ auraRewardList?.addEventListener("click", (event) => {
   if(!aura) return;
   pendingAuraChoice = aura;
   hideAuraRewardOverlay();
-  auraRewardNote.textContent = `Aura aleasă: ${aura.name}. Click pe turnul dorit pentru a o fixa permanent.`;
-  setMessage(`Ai ales ${aura.name}. Click pe turnul care trebuie binecuvântat.`);
+  auraRewardNote.textContent = `Selected aura: ${aura.name}. Click the target tower to bind it permanently.`;
+  setMessage(`You chose ${aura.name}. Click the tower that should receive the blessing.`);
   isPaused = false;
   updateUI();
 });

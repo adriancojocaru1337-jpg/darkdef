@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ro">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -15,7 +15,7 @@
   <meta property="og:site_name" content="Dark Defense" />
   <meta property="og:title" content="Dark Defense - Fantasy Tower Defense Browser Game" />
   <meta property="og:description" content="Defend the road, beat bosses, unlock endless mode, and climb the online leaderboard in Dark Defense." />
-  <meta property="og:locale" content="ro_RO" />
+  <meta property="og:locale" content="en_US" />
   <meta property="og:url" content="https://darkdefense.netlify.app/" />
   <meta property="og:image" content="https://darkdefense.netlify.app/og-image.png" />
   <meta property="og:image:width" content="1200" />
@@ -51,15 +51,15 @@
     <div class="overlay-card">
       <h1>Dark Defense</h1>
       <p>
-        Fantasy tower defense în browser. Apără drumul, învinge boss-ii, upgradează turnurile, folosește spell-uri și urcă în top în Endless Mode cu leaderboard securizat.
+        Fantasy tower defense in your browser. Defend the road, defeat bosses, upgrade towers, use spells, and climb the ranks in Endless Mode with a secure leaderboard.
       </p>
       <div class="overlay-quick-guide">
-        <div class="quick-guide-title">Shortcut-uri</div>
+        <div class="quick-guide-title">Shortcuts</div>
         <div class="quick-guide-grid">
           <span><kbd>Space</kbd> Start / Pause</span>
           <span><kbd>R</kbd> Reset run</span>
           <span><kbd>V</kbd> Unit panel</span>
-          <span><kbd>Esc</kbd> Închide meniuri</span>
+          <span><kbd>Esc</kbd> Close menus</span>
         </div>
       </div>
       <div class="overlay-actions">
@@ -72,8 +72,8 @@
 
   <div class="screen-overlay hidden" id="gameOverOverlay">
     <div class="overlay-card overlay-danger">
-      <h1>Armata scheleților a trecut</h1>
-      <p id="gameOverText">Încearcă din nou și optimizează pozițiile unităților.</p>
+      <h1>The skeleton army broke through</h1>
+      <p id="gameOverText">Try again and optimize your tower positions.</p>
       <div class="overlay-actions">
         <button class="btn btn-primary" id="restartFromGameOverBtn">Restart</button>
       </div>
@@ -83,10 +83,10 @@
   <div class="screen-overlay hidden" id="auraRewardOverlay">
     <div class="overlay-card overlay-reward">
       <div class="reward-kicker">Boss Reward</div>
-      <h1>Alege o aură legendară</h1>
-      <p id="auraRewardText">Ai învins boss-ul. Alege una dintre cele 3 aura și apoi aplic-o pe un singur turn. Aura rămâne pe acel turn și în stage-urile următoare.</p>
+      <h1>Choose a legendary aura</h1>
+      <p id="auraRewardText">You defeated the boss. Choose 1 of 3 auras and apply it to a single tower. The aura stays on that tower in the next stages too.</p>
       <div class="reward-grid" id="auraRewardList"></div>
-      <div class="reward-note" id="auraRewardNote">După alegere, click pe turnul dorit pentru a-l binecuvânta.</div>
+      <div class="reward-note" id="auraRewardNote">After choosing, click the tower you want to bless.</div>
     </div>
   </div>
 
@@ -95,7 +95,7 @@
       <div class="hero-copy">
         <h1>Dark Defense</h1>
         <p>
-          Fantasy tower defense cu boss fights, upgrade-uri, spell-uri, auras legendare și Endless Mode. Joacă direct în browser și urcă în leaderboard.
+          Fantasy tower defense with boss fights, upgrades, spells, legendary auras, and Endless Mode. Play instantly in your browser and climb the leaderboard.
         </p>
         <div class="hero-actions hero-nav-actions">
           <a href="/about.html" class="btn btn-secondary">About</a>
@@ -113,9 +113,9 @@
         </div>
         <button class="btn btn-secondary hero-refresh-btn" id="refreshLeaderboardBtn" type="button">Refresh</button>
       </div>
-      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Caut cele mai bune bonus score-uri...</div>
+      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Loading the best bonus scores...</div>
       <div class="hero-leaderboard-list" id="bonusLeaderboardList">
-        <div class="leaderboard-empty">Nicio înregistrare încă.</div>
+        <div class="leaderboard-empty">No entries yet.</div>
       </div>
     </section>
   </div>
@@ -126,7 +126,7 @@
         <header class="panel-header">
           <div>
             <div class="panel-kicker">Battlefield</div>
-            <h2>Apără drumul până la poartă</h2>
+            <h2>Defend the road to the gate</h2>
           </div>
 
 
@@ -136,7 +136,7 @@
           <button class="audio-toggle" id="audioToggle" aria-label="Sunet pornit" title="Toggle audio">🔊</button>
           <canvas id="gameCanvas" width="672" height="448"></canvas>
           <div class="canvas-overlay">
-            <div class="overlay-chip" id="hintChip">Click pe celule libere pentru plasare. Click pe unități pentru upgrade.</div>
+            <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
             <div class="canvas-top-hud single-row">
               <div class="badge money" id="moneyBadge">💰 150</div>
               <div class="badge lives" id="livesBadge">❤️ 20</div>
@@ -174,7 +174,7 @@
             <div class="unit-shop-header">
               <div>
                 <div class="section-label compact-label">Unit Shop</div>
-                <strong>Alege turnul</strong>
+                <strong>Choose a tower</strong>
               </div>
             </div>
 
@@ -190,7 +190,7 @@
                 <div class="unit-bar"><span>DMG</span><i style="--fill:45%"></i></div>
                 <div class="unit-bar"><span>RNG</span><i style="--fill:62%"></i></div>
               </div>
-              <div class="unit-info-meta">Range 120 · Rapid single target</div>
+              <div class="unit-info-meta">Range 120 · Fast single-target damage</div>
               <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-archer">0</span>
               </div>
@@ -275,13 +275,13 @@
 
         <section class="glass notification-panel collapsed" id="notificationPanel">
           <div class="notification-header">
-            <h3>Notificări</h3>
+            <h3>Notifications</h3>
             <div class="notification-header-actions">
               <span class="mini-pill neutral hidden" id="notificationBadge">Nou</span>
-              <button class="notification-toggle" id="notificationToggle" aria-label="Expandă notificările">▾</button>
+              <button class="notification-toggle" id="notificationToggle" aria-label="Expand notifications">▾</button>
             </div>
           </div>
-          <div id="notificationEmpty" class="notification-empty">Momentan nu există notificări.</div>
+          <div id="notificationEmpty" class="notification-empty">There are no notifications right now.</div>
           <div id="notificationFeed" class="notification-feed hidden"></div>
         </section>
       </section>
@@ -291,7 +291,7 @@
           <div class="side-title-row">
             <div>
               <div class="section-label compact-label">Command Center</div>
-              <h3>Control de rundă</h3>
+              <h3>Run Control</h3>
             </div>
             <span class="mini-pill" id="statusPill">Ready</span>
           </div>
@@ -299,21 +299,21 @@
           <div class="progress-box">
             <div class="progress-row">
               <span>Progres wave</span>
-              <span id="progressText">Pregătit</span>
+              <span id="progressText">Ready</span>
             </div>
             <div class="progress-track">
               <div class="progress-fill" id="waveFill"></div>
             </div>
           </div>
 
-          <div class="message-box emphasis" id="messageBox">Plasează unități și pornește primul wave.</div>
+          <div class="message-box emphasis" id="messageBox">Place towers and start the first wave.</div>
         </section>
 
         <section class="glass side-card overview-card">
           <div class="side-title-row">
             <div>
               <div class="section-label compact-label">Run Overview</div>
-              <h3>Statistici esențiale</h3>
+              <h3>Core Stats</h3>
             </div>
             <span class="mini-pill neutral" id="modeStat">Campaign</span>
           </div>
@@ -330,12 +330,12 @@
           </div>
 
           <div class="stats-grid compact-stats">
-            <div class="stat-item"><span>Inamici pe hartă</span><strong id="enemyCountStat">0</strong></div>
-            <div class="stat-item"><span>Unități plasate</span><strong id="towerCountStat">0</strong></div>
-            <div class="stat-item"><span>Eliminări</span><strong id="killsStat">0</strong></div>
+            <div class="stat-item"><span>Enemies on map</span><strong id="enemyCountStat">0</strong></div>
+            <div class="stat-item"><span>Towers placed</span><strong id="towerCountStat">0</strong></div>
+            <div class="stat-item"><span>Kills</span><strong id="killsStat">0</strong></div>
             <div class="stat-item"><span>Boss wave</span><strong id="bossInfoStat">5</strong></div>
-            <div class="stat-item"><span>Stage curent</span><strong id="stageNumberStat">1</strong></div>
-            <div class="stat-item"><span>Wave în stage</span><strong id="stageWaveStat">1</strong></div>
+            <div class="stat-item"><span>Current stage</span><strong id="stageNumberStat">1</strong></div>
+            <div class="stat-item"><span>Wave in stage</span><strong id="stageWaveStat">1</strong></div>
             <div class="stat-item"><span>Best score</span><strong id="bestScoreStat">0</strong></div>
             <div class="stat-item"><span>Endless</span><strong id="endlessUnlockedStat">No</strong></div>
           </div>
@@ -349,14 +349,14 @@
           <div class="side-title-row">
             <div>
               <div class="section-label compact-label">Help</div>
-              <h3>Shortcut-uri rapide</h3>
+              <h3>Quick shortcuts</h3>
             </div>
           </div>
           <div class="shortcut-list">
             <div class="shortcut-item"><kbd>Space</kbd><span>Start / Pause</span></div>
             <div class="shortcut-item"><kbd>R</kbd><span>Reset run</span></div>
-            <div class="shortcut-item"><kbd>1-4</kbd><span>Selectează unități</span></div>
-            <div class="shortcut-item"><kbd>V</kbd><span>Panou unități</span></div>
+            <div class="shortcut-item"><kbd>1-4</kbd><span>Select towers</span></div>
+            <div class="shortcut-item"><kbd>V</kbd><span>Tower panel</span></div>
           </div>
         </section>
       </aside>
