@@ -82,34 +82,34 @@ const reservePanelEls = {
 };
 const reserveLevelEls = {};
 
-const COLS = 12, ROWS = 8, CELL = 56;
+const COLS = 18, ROWS = 10, CELL = 56;
 const START_LIVES = 20, START_MONEY = 150;
 
 const STAGES = {
   1: { name:"Forest", bossWave:5, difficulty:1.0, bossAbility:"summon",
-    route:[{c:0,r:3},{c:2,r:3},{c:2,r:1},{c:5,r:1},{c:5,r:5},{c:8,r:5},{c:8,r:2},{c:11,r:2}],
-    grassPatches:[{x:30,y:18,w:86,h:54},{x:545,y:336,w:94,h:56},{x:240,y:360,w:88,h:42}],
-    trees:[{x:76,y:88},{x:612,y:395},{x:640,y:60}]},
+    route:[{c:0,r:4},{c:4,r:4},{c:4,r:1},{c:9,r:1},{c:9,r:7},{c:13,r:7},{c:13,r:3},{c:17,r:3}],
+    grassPatches:[{x:42,y:26,w:120,h:72},{x:790,y:408,w:124,h:76},{x:368,y:438,w:140,h:52}],
+    trees:[{x:98,y:116},{x:918,y:466},{x:956,y:86},{x:710,y:118}]},
   2: { name:"Ruins", bossWave:6, difficulty:1.25, bossAbility:"rage",
-    route:[{c:0,r:6},{c:3,r:6},{c:3,r:2},{c:6,r:2},{c:6,r:4},{c:9,r:4},{c:9,r:1},{c:11,r:1}],
-    grassPatches:[{x:62,y:296,w:120,h:76},{x:468,y:34,w:126,h:64},{x:260,y:186,w:74,h:48}],
-    ruins:[{x:80,y:100},{x:578,y:144},{x:532,y:360}]},
+    route:[{c:0,r:7},{c:5,r:7},{c:5,r:2},{c:9,r:2},{c:9,r:5},{c:14,r:5},{c:14,r:1},{c:17,r:1}],
+    grassPatches:[{x:84,y:352,w:166,h:98},{x:704,y:38,w:160,h:78},{x:408,y:212,w:112,h:62}],
+    ruins:[{x:108,y:126},{x:846,y:168},{x:770,y:424},{x:524,y:302}]},
   3: { name:"Graveyard", bossWave:7, difficulty:1.5, bossAbility:"shield",
-    route:[{c:0,r:4},{c:2,r:4},{c:2,r:6},{c:6,r:6},{c:6,r:2},{c:9,r:2},{c:9,r:5},{c:11,r:5}],
-    grassPatches:[{x:80,y:40,w:120,h:50},{x:320,y:320,w:80,h:60}],
-    ruins:[{x:120,y:150},{x:420,y:120},{x:600,y:330}]},
+    route:[{c:0,r:5},{c:3,r:5},{c:3,r:8},{c:9,r:8},{c:9,r:2},{c:14,r:2},{c:14,r:6},{c:17,r:6}],
+    grassPatches:[{x:102,y:44,w:162,h:62},{x:476,y:376,w:124,h:76},{x:804,y:298,w:110,h:64}],
+    ruins:[{x:150,y:178},{x:596,y:132},{x:866,y:380},{x:700,y:466}]},
   4: { name:"Castle", bossWave:8, difficulty:1.85, bossAbility:"summon",
-    route:[{c:0,r:1},{c:4,r:1},{c:4,r:4},{c:7,r:4},{c:7,r:2},{c:10,r:2},{c:10,r:6},{c:11,r:6}],
-    grassPatches:[{x:40,y:320,w:100,h:60},{x:500,y:50,w:100,h:50}],
-    ruins:[{x:150,y:200},{x:530,y:250}]},
+    route:[{c:0,r:1},{c:6,r:1},{c:6,r:5},{c:10,r:5},{c:10,r:2},{c:15,r:2},{c:15,r:8},{c:17,r:8}],
+    grassPatches:[{x:54,y:402,w:144,h:74},{x:744,y:64,w:152,h:66},{x:514,y:434,w:128,h:54}],
+    ruins:[{x:184,y:236},{x:790,y:286},{x:918,y:186}]},
   5: { name:"Catacombs", bossWave:9, difficulty:2.25, bossAbility:"rage",
-    route:[{c:0,r:5},{c:1,r:5},{c:1,r:1},{c:5,r:1},{c:5,r:6},{c:8,r:6},{c:8,r:3},{c:11,r:3}],
-    grassPatches:[{x:60,y:60,w:70,h:40},{x:520,y:350,w:100,h:40}],
-    ruins:[{x:260,y:220},{x:570,y:130}]},
+    route:[{c:0,r:6},{c:2,r:6},{c:2,r:1},{c:8,r:1},{c:8,r:8},{c:13,r:8},{c:13,r:3},{c:17,r:3}],
+    grassPatches:[{x:78,y:72,w:108,h:48},{x:794,y:434,w:134,h:52},{x:470,y:300,w:116,h:64}],
+    ruins:[{x:366,y:258},{x:846,y:154},{x:628,y:456}]},
   6: { name:"Dark Portal", bossWave:10, difficulty:2.8, bossAbility:"summon",
-    route:[{c:0,r:2},{c:3,r:2},{c:3,r:5},{c:5,r:5},{c:5,r:1},{c:8,r:1},{c:8,r:6},{c:11,r:6}],
-    grassPatches:[{x:70,y:30,w:80,h:50},{x:490,y:300,w:120,h:60}],
-    ruins:[{x:150,y:110},{x:350,y:290},{x:580,y:180}]}
+    route:[{c:0,r:2},{c:5,r:2},{c:5,r:7},{c:8,r:7},{c:8,r:1},{c:13,r:1},{c:13,r:8},{c:17,r:8}],
+    grassPatches:[{x:86,y:42,w:120,h:62},{x:752,y:344,w:166,h:84},{x:500,y:458,w:124,h:52}],
+    ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]}
 };
 
 const UNIT_TYPES = {
@@ -177,7 +177,7 @@ let currentMode = "campaign", endlessUnlocked = false;
 let bossFxTimer = 0;
 let bossFxType = "";
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
-let view = { scale: 1, minScale: 1, maxScale: 1.45, offsetX: 0, offsetY: 0 };
+let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 let isMuted = false;
 let selectedSpell = null;
