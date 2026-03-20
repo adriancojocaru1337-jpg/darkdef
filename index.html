@@ -183,52 +183,104 @@
           </div>
 
           <aside class="unit-info-panel hidden" id="unitInfoPanel">
-            <div class="unit-info-header">
-              <strong>Unități</strong>
+            <div class="unit-shop-header">
+              <div>
+                <div class="section-label compact-label">Unit Shop</div>
+                <strong>Alege turnul</strong>
+              </div>
             </div>
 
             <button class="unit-info-card active" data-type="archer">
-              <div class="unit-info-top">
-                <strong>🏹 Archer</strong>
+              <div class="unit-card-headline">
+                <div class="unit-info-top">
+                  <strong>🏹 Archer</strong>
+                  <span class="unit-role-tag">Fast</span>
+                </div>
+                <span class="unit-cost-badge">50</span>
+              </div>
+              <div class="unit-bar-group">
+                <div class="unit-bar"><span>DMG</span><i style="--fill:45%"></i></div>
+                <div class="unit-bar"><span>RNG</span><i style="--fill:62%"></i></div>
+              </div>
+              <div class="unit-info-meta">Range 120 · Rapid single target</div>
+              <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-archer">0</span>
               </div>
-              <div class="unit-info-meta">Cost 50 · Range 120 · Fast</div>
             </button>
 
             <button class="unit-info-card" data-type="hunter">
-              <div class="unit-info-top">
-                <strong>🎯 Hunter</strong>
+              <div class="unit-card-headline">
+                <div class="unit-info-top">
+                  <strong>🎯 Hunter</strong>
+                  <span class="unit-role-tag power">Power</span>
+                </div>
+                <span class="unit-cost-badge">90</span>
+              </div>
+              <div class="unit-bar-group">
+                <div class="unit-bar"><span>DMG</span><i style="--fill:74%"></i></div>
+                <div class="unit-bar"><span>RNG</span><i style="--fill:88%"></i></div>
+              </div>
+              <div class="unit-info-meta">Range 178 · Heavy precision shots</div>
+              <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-hunter">0</span>
               </div>
-              <div class="unit-info-meta">Cost 90 · Range 178 · Power</div>
             </button>
 
             <button class="unit-info-card" data-type="mage">
-              <div class="unit-info-top">
-                <strong>🔮 Mage</strong>
+              <div class="unit-card-headline">
+                <div class="unit-info-top">
+                  <strong>🔮 Mage</strong>
+                  <span class="unit-role-tag splash">Splash</span>
+                </div>
+                <span class="unit-cost-badge">120</span>
+              </div>
+              <div class="unit-bar-group">
+                <div class="unit-bar"><span>DMG</span><i style="--fill:58%"></i></div>
+                <div class="unit-bar"><span>RNG</span><i style="--fill:71%"></i></div>
+              </div>
+              <div class="unit-info-meta">Range 150 · AoE magic damage</div>
+              <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-mage">0</span>
               </div>
-              <div class="unit-info-meta">Cost 120 · Range 150 · Splash</div>
             </button>
 
             <button class="unit-info-card" data-type="bomb">
-              <div class="unit-info-top">
-                <strong>💣 Bomb</strong>
+              <div class="unit-card-headline">
+                <div class="unit-info-top">
+                  <strong>💣 Bomb</strong>
+                  <span class="unit-role-tag blast">Blast</span>
+                </div>
+                <span class="unit-cost-badge">140</span>
+              </div>
+              <div class="unit-bar-group">
+                <div class="unit-bar"><span>DMG</span><i style="--fill:90%"></i></div>
+                <div class="unit-bar"><span>RNG</span><i style="--fill:65%"></i></div>
+              </div>
+              <div class="unit-info-meta">Range 140 · Splash burst tower</div>
+              <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-bomb">0</span>
               </div>
-              <div class="unit-info-meta">Cost 140 · Range 140 · Blast</div>
             </button>
           </aside>
 
           <div id="towerMenu" class="tower-menu hidden">
             <div class="tower-menu-header">
-              <strong id="towerMenuName">Archer</strong>
-              <span id="towerMenuLevel">Lv.1</span>
+              <div>
+                <strong id="towerMenuName">Archer</strong>
+                <div class="tower-menu-level-sub" id="towerMenuLevel">Lv.1</div>
+              </div>
+              <span class="tower-menu-badge" id="towerMenuAura">Standard</span>
             </div>
-            <div class="tower-menu-stats" id="towerMenuStats">Damage 18 · Range 120</div>
+            <div class="tower-menu-stats" id="towerMenuStats">
+              <div class="tower-stat-row"><span>Damage</span><strong>18</strong></div>
+              <div class="tower-stat-row"><span>Range</span><strong>120</strong></div>
+              <div class="tower-stat-row"><span>Speed</span><strong>0.80s</strong></div>
+              <div class="tower-stat-row"><span>Upgrade</span><strong>75</strong></div>
+              <div class="tower-stat-row"><span>Sell</span><strong>35</strong></div>
+            </div>
             <div class="tower-menu-actions">
               <button class="btn btn-primary" id="towerUpgradeBtn">⬆ Upgrade</button>
-              <button class="btn btn-secondary" id="towerSellBtn">💰 Sell</button>
+              <button class="btn btn-secondary tower-sell-btn" id="towerSellBtn">💰 Sell</button>
             </div>
           </div>
         </div>
@@ -247,9 +299,12 @@
       </section>
 
       <aside class="sidebar">
-        <section class="glass side-card">
+        <section class="glass side-card command-card">
           <div class="side-title-row">
-            <h3>Control</h3>
+            <div>
+              <div class="section-label compact-label">Command Center</div>
+              <h3>Control de rundă</h3>
+            </div>
             <span class="mini-pill" id="statusPill">Ready</span>
           </div>
 
@@ -263,48 +318,57 @@
             </div>
           </div>
 
-
-
-          <div class="message-box" id="messageBox">Plasează unități și pornește primul wave.</div>
+          <div class="message-box emphasis" id="messageBox">Plasează unități și pornește primul wave.</div>
         </section>
-<section class="glass side-card stats-card">
-          <h3>Statistici</h3>
-          <div class="stats-grid">
+
+        <section class="glass side-card overview-card">
+          <div class="side-title-row">
+            <div>
+              <div class="section-label compact-label">Run Overview</div>
+              <h3>Statistici esențiale</h3>
+            </div>
+            <span class="mini-pill neutral" id="modeStat">Campaign</span>
+          </div>
+
+          <div class="spotlight-grid">
+            <div class="spotlight-item">
+              <span>Score total</span>
+              <strong id="scoreStat">0</strong>
+            </div>
+            <div class="spotlight-item bonus">
+              <span>Bonus score</span>
+              <strong id="bonusScoreStat">0</strong>
+            </div>
+          </div>
+
+          <div class="stats-grid compact-stats">
             <div class="stat-item"><span>Inamici pe hartă</span><strong id="enemyCountStat">0</strong></div>
             <div class="stat-item"><span>Unități plasate</span><strong id="towerCountStat">0</strong></div>
             <div class="stat-item"><span>Eliminări</span><strong id="killsStat">0</strong></div>
             <div class="stat-item"><span>Boss wave</span><strong id="bossInfoStat">5</strong></div>
-          </div>
-        </section>
-
-        <section class="glass side-card stats-card">
-          <h3>Score</h3>
-          <div class="stats-grid">
-            <div class="stat-item"><span>Score total</span><strong id="scoreStat">0</strong></div>
-            <div class="stat-item"><span>Bonus score</span><strong id="bonusScoreStat">0</strong></div>
             <div class="stat-item"><span>Stage curent</span><strong id="stageNumberStat">1</strong></div>
             <div class="stat-item"><span>Wave în stage</span><strong id="stageWaveStat">1</strong></div>
-          </div>
-        </section>
-
-        <section class="glass side-card shortcuts-card">
-          <h3>Shortcut-uri</h3>
-          <div class="shortcut-list">
-            <div class="shortcut-item"><kbd>Space</kbd><span>Start wave / Pause / Resume</span></div>
-            <div class="shortcut-item"><kbd>R</kbd><span>Reset run</span></div>
-            <div class="shortcut-item"><kbd>V</kbd><span>Arată / ascunde panoul unități</span></div>
-            <div class="shortcut-item"><kbd>Esc</kbd><span>Închide meniuri și selecții</span></div>
-            <div class="shortcut-item"><kbd>1-4</kbd><span>Selectează rapid unitatea</span></div>
-          </div>
-        </section>
-
-        <section class="glass side-card stats-card">
-          <h3>Mode</h3>
-          <div class="stats-grid">
-            <div class="stat-item"><span>Mod activ</span><strong id="modeStat">Campaign</strong></div>
             <div class="stat-item"><span>Best score</span><strong id="bestScoreStat">0</strong></div>
-            <div class="stat-item"><span>Furthest stage</span><strong id="furthestStageStat">1</strong></div>
             <div class="stat-item"><span>Endless</span><strong id="endlessUnlockedStat">No</strong></div>
+          </div>
+
+          <div class="meta-row">
+            <div class="meta-pill">Furthest stage <strong id="furthestStageStat">1</strong></div>
+          </div>
+        </section>
+
+        <section class="glass side-card shortcuts-card compact-help">
+          <div class="side-title-row">
+            <div>
+              <div class="section-label compact-label">Help</div>
+              <h3>Shortcut-uri rapide</h3>
+            </div>
+          </div>
+          <div class="shortcut-list">
+            <div class="shortcut-item"><kbd>Space</kbd><span>Start / Pause</span></div>
+            <div class="shortcut-item"><kbd>R</kbd><span>Reset run</span></div>
+            <div class="shortcut-item"><kbd>1-4</kbd><span>Selectează unități</span></div>
+            <div class="shortcut-item"><kbd>V</kbd><span>Panou unități</span></div>
           </div>
         </section>
       </aside>

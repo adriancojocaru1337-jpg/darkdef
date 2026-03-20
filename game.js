@@ -35,6 +35,7 @@ const canvasWrap = document.getElementById("canvasWrap");
 const towerMenu = document.getElementById("towerMenu");
 const towerMenuName = document.getElementById("towerMenuName");
 const towerMenuLevel = document.getElementById("towerMenuLevel");
+const towerMenuAura = document.getElementById("towerMenuAura");
 const towerMenuStats = document.getElementById("towerMenuStats");
 const towerUpgradeBtn = document.getElementById("towerUpgradeBtn");
 const towerSellBtn = document.getElementById("towerSellBtn");
@@ -633,6 +634,26 @@ const enemyCountForWave=(n)=>6+(n-1)*2;
 const setMessage=(t)=>messageBox.textContent=t;
 function hideHintChip(){ hintChip?.classList.add("hidden-chip"); }
 function showHintChip(){ hintChip?.classList.remove("hidden-chip"); }
+function updateHintChip(){
+  if(!hintChip) return;
+  let text = "Click pe celule libere pentru plasare.";
+  if(pendingAuraChoice){
+    text = "Alege turnul care primește aura legendară.";
+  } else if(selectedSpell === "slow"){
+    text = "Target Frost Nova pe zona dorită.";
+  } else if(selectedSpell === "damage"){
+    text = "Target Meteor Strike pe grupul de inamici.";
+  } else if(selectedSpell === "bomb"){
+    text = "Target Chain Lightning aproape de ținte.";
+  } else if(selectedPlacedUnitId){
+    text = "Turn selectat — upgrade sau sell din meniul popup.";
+  } else if(unitInfoPanel && !unitInfoPanel.classList.contains("hidden")){
+    text = "Shop deschis — alege unitatea potrivită pentru wave.";
+  } else if(waveActive){
+    text = "Wave activ — folosește spells și urmărește boss wave.";
+  }
+  hintChip.textContent = text;
+}
 const getUnitById=(id)=>units.find(u=>u.id===id)||null;
 const reserveCount=(type)=>reservePool[type]?.length||0;
 const reserveLevelLabel=(type)=>{ const pool=reservePool[type]||[]; return pool.length ? "Rezervă: "+pool.map(u=>`Lv.${u.level||1}`).join(", ") : ""; };
@@ -837,8 +858,20 @@ function showTowerMenu(unit){
   const aura = getAuraData(unit.auraType);
   const stats = getAuraAdjustedStats(unit);
   towerMenuName.textContent = unit.name;
-  towerMenuLevel.textContent = aura ? `Lv.${unit.level} · ${aura.icon} ${aura.name}` : `Lv.${unit.level}`;
-  towerMenuStats.innerHTML = `Damage ${Math.round(stats.damage)} · Range ${Math.round(stats.range)}<br>Speed ${stats.fireRate.toFixed(2)}s · Upgrade ${Math.round(unit.nextUpgradeCost)} · Sell ${Math.round(unit.totalSpent * unit.sellFactor)}`;
+  towerMenuLevel.textContent = `Lv.${unit.level}${aura ? ` · ${aura.icon} ${aura.name}` : ""}`;
+  if(towerMenuAura){
+    towerMenuAura.textContent = aura ? aura.name : "Standard";
+    towerMenuAura.style.color = aura ? (aura.color || "#7dd3fc") : "#7dd3fc";
+    towerMenuAura.style.borderColor = aura ? `${aura.color}44` : "rgba(56,189,248,.18)";
+    towerMenuAura.style.background = aura ? `${aura.color}22` : "rgba(56,189,248,.12)";
+  }
+  towerMenuStats.innerHTML = `
+    <div class="tower-stat-row"><span>Damage</span><strong>${Math.round(stats.damage)}</strong></div>
+    <div class="tower-stat-row"><span>Range</span><strong>${Math.round(stats.range)}</strong></div>
+    <div class="tower-stat-row"><span>Speed</span><strong>${stats.fireRate.toFixed(2)}s</strong></div>
+    <div class="tower-stat-row"><span>Upgrade</span><strong>${Math.round(unit.nextUpgradeCost)}</strong></div>
+    <div class="tower-stat-row"><span>Sell</span><strong>${Math.round(unit.totalSpent * unit.sellFactor)}</strong></div>
+  `;
   towerUpgradeBtn.disabled = money < unit.nextUpgradeCost;
 
   const wrapRect = canvasWrap.getBoundingClientRect();
@@ -990,7 +1023,11 @@ function updateUI(){
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
 
   startWaveBtn.disabled=waveActive || lives<=0 || isPaused;
-  pauseBtn.textContent=isPaused?"Resume":"Pause";
+  if(pauseBtn){
+    pauseBtn.innerHTML = isPaused
+      ? '<span class="resume-icon">▶</span><span class="btn-label">Resume</span>'
+      : '<span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span>';
+  }
 
   Object.entries(reserveBadgeEls).forEach(([key,el])=>{ if(el) el.textContent=String(reserveCount(key)); });
   Object.entries(reservePanelEls).forEach(([key,el])=>{ if(el) el.textContent=String(reserveCount(key)); });
@@ -999,6 +1036,7 @@ function updateUI(){
   updateSelectedPanel();
   checkAchievements();
   updateSpellButtons();
+  updateHintChip();
 }
 
 function resetAchievementsUI(){}
