@@ -58,6 +58,10 @@ const gameOverOverlay = document.getElementById("gameOverOverlay");
 const startGameBtn = document.getElementById("startGameBtn");
 const restartFromGameOverBtn = document.getElementById("restartFromGameOverBtn");
 const gameOverText = document.getElementById("gameOverText");
+const auraRewardOverlay = document.getElementById("auraRewardOverlay");
+const auraRewardList = document.getElementById("auraRewardList");
+const auraRewardText = document.getElementById("auraRewardText");
+const auraRewardNote = document.getElementById("auraRewardNote");
 
 const unitButtons = document.querySelectorAll(".map-unit-btn");
 const unitInfoPanel = document.getElementById("unitInfoPanel");
@@ -124,6 +128,45 @@ const STAGE_BOSS = {
   6: { name: "Dark Portal Overlord", color: "#c084fc" }
 };
 
+const AURA_REWARDS = {
+  inferno: {
+    id:"inferno",
+    name:"Inferno Core",
+    icon:"🔥",
+    className:"inferno",
+    color:"#fb923c",
+    desc:"Arde țintele agresiv și face explozie la kill pentru clear de valuri.",
+    bullets:["Burn 3s","35% damage/sec din lovitură","Explozie 60% damage la kill"]
+  },
+  frost: {
+    id:"frost",
+    name:"Frost Crown",
+    icon:"❄",
+    className:"frost",
+    color:"#67e8f9",
+    desc:"Slow puternic, apoi freeze real după câteva lovituri pe aceeași țintă.",
+    bullets:["Slow 22% timp de 1.8s","Freeze 0.9s după 4 hituri","Freeze cooldown 4s / enemy"]
+  },
+  storm: {
+    id:"storm",
+    name:"Storm Sigil",
+    icon:"⚡",
+    className:"storm",
+    color:"#fde047",
+    desc:"Lovește ținta principală și sare instant spre alte ținte apropiate.",
+    bullets:["2 chain jumps","65% chain damage","+20% damage dacă e single target"]
+  },
+  wealth: {
+    id:"wealth",
+    name:"Golden Pact",
+    icon:"💰",
+    className:"wealth",
+    color:"#fbbf24",
+    desc:"Transformă turnul într-un motor de snowball cu gold, score și buff temporar.",
+    bullets:["+40% gold la kill","+25 bonus score la kill","Pact Surge la fiecare 8 killuri"]
+  }
+};
+
 let currentStage = 1, path = STAGES[currentStage].route, pathCells = buildPathCells(path);
 let units = [], enemies = [], projectiles = [], particles = [], popups = [], placementEffects = [], upgradeEffects = [];
 let money = START_MONEY, lives = START_LIVES, score = 0, bonusScore = 0, kills = 0;
@@ -144,7 +187,223 @@ const spellConfig = {
   bomb: { cooldown: 16, range: 120, damage: 90, chains: 4 }
 };
 
+let pendingAuraDraft = null;
+let pendingAuraChoice = null;
+let pendingBossResolution = null;
+
 const achievements = { first_kill:false, builder:false, boss_hunter:false, rich:false, wave_master:false, survivor:false };
+
+
+function randomAuraDraft(count=3){
+  const pool = Object.values(AURA_REWARDS).slice();
+  for(let i=pool.length-1;i>0;i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  return pool.slice(0, Math.min(count, pool.length));
+}
+
+function getAuraData(auraType){
+  return auraType ? AURA_REWARDS[auraType] || null : null;
+}
+
+function getAuraAdjustedStats(unit){
+  const stats = {
+    damage: unit.damage,
+    range: unit.range,
+    fireRate: unit.fireRate,
+    projectileSpeed: unit.projectileSpeed || 0,
+    splash: unit.splash || 0
+  };
+  if(unit.auraType === "inferno"){
+    stats.damage *= 1.12;
+  } else if(unit.auraType === "frost"){
+    stats.damage *= 0.96;
+  } else if(unit.auraType === "storm"){
+    stats.damage *= 1.00;
+  } else if(unit.auraType === "wealth"){
+    const surgeActive = (unit.wealthSurgeTimer || 0) > 0;
+    if(surgeActive){
+      stats.fireRate *= 0.80;
+      stats.projectileSpeed *= 1.20;
+    }
+  }
+  return stats;
+}
+
+function getProjectileColorByAura(unit, fallbackColor){
+  if(unit.auraType === "inferno") return "#fb923c";
+  if(unit.auraType === "frost") return "#67e8f9";
+  if(unit.auraType === "storm") return "#fde047";
+  if(unit.auraType === "wealth") return "#fbbf24";
+  return fallbackColor;
+}
+
+function markEnemyHit(enemy, unit, damageDone){
+  if(!enemy || !unit) return;
+  enemy.lastHitByUnitId = unit.id;
+  enemy.lastHitAuraType = unit.auraType || null;
+  enemy.lastHitDamage = damageDone || 0;
+}
+
+function applyAuraStatusOnEnemy(enemy, unit, pos, damageDone=0){
+  if(!enemy || !unit || !unit.auraType) return;
+  if(unit.auraType === "inferno"){
+    enemy.burnTimer = Math.max(enemy.burnTimer || 0, 3.0);
+    enemy.burnDps = Math.max(enemy.burnDps || 0, Math.max(16, damageDone * 0.35));
+  } else if(unit.auraType === "frost"){
+    enemy.auraSlowTimer = Math.max(enemy.auraSlowTimer || 0, 1.8);
+    enemy.auraSlowFactor = Math.min(enemy.auraSlowFactor || 1, 0.78);
+    enemy.frostHits = (enemy.frostHits || 0) + 1;
+    enemy.freezeLockTimer = Math.max(0, enemy.freezeLockTimer || 0);
+    if(enemy.frostHits >= 4 && enemy.freezeLockTimer <= 0){
+      enemy.freezeTimer = Math.max(enemy.freezeTimer || 0, 0.9);
+      enemy.freezeLockTimer = 4.0;
+      enemy.frostHits = 0;
+      if(pos) showPopup(pos.x, pos.y - 14, "Freeze!", "#67e8f9");
+    }
+  }
+}
+
+function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
+  if(!sourceUnit || sourceUnit.auraType !== "storm") return;
+  const stats = getAuraAdjustedStats(sourceUnit);
+  const chainDamage = stats.damage * 0.65;
+  const chainRange = 95;
+  const maxJumps = sourceUnit.level >= 4 ? 3 : 2;
+  const visited = new Set([sourceEnemy.id]);
+  let currentPos = sourcePos;
+  let jumpsDone = 0;
+  for(let jump=0;jump<maxJumps;jump++) {
+    const next = enemies
+      .filter(enemy => !visited.has(enemy.id))
+      .map(enemy => ({ enemy, pos:getPathPosition(enemy.progress), dist:distance(currentPos, getPathPosition(enemy.progress)) }))
+      .filter(item => item.dist <= chainRange)
+      .sort((a,b)=>a.dist-b.dist)[0];
+    if(!next) break;
+    visited.add(next.enemy.id);
+    next.enemy.hp -= chainDamage;
+    markEnemyHit(next.enemy, sourceUnit, chainDamage);
+    addHitParticles(next.pos.x, next.pos.y, 8, "#fde047");
+    showPopup(next.pos.x, next.pos.y - 10, `-${Math.round(chainDamage)}`, "#fde047");
+    particles.push({ x:next.pos.x, y:next.pos.y, vx:0, vy:0, life:.12, maxLife:.12, color:"#fde047" });
+    currentPos = next.pos;
+    jumpsDone += 1;
+  }
+  if(jumpsDone === 0 && sourceEnemy){
+    const bonusDamage = stats.damage * 0.20;
+    sourceEnemy.hp -= bonusDamage;
+    markEnemyHit(sourceEnemy, sourceUnit, bonusDamage);
+    addHitParticles(sourcePos.x, sourcePos.y, 6, "#fde047");
+    showPopup(sourcePos.x, sourcePos.y - 18, `+${Math.round(bonusDamage)} storm`, "#fde047");
+  }
+}
+
+function triggerInfernoExplosion(deadEnemy){
+  if(deadEnemy.lastHitAuraType !== "inferno") return;
+  const center = getPathPosition(deadEnemy.progress);
+  const owner = getUnitById(deadEnemy.lastHitByUnitId);
+  const ownerStats = owner ? getAuraAdjustedStats(owner) : null;
+  const dmg = ownerStats ? ownerStats.damage * (owner && (owner.type === "mage" || owner.type === "bomb") ? 0.75 : 0.60) : 65;
+  for(const enemy of enemies){
+    if(enemy.id === deadEnemy.id) continue;
+    const pos = getPathPosition(enemy.progress);
+    if(distance(center, pos) <= 55){
+      enemy.hp -= dmg;
+      if(owner) markEnemyHit(enemy, owner, dmg);
+      addHitParticles(pos.x, pos.y, 8, "#fb923c");
+      showPopup(pos.x, pos.y - 12, `-${Math.round(dmg)}`, "#fb923c");
+    }
+  }
+  burstSpellParticles(center.x, center.y, "#fdba74", "#fb923c", 20);
+}
+
+function renderAuraRewardCards(){
+  if(!auraRewardList || !pendingAuraDraft) return;
+  auraRewardList.innerHTML = pendingAuraDraft.map(aura => `
+    <button class="reward-card ${aura.className}" data-aura-id="${aura.id}" type="button">
+      <div class="reward-card-icon">${aura.icon}</div>
+      <div class="reward-card-title">${aura.name}</div>
+      <div class="reward-card-sub">${aura.desc}</div>
+      <div class="reward-card-points">${aura.bullets.map(item => `<span>• ${item}</span>`).join("")}</div>
+    </button>
+  `).join("");
+}
+
+function showAuraRewardOverlay(){
+  if(!auraRewardOverlay) return;
+  pendingAuraDraft = randomAuraDraft(3);
+  pendingAuraChoice = null;
+  renderAuraRewardCards();
+  auraRewardText.textContent = "Boss-ul a fost învins. Alege 1 din 3 aura legendare, apoi aplic-o pe un singur turn. Aura rămâne pe acel turn și în stage-urile următoare.";
+  auraRewardNote.textContent = units.length ? "Alege reward-ul, apoi dă click pe turnul pe care vrei să rămână aura." : "Nu ai niciun turn pe hartă. Reward-ul va fi sărit.";
+  auraRewardOverlay.classList.remove("hidden");
+  isPaused = true;
+  updateUI();
+}
+
+function hideAuraRewardOverlay(){
+  auraRewardOverlay?.classList.add("hidden");
+}
+
+function beginBossAuraReward(){
+  if(!units.length){
+    pushNotification("stage", "Aura ratată", "Nu exista niciun turn pe hartă pentru reward-ul de boss.");
+    resolveBossWaveCompletion();
+    return;
+  }
+  showAuraRewardOverlay();
+}
+
+function applyPendingAuraToUnit(unit){
+  if(!pendingAuraChoice || !unit) return false;
+  unit.auraType = pendingAuraChoice.id;
+  unit.auraName = pendingAuraChoice.name;
+  unit.auraIcon = pendingAuraChoice.icon;
+  pendingAuraChoice = null;
+  hideAuraRewardOverlay();
+  pushNotification("achievement", "Aura aplicată", `${unit.name} a primit ${unit.auraName}. Va păstra aura și în stage-urile următoare.`);
+  setMessage(`${unit.name} a primit ${unit.auraName}.`);
+  showPopup(cellCenter(unit.c, unit.r).x, cellCenter(unit.c, unit.r).y - 18, unit.auraName, getAuraData(unit.auraType)?.color || "#fde68a");
+  resolveBossWaveCompletion();
+  return true;
+}
+
+function resolveBossWaveCompletion(){
+  hideAuraRewardOverlay();
+  const resolution = pendingBossResolution;
+  pendingBossResolution = null;
+  if(!resolution) return;
+
+  if(resolution.type === "campaign-next-stage") {
+    wave += 1;
+    moveUnitsToReserve();
+    applyStage(resolution.nextStage,false);
+    pushNotification("stage","Stage Clear",`Ai trecut în Stage ${currentStage} — ${STAGES[currentStage].name}. Unitățile tale au fost mutate în rezervă.`);
+    saveProgress();
+    setMessage(`Stage clear! Ai ajuns în Stage ${currentStage} — ${STAGES[currentStage].name}.`);
+  } else if(resolution.type === "unlock-endless") {
+    endlessUnlocked = true;
+    try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
+    pushNotification("stage","Endless Mode unlocked",`Ai terminat campania. Endless Mode este acum deblocat!`);
+    currentMode="endless";
+    currentStage=6;
+    path=STAGES[6].route; pathCells=buildPathCells(path);
+    stageWave = 1;
+    wave += 1;
+    moveUnitsToReserve();
+    saveProgress();
+    setMessage(`Campania e completă! Endless Mode a fost deblocat.`);
+  } else if(resolution.type === "endless-next") {
+    stageWave += 1;
+    wave += 1;
+    money += 50;
+    bonusScore += 80;
+    pushNotification("stage","Endless Boss down",`Continuă! Endless wave ${stageWave} urmează.`);
+  }
+  isPaused = false;
+  updateUI();
+}
 
 
 async function loadBonusLeaderboard(){
@@ -496,32 +755,6 @@ function screenToWorld(x, y){
 }
 
 
-
-
-function updateMobileViewportLayout(){
-  const viewport = window.visualViewport;
-  const viewportWidth = viewport?.width || window.innerWidth;
-  const viewportHeight = viewport?.height || window.innerHeight;
-  const isMobile = viewportWidth <= 700;
-  document.body.classList.toggle("mobile-focus-mode", isMobile);
-  document.documentElement.style.setProperty("--app-vh", `${viewportHeight}px`);
-
-  if(!isMobile){
-    document.documentElement.style.setProperty("--mobile-top-ui", `150px`);
-    document.documentElement.style.setProperty("--mobile-bottom-ui", `185px`);
-    return;
-  }
-
-  const hero = document.querySelector('.hero');
-  const panelHeader = document.querySelector('.panel-header');
-  const sidebar = document.querySelector('.sidebar');
-  const topUi = Math.max(92, Math.ceil((hero?.getBoundingClientRect().height || 76) + (panelHeader?.getBoundingClientRect().height || 42) + 10));
-  const bottomUi = Math.max(150, Math.ceil((sidebar?.getBoundingClientRect().height || 150) + 24));
-
-  document.documentElement.style.setProperty("--mobile-top-ui", `${topUi}px`);
-  document.documentElement.style.setProperty("--mobile-bottom-ui", `${bottomUi}px`);
-}
-
 function hideUnitInfoPanel(){
   unitInfoPanel?.classList.add("hidden");
   resetCameraBtn?.classList.remove("active");
@@ -551,9 +784,11 @@ function showTowerMenu(unit){
   const worldPos = cellCenter(unit.c, unit.r);
   const pos = worldToScreen(worldPos.x, worldPos.y);
 
+  const aura = getAuraData(unit.auraType);
+  const stats = getAuraAdjustedStats(unit);
   towerMenuName.textContent = unit.name;
-  towerMenuLevel.textContent = `Lv.${unit.level}`;
-  towerMenuStats.innerHTML = `Damage ${Math.round(unit.damage)} · Range ${Math.round(unit.range)}<br>Upgrade ${Math.round(unit.nextUpgradeCost)} · Sell ${Math.round(unit.totalSpent * unit.sellFactor)}`;
+  towerMenuLevel.textContent = aura ? `Lv.${unit.level} · ${aura.icon} ${aura.name}` : `Lv.${unit.level}`;
+  towerMenuStats.innerHTML = `Damage ${Math.round(stats.damage)} · Range ${Math.round(stats.range)}<br>Speed ${stats.fireRate.toFixed(2)}s · Upgrade ${Math.round(unit.nextUpgradeCost)} · Sell ${Math.round(unit.totalSpent * unit.sellFactor)}`;
   towerUpgradeBtn.disabled = money < unit.nextUpgradeCost;
 
   const wrapRect = canvasWrap.getBoundingClientRect();
@@ -577,7 +812,7 @@ function moveUnitsToReserve(){
 }
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
-  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, ...structuredClone(base) };
+  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, ...structuredClone(base) };
 }
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
@@ -725,6 +960,7 @@ function applyStage(stageNumber, resetRun=false){
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[];
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
   waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; isPaused=false; stageWave=1;
+  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; hideAuraRewardOverlay();
   stopBossLoop();
   cancelSpellSelection();
   spellCooldown.slow = 0;
@@ -750,7 +986,7 @@ function applyStage(stageNumber, resetRun=false){
 const resetGame=()=>{ showHintChip(); resetCamera(); applyStage(1,true); };
 
 function startWave(){
-  if(waveActive || lives<=0 || isPaused) return;
+  if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
   ensureAudio();
   const stage=STAGES[currentStage];
   spawnLeft=enemyCountForWave(stageWave)+(stageWave===stage.bossWave?1:0);
@@ -762,7 +998,7 @@ function startWave(){
   setMessage(stageWave===stage.bossWave?`${STAGE_BOSS[currentStage]?.name || "Boss"} a apărut!`:`Wave ${stageWave} a început.`);
   updateUI();
 }
-function togglePause(){ if(!hasStarted || lives<=0) return; isPaused=!isPaused; setMessage(isPaused?"Joc pus pe pauză.":"Joc reluat."); updateUI(); }
+function togglePause(){ if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution) return; isPaused=!isPaused; setMessage(isPaused?"Joc pus pe pauză.":"Joc reluat."); updateUI(); }
 
 function enemyTemplateForSpawn(indexFromEnd){
   const stage=STAGES[currentStage], boss=stageWave===stage.bossWave && indexFromEnd===1;
@@ -877,12 +1113,33 @@ function applySplashDamage(center,radius,damage,projectileType){
   }
 }
 function rewardKill(enemy,pos){
-  money += enemy.reward; kills += 1;
+  let reward = enemy.reward;
+  let scoreGain = 0;
+  money += reward; kills += 1;
   const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="fast"?70:50;
   const scoreBonus=stageWave===STAGES[currentStage].bossWave?40:0;
   addScore(baseScore,scoreBonus);
+  if(enemy.lastHitAuraType === "wealth"){
+    const owner = getUnitById(enemy.lastHitByUnitId);
+    const bonusGold = Math.max(1, Math.round(enemy.reward * 0.40)) + (enemy.type === "boss" ? 120 : 0);
+    money += bonusGold;
+    bonusScore += 25;
+    reward += bonusGold;
+    scoreGain = 25;
+    if(owner){
+      owner.wealthKills = (owner.wealthKills || 0) + 1;
+      if(owner.wealthKills % 8 === 0){
+        owner.wealthSurgeTimer = 5;
+        const ownerPos = cellCenter(owner.c, owner.r);
+        showPopup(ownerPos.x, ownerPos.y - 22, "Pact Surge!", "#fbbf24");
+        pushNotification("achievement", "Golden Pact surge", `${owner.name} a intrat în Pact Surge pentru 5 secunde.`);
+      }
+    }
+  }
+  if(enemy.lastHitAuraType === "inferno") triggerInfernoExplosion(enemy);
   if(enemy.type==="boss") unlockAchievement("boss_hunter");
-  showPopup(pos.x,pos.y-16,`+${enemy.reward}g`,"#fde68a");
+  showPopup(pos.x,pos.y-16,`+${reward}g`, enemy.lastHitAuraType === "wealth" ? "#fbbf24" : "#fde68a");
+  if(scoreGain) showPopup(pos.x, pos.y - 32, `+${scoreGain} bonus`, "#fbbf24");
   addHitParticles(pos.x,pos.y,enemy.type==="boss"?16:8,enemy.type==="boss"?"#f59e0b":"#cbd5e1");
   if(enemy.type==="boss") vibrate([45, 50, 65]);
   playDeathSound();
@@ -929,8 +1186,27 @@ function update(dt){
       enemy.spellSlowTimer = Math.max(0, enemy.spellSlowTimer - dt);
       if(enemy.spellSlowTimer <= 0) enemy.spellSlowFactor = 1;
     }
-    const slowFactor = enemy.spellSlowTimer > 0 ? (enemy.spellSlowFactor || 1) : 1;
-    enemy.progress += enemy.speed * slowFactor * dt;
+    if(enemy.auraSlowTimer){
+      enemy.auraSlowTimer = Math.max(0, enemy.auraSlowTimer - dt);
+      if(enemy.auraSlowTimer <= 0) enemy.auraSlowFactor = 1;
+    }
+    if(enemy.freezeTimer){
+      enemy.freezeTimer = Math.max(0, enemy.freezeTimer - dt);
+    }
+    if(enemy.freezeLockTimer){
+      enemy.freezeLockTimer = Math.max(0, enemy.freezeLockTimer - dt);
+    }
+    if(enemy.burnTimer){
+      enemy.burnTimer = Math.max(0, enemy.burnTimer - dt);
+      const burnDamage = (enemy.burnDps || 0) * dt;
+      if(burnDamage > 0){
+        enemy.hp -= burnDamage;
+      }
+    }
+    const spellSlowFactor = enemy.spellSlowTimer > 0 ? (enemy.spellSlowFactor || 1) : 1;
+    const auraSlowFactor = enemy.auraSlowTimer > 0 ? (enemy.auraSlowFactor || 1) : 1;
+    const freezeFactor = enemy.freezeTimer > 0 ? 0 : 1;
+    enemy.progress += enemy.speed * spellSlowFactor * auraSlowFactor * freezeFactor * dt;
     if(enemy.type==="boss" && !enemy.abilityUsed && enemy.hp<enemy.maxHp*.55) triggerBossAbility(enemy);
     if(enemy.progress>=1){
       enemies.splice(i,1);
@@ -950,33 +1226,62 @@ function update(dt){
 
   for(const unit of units){
     unit.cooldown=Math.max(0,unit.cooldown-dt);
+    const stats = getAuraAdjustedStats(unit);
     const unitPos=cellCenter(unit.c,unit.r);
     let bestTarget=null,bestProgress=-1;
     for(const enemy of enemies){
       const enemyPos=getPathPosition(enemy.progress);
-      if(distance(unitPos,enemyPos)<=unit.range && enemy.progress>bestProgress){ bestTarget={enemy,pos:enemyPos}; bestProgress=enemy.progress; }
+      if(distance(unitPos,enemyPos)<=stats.range && enemy.progress>bestProgress){ bestTarget={enemy,pos:enemyPos}; bestProgress=enemy.progress; }
     }
     if(bestTarget){
       const dx=bestTarget.pos.x-unitPos.x, dy=bestTarget.pos.y-unitPos.y;
       unit.aimAngle=Math.atan2(dy,dx);
       if(unit.cooldown<=0){
-        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:unit.damage, speed:unit.projectileSpeed, color:unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0", projectileType:unit.type, splash:unit.splash||0 });
-        unit.cooldown=unit.fireRate; playShootSound(unit.kind);
+        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage, speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
+        unit.cooldown=stats.fireRate; playShootSound(unit.kind);
       }
     }
   }
 
   for(let i=projectiles.length-1;i>=0;i--){
     const projectile=projectiles[i], target=enemies.find(e=>e.id===projectile.targetId);
+    const owner = getUnitById(projectile.ownerUnitId);
     if(!target){ projectiles.splice(i,1); continue; }
     const targetPos=getPathPosition(target.progress);
     projectile.px=projectile.x; projectile.py=projectile.y;
     const dx=targetPos.x-projectile.x, dy=targetPos.y-projectile.y, d=Math.hypot(dx,dy), step=projectile.speed*dt;
     projectile.angle=Math.atan2(dy,dx);
     if(d<=step || d<10){
-      if(projectile.projectileType==="mage") applySplashDamage(targetPos,projectile.splash,projectile.damage,"mage");
-      else if(projectile.projectileType==="bomb"){ applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb"); addHitParticles(targetPos.x,targetPos.y,14,"#fb923c"); }
-      else { target.hp-=projectile.damage; addHitParticles(targetPos.x,targetPos.y,4,"#e5e7eb"); showPopup(targetPos.x,targetPos.y-8,`-${Math.round(projectile.damage)}`,"#e5e7eb"); }
+      if(projectile.projectileType==="mage"){
+        applySplashDamage(targetPos,projectile.splash,projectile.damage,"mage");
+        for(const enemy of enemies){
+          const pos=getPathPosition(enemy.progress);
+          if(distance(targetPos,pos)<=projectile.splash){
+            if(owner) markEnemyHit(enemy, owner, projectile.damage);
+            applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
+          }
+        }
+      }
+      else if(projectile.projectileType==="bomb"){
+        applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb"); addHitParticles(targetPos.x,targetPos.y,14,"#fb923c");
+        for(const enemy of enemies){
+          const pos=getPathPosition(enemy.progress);
+          if(distance(targetPos,pos)<=projectile.splash){
+            if(owner) markEnemyHit(enemy, owner, projectile.damage);
+            applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
+          }
+        }
+      }
+      else {
+        target.hp-=projectile.damage;
+        if(owner) markEnemyHit(target, owner, projectile.damage);
+        applyAuraStatusOnEnemy(target, owner, targetPos, projectile.damage);
+        addHitParticles(targetPos.x,targetPos.y,4,projectile.color);
+        showPopup(targetPos.x,targetPos.y-8,`-${Math.round(projectile.damage)}`,projectile.color);
+      }
+      if(owner && projectile.ownerAuraType === "storm"){
+        chainStormDamage(target, owner, targetPos);
+      }
       playHitSound(); projectiles.splice(i,1); continue;
     }
     projectile.x += (dx/d)*step; projectile.y += (dy/d)*step;
@@ -1007,39 +1312,19 @@ function update(dt){
       addScore(500,lives*25);
       if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
 
-      if(currentMode==="campaign" && currentStage < Object.keys(STAGES).length){
-        wave += 1;
-        moveUnitsToReserve();
-        applyStage(currentStage+1,false);
-        pushNotification("stage","Stage Clear",`Ai trecut în Stage ${currentStage} — ${STAGES[currentStage].name}. Unitățile tale au fost mutate în rezervă.`);
-        saveProgress();
-        setMessage(`Stage clear! Ai ajuns în Stage ${currentStage} — ${STAGES[currentStage].name}.`);
-        updateUI();
-        return;
-      } else if(currentMode==="campaign" && currentStage >= Object.keys(STAGES).length){
-        endlessUnlocked = true;
-        try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
-        pushNotification("stage","Endless Mode unlocked",`Ai terminat campania. Endless Mode este acum deblocat!`);
-        currentMode="endless";
-        currentStage=6;
-        path=STAGES[6].route; pathCells=buildPathCells(path);
-        stageWave = 1;
-        wave += 1;
-        moveUnitsToReserve();
-        saveProgress();
-        setMessage(`Campania e completă! Endless Mode a fost deblocat.`);
-        updateUI();
-        return;
-      } else {
-        // endless boss cleared
-        stageWave += 1;
-        wave += 1;
-        money += 50;
-        bonusScore += 80;
-        pushNotification("stage","Endless Boss down",`Continuă! Endless wave ${stageWave} urmează.`);
+      if(!pendingBossResolution){
+        if(currentMode==="campaign" && currentStage < Object.keys(STAGES).length){
+          pendingBossResolution = { type:"campaign-next-stage", nextStage: currentStage + 1 };
+        } else if(currentMode==="campaign" && currentStage >= Object.keys(STAGES).length){
+          pendingBossResolution = { type:"unlock-endless" };
+        } else {
+          pendingBossResolution = { type:"endless-next" };
+        }
+        beginBossAuraReward();
         updateUI();
         return;
       }
+      return;
     }
 
     stageWave += 1;
@@ -1424,6 +1709,44 @@ function drawPlacementPreview(){
 }
 function drawPlacedUnit(unit){
   const pos=cellCenter(unit.c,unit.r), angle=unit.aimAngle||-.2, selected=unit.id===selectedPlacedUnitId;
+  const aura = getAuraData(unit.auraType);
+
+  if(aura){
+    const pulse = 22 + Math.sin(performance.now() * 0.005 + unit.id) * 2;
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = aura.color;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y + 6, pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.9;
+    ctx.strokeStyle = aura.color;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y + 6, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(8,17,31,.92)";
+    roundRect(pos.x - 14, pos.y - 36, 28, 18, 8);
+    ctx.fill();
+    ctx.fillStyle = aura.color;
+    ctx.font = "bold 13px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(aura.icon, pos.x, pos.y - 23);
+    ctx.textAlign = "start";
+    ctx.restore();
+  }
+
+  if(pendingAuraChoice){
+    ctx.save();
+    ctx.strokeStyle = getAuraData(pendingAuraChoice.id)?.color || "#67e8f9";
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([6,6]);
+    ctx.beginPath();
+    ctx.arc(pos.x,pos.y,26 + Math.sin(performance.now()*0.008 + unit.id) * 1.5,0,Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
 
   if(selected){
     ctx.beginPath();
@@ -1543,10 +1866,16 @@ const drawEnemies=()=>enemies.forEach(drawEnemy);
 function drawProjectile(p){
   if(p.projectileType==="bomb"){
     ctx.strokeStyle="rgba(251,146,60,.25)"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.x,p.y); ctx.stroke();
+    ctx.save();
+    ctx.shadowColor = p.color;
+    ctx.shadowBlur = 10;
     ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill();
+    ctx.restore();
     return;
   }
   ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle);
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur = 8;
   ctx.strokeStyle=p.projectileType==="mage"?"rgba(221,214,254,.35)":"rgba(248,250,252,.25)";
   ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(0,0); ctx.stroke();
   ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(8,0); ctx.stroke();
@@ -1728,6 +2057,18 @@ canvas.addEventListener("click",(event)=>{
   ensureAudio(); hasStarted=true;
   const {x,y,c,r}=getMousePos(event);
 
+  if(pendingAuraChoice){
+    for(const unit of units){
+      const pos=cellCenter(unit.c,unit.r);
+      if(distance({x,y},pos)<=26){
+        applyPendingAuraToUnit(unit);
+        return;
+      }
+    }
+    setMessage("Alege un turn pentru aura legendară.");
+    return;
+  }
+
   if(selectedSpell === "slow"){ castSlowSpell(x, y); return; }
   if(selectedSpell === "damage"){ castDamageSpell(x, y); return; }
   if(selectedSpell === "bomb"){ castBombSpell(x, y); return; }
@@ -1829,12 +2170,6 @@ restartFromGameOverBtn.addEventListener("click",()=>{
   resetGame();
 });
 
-
-updateMobileViewportLayout();
-window.addEventListener("resize", updateMobileViewportLayout);
-window.addEventListener("orientationchange", updateMobileViewportLayout);
-window.visualViewport?.addEventListener("resize", updateMobileViewportLayout);
-
 updateAudioToggle();
 applyStage(1,true);
 loadBonusLeaderboard();
@@ -1925,13 +2260,7 @@ audioToggle?.addEventListener("click",(event)=>{
     Object.values(audioAssets).forEach((pool)=>pool.setMuted(isMuted));
   }
   if(isMuted) stopBossLoop();
-  
-updateMobileViewportLayout();
-window.addEventListener("resize", updateMobileViewportLayout);
-window.addEventListener("orientationchange", updateMobileViewportLayout);
-window.visualViewport?.addEventListener("resize", updateMobileViewportLayout);
-
-updateAudioToggle();
+  updateAudioToggle();
   setMessage(isMuted ? "Sunet oprit." : "Sunet pornit.");
 });
 
@@ -1992,6 +2321,20 @@ notificationToggle?.addEventListener("click",()=>{
   if(!notificationPanel?.classList.contains("collapsed")){
     notificationBadge?.classList.add("hidden");
   }
+});
+
+auraRewardList?.addEventListener("click", (event) => {
+  const card = event.target.closest("[data-aura-id]");
+  if(!card) return;
+  const auraId = card.dataset.auraId;
+  const aura = AURA_REWARDS[auraId];
+  if(!aura) return;
+  pendingAuraChoice = aura;
+  hideAuraRewardOverlay();
+  auraRewardNote.textContent = `Aura aleasă: ${aura.name}. Click pe turnul dorit pentru a o fixa permanent.`;
+  setMessage(`Ai ales ${aura.name}. Click pe turnul care trebuie binecuvântat.`);
+  isPaused = false;
+  updateUI();
 });
 
 refreshLeaderboardBtn?.addEventListener("click", ()=>{ loadBonusLeaderboard(); });
