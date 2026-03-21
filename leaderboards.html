@@ -139,19 +139,6 @@
       return Number(value || 0).toLocaleString("en-US");
     }
 
-    function getInitials(name) {
-      const clean = String(name || "Anonymous").trim().split(/\s+/).filter(Boolean).slice(0, 2);
-      if (!clean.length) return "AN";
-      return clean.map((part) => part[0]?.toUpperCase() || "").join("").slice(0, 2);
-    }
-
-    function formatDate(value) {
-      if (!value) return "Unknown date";
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return "Unknown date";
-      return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-    }
-
     function getRankMeta(index) {
       if (index === 0) return { label: "1st", crown: "👑", medal: "gold" };
       if (index === 1) return { label: "2nd", crown: "✦", medal: "silver" };
@@ -174,13 +161,7 @@
         return `
           <div class="leaderboard-podium-card ${rank.medal} ${type}">
             <div class="leaderboard-podium-rank">${rank.crown} ${rank.label}</div>
-            <div class="leaderboard-podium-playerline">
-              <div class="leaderboard-avatar-badge podium ${rank.medal || "base"}">${getInitials(name)}</div>
-              <div class="leaderboard-podium-playercopy">
-                <strong>${name}</strong>
-                <small class="leaderboard-podium-date">${formatDate(row.created_at)}</small>
-              </div>
-            </div>
+            <strong>${name}</strong>
             <span>${primary}</span>
             <small>${secondary}</small>
           </div>
@@ -212,9 +193,9 @@
         return `
           <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
             <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
-            <div class="leaderboard-player-cell"><div class="leaderboard-player-main"><div class="leaderboard-avatar-badge ${rank.medal || "base"}">${getInitials(name)}</div><div><strong>${name}</strong><span>${formatNumber(row.kills)} kills</span></div></div></div>
+            <div class="leaderboard-player-cell"><strong>${name}</strong><span>${formatNumber(row.kills)} kills</span></div>
             <div>${formatNumber(row.wave_reached)}</div>
-            <div><div class="leaderboard-score-stack"><strong>+${formatNumber(row.bonus_score)}</strong><span>${formatDate(row.created_at)}</span></div></div>
+            <div>+${formatNumber(row.bonus_score)}</div>
             <div>${formatNumber(row.score_total)}</div>
           </div>
         `;

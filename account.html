@@ -35,6 +35,12 @@
     .field input:focus{border-color:rgba(56,189,248,.34);box-shadow:0 0 0 4px rgba(56,189,248,.08)}
     .auth-submit{min-height:52px}
     .auth-note{color:var(--muted);font-size:13px;line-height:1.6}
+    .auth-inline-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+    .text-link{background:none;border:0;padding:0;color:#7dd3fc;font-weight:800;cursor:pointer;text-decoration:none}
+    .text-link:hover{text-decoration:underline}
+    .forgot-shell{margin-top:14px;padding:16px;border-radius:18px;background:rgba(8,17,31,.56);border:1px solid rgba(148,163,184,.12)}
+    .forgot-shell.hidden{display:none}
+    .forgot-shell p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.6}
     .auth-status{margin-top:16px;padding:14px 16px;border-radius:16px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.64);color:#dbeafe;display:none}
     .auth-status.visible{display:block}
     .auth-status.error{border-color:rgba(251,113,133,.22);color:#ffe4e6;background:rgba(68,18,28,.45)}
@@ -120,7 +126,20 @@
             </div>
             <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
           </form>
-          <p class="auth-note">For the next step, the game can check this session automatically and link score submissions to a real user profile.</p>
+          <div class="auth-inline-row">
+            <p class="auth-note">For the next step, the game can check this session automatically and link score submissions to a real user profile.</p>
+            <button class="text-link" id="forgotPasswordToggle" type="button">Forgot password?</button>
+          </div>
+          <div class="forgot-shell hidden" id="forgotPasswordBox">
+            <p>Enter your account email and we will send you a secure password reset link.</p>
+            <form class="auth-form" id="forgotPasswordForm">
+              <div class="field">
+                <label for="forgotEmail">Account email</label>
+                <input id="forgotEmail" name="email" type="email" maxlength="190" autocomplete="email" placeholder="you@example.com" required />
+              </div>
+              <button class="btn btn-secondary auth-submit" type="submit">Send reset link</button>
+            </form>
+          </div>
         </section>
 
         <div id="authStatus" class="auth-status"></div>
@@ -166,6 +185,9 @@
     const totalKillsStat = document.getElementById('totalKillsStat');
     const totalRunsStat = document.getElementById('totalRunsStat');
     const logoutBtn = document.getElementById('logoutBtn');
+    const forgotPasswordToggle = document.getElementById('forgotPasswordToggle');
+    const forgotPasswordBox = document.getElementById('forgotPasswordBox');
+    const forgotPasswordForm = document.getElementById('forgotPasswordForm');
 
     function setTab(next) {
       tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === next));
@@ -277,6 +299,34 @@
         await loadSession();
       } catch (_) {
         showStatus('Network error while signing in.');
+      }
+    });
+
+    forgotPasswordToggle.addEventListener('click', () => {
+      clearStatus();
+      forgotPasswordBox.classList.toggle('hidden');
+    });
+
+    forgotPasswordForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearStatus();
+      const form = new FormData(forgotPasswordForm);
+      const payload = { email: String(form.get('email') || '').trim() };
+      try {
+        const response = await fetch('/.netlify/functions/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to start password reset.');
+          return;
+        }
+        forgotPasswordForm.reset();
+        showStatus(data.message || 'If an account exists for that email, a reset link has been sent.', 'success');
+      } catch (_) {
+        showStatus('Network error while requesting password reset.');
       }
     });
 

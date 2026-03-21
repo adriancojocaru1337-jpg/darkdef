@@ -191,5 +191,8 @@ module.exports = {
   getSessionUser,
   deleteSession,
   clearSessionCookie,
-  COOKIE_NAME
+  COOKIE_NAME,
+  sha256,
+  hashIp,
+  getClientIp
 };
