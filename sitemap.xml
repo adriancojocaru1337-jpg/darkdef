@@ -16,4 +16,12 @@
     <loc>https://darkdefense.netlify.app/best-tower-defense-browser-game-strategy.html</loc>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://darkdefense.netlify.app/leaderboards.html</loc>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://darkdefense.netlify.app/account.html</loc>
+    <priority>0.8</priority>
+  </url>
 </urlset>

@@ -387,6 +387,7 @@ function resolveBossWaveCompletion(){
     saveProgress();
     setMessage(`Stage clear! You reached Stage ${currentStage} — ${STAGES[currentStage].name}.`);
   } else if(resolution.type === "unlock-endless") {
+    submitStoryLeaderboardScore(currentStage);
     endlessUnlocked = true;
     try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
     pushNotification("stage","Endless Mode unlocked",`You finished the campaign. Endless Mode is now unlocked!`);
@@ -483,6 +484,46 @@ async function loadBonusLeaderboard(){
   }catch(error){
     bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Leaderboard is temporarily unavailable.</div>';
     bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global leaderboard.";
+  }
+}
+
+async function submitStoryLeaderboardScore(finalStage=currentStage){
+  if(currentMode !== "campaign") return;
+  let playerName = "";
+  try{
+    playerName = localStorage.getItem("sdcPlayerName") || "";
+  }catch(e){}
+  if(!playerName){
+    playerName = prompt("Name for the Story leaderboard:") || "";
+  }
+  playerName = playerName.trim().slice(0, 20);
+  if(!playerName) return;
+  try{
+    localStorage.setItem("sdcPlayerName", playerName);
+  }catch(e){}
+  try{
+    await ensureLeaderboardRun("campaign");
+    const response = await fetch("/.netlify/functions/submit-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "campaign",
+        name: playerName,
+        score: totalScore(),
+        bonusScore: bonusScore,
+        wave: finalStage,
+        kills: kills,
+        runId: leaderboardRun.runId,
+        runToken: leaderboardRun.runToken,
+        clientStartedAt: leaderboardRun.clientStartedAt,
+        elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
+      })
+    });
+    if(!response.ok) throw new Error("submit failed");
+    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
+    pushNotification("achievement", "Story leaderboard submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
+  }catch(error){
+    pushNotification("stage", "Story leaderboard offline", "The campaign score could not be submitted right now.");
   }
 }
 
@@ -1306,6 +1347,7 @@ function update(dt){
         gameOverOverlay.classList.remove("hidden");
         saveProgress();
         if(currentMode==="endless") submitBonusLeaderboardScore();
+        if(currentMode==="campaign") submitStoryLeaderboardScore(currentStage);
         setMessage("Game over. The skeletons broke through the gate.");
       }
       updateUI();

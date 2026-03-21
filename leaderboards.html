@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Defense Leaderboards - Top 10 Endless and Story Runs</title>
+  <meta name="description" content="See the top 10 Dark Defense leaderboards for Endless Mode and Story Mode. Compare waves, stages, total score, bonus score, and climb the rankings." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://darkdefense.netlify.app/leaderboards.html" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page-content leaderboard-page">
+    <section class="glass leaderboard-hero leaderboard-hero-wow">
+      <div>
+        <div class="panel-kicker">Global Rankings</div>
+        <h1>Dark Defense leaderboards</h1>
+        <p>Track the strongest Endless survival runs and the best Story campaign clears in one premium ranking page built for competition, replay value, and bragging rights.</p>
+      </div>
+      <div class="leaderboard-hero-actions">
+        <a href="/" class="btn btn-primary">Play Dark Defense</a>
+        <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
+        <button class="btn btn-secondary leaderboard-refresh-main" id="refreshLeaderboardsBtn" type="button">Refresh Rankings</button>
+      </div>
+    </section>
+
+    <section class="glass leaderboard-podium-preview">
+      <div class="leaderboard-podium-head">
+        <div>
+          <div class="panel-kicker">Featured Legends</div>
+          <h2>Current board leaders</h2>
+        </div>
+        <div class="leaderboard-podium-copy">Top spots get crown glow, podium treatment, and instant bragging rights.</div>
+      </div>
+      <div class="leaderboard-podium-grid">
+        <div class="leaderboard-podium-column">
+          <div class="leaderboard-podium-label">Endless champion</div>
+          <div id="endlessPodium" class="leaderboard-podium-cards">
+            <div class="leaderboard-podium-card placeholder">Loading podium...</div>
+          </div>
+        </div>
+        <div class="leaderboard-podium-column">
+          <div class="leaderboard-podium-label">Story champion</div>
+          <div id="storyPodium" class="leaderboard-podium-cards">
+            <div class="leaderboard-podium-card placeholder">Loading podium...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="leaderboard-wow-grid">
+      <article class="glass leaderboard-wow-card leaderboard-card-endless">
+        <div class="leaderboard-card-topline">
+          <div>
+            <div class="panel-kicker">Endless Mode</div>
+            <h2>Top 10 survival bonus runs</h2>
+          </div>
+          <div class="leaderboard-glow-badge">∞ Endless</div>
+        </div>
+        <p class="leaderboard-card-copy">Ranked by bonus score first, then deepest wave, then total score. This is the pure high-pressure survival table.</p>
+        <div class="leaderboard-table-shell">
+          <div class="leaderboard-table leaderboard-table-header">
+            <div>#</div>
+            <div>Player</div>
+            <div>Wave</div>
+            <div>Bonus</div>
+            <div>Total</div>
+          </div>
+          <div id="endlessLeaderboardRows" class="leaderboard-table-body leaderboard-table-body-glow">
+            <div class="leaderboard-empty wow-empty">Loading Endless leaderboard...</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="glass leaderboard-wow-card leaderboard-card-story">
+        <div class="leaderboard-card-topline">
+          <div>
+            <div class="panel-kicker">Story Mode</div>
+            <h2>Top 10 campaign clears</h2>
+          </div>
+          <div class="leaderboard-glow-badge story">⚔ Story</div>
+        </div>
+        <p class="leaderboard-card-copy">Ranked by highest stage reached first, then total score, then bonus score. Perfect while the board is still filling up.</p>
+        <div class="leaderboard-table-shell">
+          <div class="leaderboard-table leaderboard-table-header">
+            <div>#</div>
+            <div>Player</div>
+            <div>Stage</div>
+            <div>Total</div>
+            <div>Bonus</div>
+          </div>
+          <div id="storyLeaderboardRows" class="leaderboard-table-body leaderboard-table-body-glow story">
+            <div class="leaderboard-empty wow-empty">Loading Story leaderboard...</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="glass leaderboard-detail-strip">
+      <div class="leaderboard-detail-card">
+        <span>Live rankings</span>
+        <strong>Top 10 Endless + Story</strong>
+      </div>
+      <div class="leaderboard-detail-card">
+        <span>Best for now</span>
+        <strong>No resets yet</strong>
+      </div>
+      <div class="leaderboard-detail-card">
+        <span>Goal</span>
+        <strong>Populate and build hype</strong>
+      </div>
+    </section>
+
+    <section class="glass content-card leaderboard-seo-copy">
+      <div class="panel-kicker">Why this page exists</div>
+      <h2>A browser-game leaderboard with real competitive energy</h2>
+      <p>Dark Defense now separates Endless Mode and Story Mode into two public top 10 ladders. Endless rewards survival efficiency and score discipline, while Story Mode highlights campaign progress and strong full-run execution. Together they turn a polished fantasy tower defense into a game players want to revisit, improve, and compare.</p>
+      <div class="cta-row">
+        <a href="/" class="btn btn-primary">Start a run</a>
+        <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Read strategy guide</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+
+  <script>
+    const endlessRowsEl = document.getElementById("endlessLeaderboardRows");
+    const storyRowsEl = document.getElementById("storyLeaderboardRows");
+    const endlessPodiumEl = document.getElementById("endlessPodium");
+    const storyPodiumEl = document.getElementById("storyPodium");
+    const refreshLeaderboardsBtn = document.getElementById("refreshLeaderboardsBtn");
+
+    function escapeHtml(value) {
+      return String(value || "Anonymous").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+    }
+
+    function formatNumber(value) {
+      return Number(value || 0).toLocaleString("en-US");
+    }
+
+    function getInitials(name) {
+      const clean = String(name || "Anonymous").trim().split(/\s+/).filter(Boolean).slice(0, 2);
+      if (!clean.length) return "AN";
+      return clean.map((part) => part[0]?.toUpperCase() || "").join("").slice(0, 2);
+    }
+
+    function formatDate(value) {
+      if (!value) return "Unknown date";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "Unknown date";
+      return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+    }
+
+    function getRankMeta(index) {
+      if (index === 0) return { label: "1st", crown: "👑", medal: "gold" };
+      if (index === 1) return { label: "2nd", crown: "✦", medal: "silver" };
+      if (index === 2) return { label: "3rd", crown: "✦", medal: "bronze" };
+      return { label: `#${index + 1}`, crown: "", medal: "" };
+    }
+
+    function renderPodium(target, rows, type) {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        target.innerHTML = '<div class="leaderboard-podium-card placeholder">No scores yet.</div>';
+        return;
+      }
+
+      const topThree = rows.slice(0, 3);
+      target.innerHTML = topThree.map((row, index) => {
+        const name = escapeHtml(row.player_name || "Anonymous");
+        const rank = getRankMeta(index);
+        const primary = type === "story" ? `Stage ${formatNumber(row.wave_reached)}` : `Wave ${formatNumber(row.wave_reached)}`;
+        const secondary = type === "story" ? `${formatNumber(row.score_total)} total` : `+${formatNumber(row.bonus_score)} bonus`;
+        return `
+          <div class="leaderboard-podium-card ${rank.medal} ${type}">
+            <div class="leaderboard-podium-rank">${rank.crown} ${rank.label}</div>
+            <div class="leaderboard-podium-playerline">
+              <div class="leaderboard-avatar-badge podium ${rank.medal || "base"}">${getInitials(name)}</div>
+              <div class="leaderboard-podium-playercopy">
+                <strong>${name}</strong>
+                <small class="leaderboard-podium-date">${formatDate(row.created_at)}</small>
+              </div>
+            </div>
+            <span>${primary}</span>
+            <small>${secondary}</small>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderRows(target, rows, type) {
+      if (!Array.isArray(rows) || rows.length === 0) {
+        target.innerHTML = '<div class="leaderboard-empty wow-empty">No scores yet. Be the first to claim this board.</div>';
+        return;
+      }
+
+      target.innerHTML = rows.map((row, index) => {
+        const name = escapeHtml(row.player_name || "Anonymous");
+        const rank = getRankMeta(index);
+        const rankClass = rank.medal ? ` ${rank.medal}` : "";
+        if (type === "story") {
+          return `
+            <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
+              <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
+              <div class="leaderboard-player-cell"><strong>${name}</strong><span>${formatNumber(row.kills)} kills</span></div>
+              <div>${formatNumber(row.wave_reached)}</div>
+              <div>${formatNumber(row.score_total)}</div>
+              <div>+${formatNumber(row.bonus_score)}</div>
+            </div>
+          `;
+        }
+        return `
+          <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
+            <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
+            <div class="leaderboard-player-cell"><div class="leaderboard-player-main"><div class="leaderboard-avatar-badge ${rank.medal || "base"}">${getInitials(name)}</div><div><strong>${name}</strong><span>${formatNumber(row.kills)} kills</span></div></div></div>
+            <div>${formatNumber(row.wave_reached)}</div>
+            <div><div class="leaderboard-score-stack"><strong>+${formatNumber(row.bonus_score)}</strong><span>${formatDate(row.created_at)}</span></div></div>
+            <div>${formatNumber(row.score_total)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function loadLeaderboards() {
+      try {
+        const response = await fetch("/.netlify/functions/get-leaderboards", { cache: "no-store" });
+        if (!response.ok) throw new Error("leaderboards unavailable");
+        const data = await response.json();
+        renderRows(endlessRowsEl, data.endless || [], "endless");
+        renderRows(storyRowsEl, data.story || [], "story");
+        renderPodium(endlessPodiumEl, data.endless || [], "endless");
+        renderPodium(storyPodiumEl, data.story || [], "story");
+      } catch (error) {
+        const message = '<div class="leaderboard-empty wow-empty">Leaderboards are temporarily unavailable.</div>';
+        endlessRowsEl.innerHTML = message;
+        storyRowsEl.innerHTML = message;
+        endlessPodiumEl.innerHTML = '<div class="leaderboard-podium-card placeholder">Podium unavailable.</div>';
+        storyPodiumEl.innerHTML = '<div class="leaderboard-podium-card placeholder">Podium unavailable.</div>';
+      } finally {
+        if (refreshLeaderboardsBtn) {
+          refreshLeaderboardsBtn.disabled = false;
+          refreshLeaderboardsBtn.textContent = "Refresh Rankings";
+        }
+      }
+    }
+
+    refreshLeaderboardsBtn?.addEventListener("click", () => {
+      refreshLeaderboardsBtn.disabled = true;
+      refreshLeaderboardsBtn.textContent = "Refreshing...";
+      loadLeaderboards();
+    });
+
+    loadLeaderboards();
+  </script>
+</body>
+</html>
