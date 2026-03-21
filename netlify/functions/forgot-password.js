@@ -31,7 +31,7 @@ async function sendResetEmail({ email, resetLink }) {
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${RESEND_API_KEY}`,
+      Authorization: `Bearer ${RESEND_API_KEY}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -71,7 +71,13 @@ exports.handler = async function handler(event) {
   }
 
   try {
-    const body = JSON.parse(String(event.body || "{}"));
+    let body = {};
+    try {
+      body = JSON.parse(String(event.body || "{}"));
+    } catch {
+      body = {};
+    }
+
     const email = normalizeEmail(body.email);
 
     if (!validateEmail(email)) {
@@ -96,6 +102,8 @@ exports.handler = async function handler(event) {
       limit 1
     `;
     const user = users[0];
+
+    // Nu dezvăluim dacă emailul există sau nu.
     if (!user) {
       return json(200, { ok: true, message: GENERIC_MESSAGE });
     }
@@ -126,6 +134,12 @@ exports.handler = async function handler(event) {
 
     return json(200, { ok: true, message: GENERIC_MESSAGE });
   } catch (error) {
+    console.error("forgot-password failed", {
+      message: error?.message || String(error),
+      stack: error?.stack || null,
+      hasResendKey: Boolean(RESEND_API_KEY),
+      hasBaseUrl: Boolean(String(process.env.APP_BASE_URL || "").trim())
+    });
     return json(500, { error: "Failed to start password reset." });
   }
 };
