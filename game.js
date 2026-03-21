@@ -81,9 +81,53 @@ const reservePanelEls = {
   bomb: document.getElementById("panel-reserve-bomb")
 };
 const reserveLevelEls = {};
+const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
+
+function getVisibleMobileBottomStack(){
+  if(!mobileLayoutMedia.matches || !unitInfoPanel || unitInfoPanel.classList.contains("hidden")) return 0;
+  return Math.ceil(unitInfoPanel.getBoundingClientRect().height) + 12;
+}
+
+function syncMobileHudLayout(){
+  if(!canvasWrap) return;
+  canvasWrap.style.setProperty("--mobile-bottom-stack", `${getVisibleMobileBottomStack()}px`);
+}
+
+function clampTowerMenuPosition(targetLeft, targetTop){
+  if(!towerMenu || !canvasWrap) return { left: targetLeft, top: targetTop };
+  const wrapRect = canvasWrap.getBoundingClientRect();
+  const menuRect = towerMenu.getBoundingClientRect();
+  const sidePadding = mobileLayoutMedia.matches ? 12 : 16;
+  const topPadding = mobileLayoutMedia.matches ? 84 : 16;
+  const bottomPadding = mobileLayoutMedia.matches ? getVisibleMobileBottomStack() + 88 : 16;
+  const maxLeft = Math.max(sidePadding, wrapRect.width - menuRect.width - sidePadding);
+  const maxTop = Math.max(topPadding, wrapRect.height - menuRect.height - bottomPadding);
+  return {
+    left: Math.min(Math.max(targetLeft, sidePadding), maxLeft),
+    top: Math.min(Math.max(targetTop, topPadding), maxTop)
+  };
+}
+
 
 const COLS = 18, ROWS = 10, CELL = 56;
 const START_LIVES = 20, START_MONEY = 150;
+
+const towerSpriteSources = {
+  archer: "assets/towers/archer.png",
+  hunter: "assets/towers/hunter.png",
+  mage: "assets/towers/mage.png",
+  bomb: "assets/towers/bomb.png"
+};
+const towerSprites = {};
+function loadTowerSprites(){
+  Object.entries(towerSpriteSources).forEach(([key, src]) => {
+    const img = new Image();
+    img.src = src;
+    towerSprites[key] = img;
+  });
+}
+loadTowerSprites();
+
 
 const STAGES = {
   1: { name:"Forest", bossWave:5, difficulty:1.0, bossAbility:"summon",
@@ -1177,11 +1221,13 @@ function screenToWorld(x, y){
 function hideUnitInfoPanel(){
   unitInfoPanel?.classList.add("hidden");
   resetCameraBtn?.classList.remove("active");
+  syncMobileHudLayout();
 }
 
 function showUnitInfoPanel(){
   unitInfoPanel?.classList.remove("hidden");
   resetCameraBtn?.classList.add("active");
+  syncMobileHudLayout();
 }
 
 function toggleUnitInfoPanel(){
@@ -1227,9 +1273,17 @@ function showTowerMenu(unit){
   const cssX = (pos.x / canvas.width) * canvasRect.width + (canvasRect.left - wrapRect.left);
   const cssY = (pos.y / canvas.height) * canvasRect.height + (canvasRect.top - wrapRect.top);
 
-  towerMenu.style.left = `${cssX}px`;
-  towerMenu.style.top = `${cssY - 12}px`;
   towerMenu.classList.remove("hidden");
+  const preferredLeft = cssX - towerMenu.offsetWidth / 2;
+  let preferredTop = cssY - towerMenu.offsetHeight - 18;
+  const minTop = mobileLayoutMedia.matches ? 84 : 16;
+  if(preferredTop < minTop){
+    preferredTop = cssY + 18;
+  }
+  const clampedMenu = clampTowerMenuPosition(preferredLeft, preferredTop);
+  towerMenu.style.left = `${clampedMenu.left}px`;
+  towerMenu.style.top = `${clampedMenu.top}px`;
+  syncMobileHudLayout();
 }
 
 
@@ -2444,28 +2498,105 @@ function drawPlacedUnit(unit){
     ctx.fill();
   }
 
-  // fantasy turret base under every unit
-  ctx.save();
-  ctx.translate(pos.x,pos.y);
 
-  ctx.fillStyle="rgba(15,23,42,.95)";
-  roundRect(-17, 9, 34, 12, 6);
-  ctx.fill();
+  const sprite = towerSprites[unit.type];
+  if(sprite?.complete && sprite.naturalWidth){
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
 
-  ctx.fillStyle="rgba(100,116,139,.9)";
-  roundRect(-12, 2, 24, 10, 5);
-  ctx.fill();
+    const isBomb = unit.type==="bomb";
+    const isArcher = unit.type==="archer";
+    const isHunter = unit.type==="hunter";
+    const isMage = unit.type==="mage";
+    const t = performance.now() * 0.004 + unit.id * 0.17;
+    const hoverLift = 0;
+    const bob = 0;
+    const sway = isBomb ? Math.sin(t * 0.65) * 0.025 : isArcher ? Math.sin(t * 0.45) * 0.012 : isHunter ? Math.sin(t * 0.55) * 0.018 : isMage ? Math.sin(t * 0.38) * 0.01 : 0;
+    const drawSize = isBomb ? 52 : isHunter ? 44 : isMage ? 50 : 46;
+    const drawY = isBomb ? -30 : isArcher ? -28 : isHunter ? -27 : isMage ? -29 : -29;
 
-  ctx.strokeStyle="rgba(226,232,240,.16)";
-  ctx.lineWidth=1.5;
-  ctx.stroke();
+    ctx.shadowColor = isBomb ? "rgba(255,130,40,.22)" : isMage ? "rgba(168,139,250,.18)" : isHunter ? "rgba(56,189,116,.18)" : "rgba(255,184,74,.16)";
+    ctx.shadowBlur = isBomb ? 12 : isArcher ? 8 : isHunter ? 9 : 8;
+    ctx.shadowOffsetY = 1;
 
-  ctx.fillStyle="rgba(148,163,184,.42)";
-  roundRect(-7, -4, 14, 8, 4);
-  ctx.fill();
-  ctx.restore();
+    const lightRadius = isBomb ? 24 : isMage ? 27 : isHunter ? 20 : 18;
+    const lightAlpha = isBomb ? 0.12 : isMage ? 0.13 : isHunter ? 0.10 : 0.09;
+    const lightColor = isBomb ? "255,166,92" : isMage ? "168,139,250" : isHunter ? "74,222,128" : "255,214,120";
+    const flicker = 1 + Math.sin(t * (isBomb ? 1.8 : 1.25)) * 0.08;
+    const glow = ctx.createRadialGradient(0, 7, 0, 0, 7, lightRadius * flicker);
+    glow.addColorStop(0, `rgba(${lightColor},${(lightAlpha * 0.95).toFixed(3)})`);
+    glow.addColorStop(0.35, `rgba(${lightColor},${(lightAlpha * 0.42).toFixed(3)})`);
+    glow.addColorStop(1, `rgba(${lightColor},0)`);
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 7, lightRadius * flicker, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 
-  if(unit.type==="bomb"){
+    if(isBomb){
+      ctx.save();
+      ctx.rotate(sway);
+      ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
+      ctx.restore();
+
+      ctx.globalCompositeOperation = "screen";
+      for(let i=0;i<4;i++){
+        const px = Math.sin(t * (1.1 + i * 0.23) + i) * (8 + i * 1.6);
+        const py = -18 - i * 7 - ((t * 12 + i * 5) % 8);
+        const pr = i < 2 ? 2.2 : 1.5;
+        ctx.fillStyle = i < 2 ? "rgba(255,196,110,.70)" : "rgba(255,132,52,.55)";
+        ctx.beginPath();
+        ctx.arc(px, py + bob * 0.4, pr, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalCompositeOperation = "source-over";
+    } else {
+      if(isArcher || isHunter){
+        ctx.save();
+        ctx.rotate(sway);
+        ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
+        ctx.restore();
+
+        ctx.globalCompositeOperation = "screen";
+        const count = isHunter ? 3 : 2;
+        for(let i=0;i<count;i++){
+          const px = (isHunter ? -10 : 18) + Math.sin(t * (1.2 + i * 0.25) + i) * (isHunter ? 5 : 3);
+          const py = (isHunter ? -18 : -28) - i * (isHunter ? 7 : 10) - ((t * (isHunter ? 7 : 8) + i * 4) % (isHunter ? 5 : 6));
+          ctx.fillStyle = isHunter ? (i === 0 ? "rgba(134,239,172,.42)" : "rgba(74,222,128,.28)") : (i === 0 ? "rgba(255,214,120,.50)" : "rgba(255,138,66,.38)");
+          ctx.beginPath();
+          ctx.arc(px, py + bob * 0.2, isHunter ? (i === 0 ? 1.6 : 1.1) : (i === 0 ? 1.8 : 1.2), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      } else {
+        ctx.save();
+        ctx.rotate(sway);
+        ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
+        ctx.restore();
+
+        ctx.globalCompositeOperation = "screen";
+        const ringAlpha = 0.16 + (Math.sin(t * 1.5) + 1) * 0.06;
+        ctx.strokeStyle = `rgba(196,181,253,${ringAlpha.toFixed(3)})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, -10 + bob * 0.25, 14 + Math.sin(t * 1.3) * 1.8, 0, Math.PI * 2);
+        ctx.stroke();
+        for(let i=0;i<4;i++){
+          const a = t * (0.9 + i * 0.08) + i * Math.PI / 2;
+          const px = Math.cos(a) * (12 + i * 0.7);
+          const py = -18 + Math.sin(a * 1.2) * 4 + bob * 0.3;
+          ctx.fillStyle = i % 2 === 0 ? "rgba(216,180,254,.38)" : "rgba(167,139,250,.28)";
+          ctx.beginPath();
+          ctx.arc(px, py, i % 2 === 0 ? 1.7 : 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = "source-over";
+      }
+    }
+    ctx.restore();
+  } else if(unit.type==="bomb"){
     ctx.fillStyle=unit.color;
     roundRect(pos.x-15,pos.y-15,30,30,8);
     ctx.fill();
@@ -2547,23 +2678,132 @@ function drawEnemy(enemy){
 const drawEnemies=()=>enemies.forEach(drawEnemy);
 
 function drawProjectile(p){
+  const trailDx = p.x - (p.px ?? p.x);
+  const trailDy = p.y - (p.py ?? p.y);
+  const speedGlow = Math.min(1, Math.hypot(trailDx, trailDy) / 8);
+
   if(p.projectileType==="bomb"){
-    ctx.strokeStyle="rgba(251,146,60,.25)"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(p.px,p.py); ctx.lineTo(p.x,p.y); ctx.stroke();
     ctx.save();
+    const grad = ctx.createLinearGradient(p.px, p.py, p.x, p.y);
+    grad.addColorStop(0, "rgba(251,146,60,0)");
+    grad.addColorStop(0.45, "rgba(251,146,60,.24)");
+    grad.addColorStop(1, "rgba(255,214,170,.55)");
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(p.px,p.py);
+    ctx.lineTo(p.x,p.y);
+    ctx.stroke();
+
     ctx.shadowColor = p.color;
-    ctx.shadowBlur = 10;
-    ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 14;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,6.5,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = "screen";
+    ctx.fillStyle = "rgba(255,240,200,.75)";
+    ctx.beginPath();
+    ctx.arc(p.x + 1.5, p.y - 1.5, 2.2, 0, Math.PI*2);
+    ctx.fill();
     ctx.restore();
     return;
   }
-  ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.angle);
-  ctx.shadowColor = p.color;
-  ctx.shadowBlur = 8;
-  ctx.strokeStyle=p.projectileType==="mage"?"rgba(221,214,254,.35)":"rgba(248,250,252,.25)";
-  ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(0,0); ctx.stroke();
-  ctx.strokeStyle=p.color; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(-10,0); ctx.lineTo(8,0); ctx.stroke();
-  ctx.fillStyle=p.projectileType==="mage"?"#c4b5fd":"#f8fafc";
-  ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(2,-4); ctx.lineTo(2,4); ctx.closePath(); ctx.fill();
+
+  if(p.projectileType==="mage"){
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.angle + Math.sin(performance.now()*0.01 + p.id) * 0.08);
+
+    const tail = ctx.createLinearGradient(-20,0,8,0);
+    tail.addColorStop(0, "rgba(167,139,250,0)");
+    tail.addColorStop(0.5, "rgba(196,181,253,.26)");
+    tail.addColorStop(1, "rgba(244,114,182,.16)");
+    ctx.strokeStyle = tail;
+    ctx.lineWidth = 4;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(-20,0);
+    ctx.lineTo(4,0);
+    ctx.stroke();
+
+    ctx.shadowColor = "rgba(196,181,253,.9)";
+    ctx.shadowBlur = 16;
+    const orb = ctx.createRadialGradient(0,0,1,0,0,7);
+    orb.addColorStop(0, "rgba(255,255,255,.95)");
+    orb.addColorStop(.35, "rgba(224,231,255,.95)");
+    orb.addColorStop(.7, "rgba(196,181,253,.9)");
+    orb.addColorStop(1, "rgba(139,92,246,.65)");
+    ctx.fillStyle = orb;
+    ctx.beginPath();
+    ctx.arc(0,0,6.2,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.globalCompositeOperation = "screen";
+    ctx.strokeStyle = `rgba(216,180,254,${(0.25 + speedGlow * 0.2).toFixed(3)})`;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.arc(0,0,8.8 + Math.sin(performance.now()*0.02 + p.id) * 0.8,0,Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.rotate(p.angle);
+
+  const isHunter = p.projectileType === "hunter";
+  const shaft = isHunter ? "#d9f99d" : "#e5e7eb";
+  const fletch = isHunter ? "#4ade80" : "#f59e0b";
+  const head = isHunter ? "#86efac" : "#f8fafc";
+
+  ctx.strokeStyle = isHunter ? "rgba(74,222,128,.18)" : "rgba(251,191,36,.14)";
+  ctx.lineWidth = isHunter ? 4 : 3.4;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(-18,0);
+  ctx.lineTo(6,0);
+  ctx.stroke();
+
+  ctx.shadowColor = isHunter ? "rgba(74,222,128,.45)" : "rgba(255,196,70,.35)";
+  ctx.shadowBlur = isHunter ? 10 : 8;
+
+  ctx.strokeStyle = shaft;
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  ctx.moveTo(-12,0);
+  ctx.lineTo(7,0);
+  ctx.stroke();
+
+  ctx.fillStyle = head;
+  ctx.beginPath();
+  ctx.moveTo(8,0);
+  ctx.lineTo(1,-4.2);
+  ctx.lineTo(1,4.2);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = fletch;
+  ctx.beginPath();
+  ctx.moveTo(-9,0);
+  ctx.lineTo(-14,-3.5);
+  ctx.lineTo(-12.3,0);
+  ctx.lineTo(-14,3.5);
+  ctx.closePath();
+  ctx.fill();
+
+  if(isHunter){
+    ctx.globalCompositeOperation = "screen";
+    for(let i=0;i<2;i++){
+      ctx.fillStyle = i===0 ? "rgba(134,239,172,.55)" : "rgba(74,222,128,.35)";
+      ctx.beginPath();
+      ctx.arc(-4 - i * 5, (i===0 ? -1.5 : 1.8), i===0 ? 1.4 : 1.0, 0, Math.PI*2);
+      ctx.fill();
+    }
+  }
   ctx.restore();
 }
 const drawProjectiles=()=>projectiles.forEach(drawProjectile);
@@ -3026,3 +3266,8 @@ auraRewardList?.addEventListener("click", (event) => {
 });
 
 refreshLeaderboardBtn?.addEventListener("click", ()=>{ loadBonusLeaderboard(); });
+
+
+syncMobileHudLayout();
+window.addEventListener("resize", syncMobileHudLayout);
+mobileLayoutMedia.addEventListener?.("change", syncMobileHudLayout);

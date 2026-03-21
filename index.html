@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Dark Defense - Fantasy Tower Defense Browser Game</title>
   <meta name="description" content="Dark Defense is a fantasy tower defense browser game with boss fights, endless mode, upgrades, spells, legendary auras, and an online leaderboard." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -27,6 +27,9 @@
   <link rel="canonical" href="https://darkdefense.netlify.app/" />
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="icon" href="/favicon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
   <script type="application/ld+json">
   {
@@ -99,12 +102,15 @@
         <p>
           Fantasy tower defense with boss fights, upgrades, spells, legendary auras, and Endless Mode. Play instantly in your browser and climb the leaderboard.
         </p>
-        <div class="hero-actions hero-nav-actions">
-          <a href="/about.html" class="btn btn-secondary">About</a>
-          <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
-          <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Strategy Guide</a>
-          <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
-        <a href="/account.html" class="btn btn-secondary">Account</a>
+        <div class="hero-cta-row">
+          <a href="#canvasWrap" class="btn btn-primary hero-play-btn">Play Now</a>
+          <div class="hero-actions hero-nav-actions">
+            <a href="/about.html" class="btn btn-secondary">About</a>
+            <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
+            <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Strategy Guide</a>
+            <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
+            <a href="/account.html" class="btn btn-secondary">Account</a>
+          </div>
         </div>
       </div>
 
