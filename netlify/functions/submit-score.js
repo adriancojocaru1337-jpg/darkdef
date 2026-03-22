@@ -6,7 +6,7 @@ const sql = neon();
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
 
 const MEMORY_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const MEMORY_RATE_LIMIT_MAX_REQUESTS = 8;
+const MEMORY_RATE_LIMIT_MAX_REQUESTS = 20;
 const memoryRateLimitCache = new Map();
 
 function json(statusCode, payload) {
@@ -213,8 +213,8 @@ exports.handler = async function handler(event) {
         and created_at > now() - interval '15 minutes'
     `;
 
-    if ((recentIpAttempts?.[0]?.attempts || 0) >= 12) {
-      return reject({ statusCode: 429, error: "Too many recent score attempts", ipHash, playerName, runId, payload, suspicious: true });
+    if ((recentIpAttempts?.[0]?.attempts || 0) >= 20) {
+      return reject({ statusCode: 429, error: "Too many recent score attempts", ipHash, playerName, runId, payload });
     }
 
     const recentNameAttempts = await sql`
@@ -224,7 +224,7 @@ exports.handler = async function handler(event) {
         and created_at > now() - interval '10 minutes'
     `;
 
-    if ((recentNameAttempts?.[0]?.attempts || 0) >= 4) {
+    if ((recentNameAttempts?.[0]?.attempts || 0) >= 8) {
       return reject({ statusCode: 429, error: "Too many recent submissions for this name", ipHash, playerName, runId, payload });
     }
 
@@ -252,8 +252,9 @@ exports.handler = async function handler(event) {
       return reject({ statusCode: 400, error: "Unsupported run mode", ipHash, playerName, runId, payload, suspicious: true, runDbId });
     }
 
-    if (run.ip_hash !== ipHash || run.user_agent_hash !== uaHash) {
-      return reject({ statusCode: 403, error: "Run fingerprint mismatch", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+    const fingerprintMismatch = run.ip_hash !== ipHash || run.user_agent_hash !== uaHash;
+    if (fingerprintMismatch) {
+      console.warn("Run fingerprint mismatch", { runId, playerName, origin, ipChanged: run.ip_hash !== ipHash, userAgentChanged: run.user_agent_hash !== uaHash });
     }
 
     if (run.token_signature !== expectedToken || runToken !== expectedToken) {

@@ -238,6 +238,13 @@ let spawnTimer = 0, idCounter = 1, lastTime = 0, hoveredCell = null, isPaused = 
 let currentMode = "campaign", endlessUnlocked = false;
 let bossFxTimer = 0;
 let bossFxType = "";
+let waveIntroTimer = 0;
+let waveIntroText = "";
+let waveIntroSubtext = "";
+let bossDefeatIntroTimer = 0;
+let bossDefeatRewardDelayTimer = 0;
+let bossDefeatIntroText = "";
+let bossDefeatIntroSubtext = "";
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
@@ -419,6 +426,16 @@ function beginBossAuraReward(){
     return;
   }
   showAuraRewardOverlay();
+}
+
+function queueBossAuraReward(){
+  bossDefeatIntroTimer = 1.2;
+  bossDefeatRewardDelayTimer = 1.55;
+  bossDefeatIntroText = "BOSS DEFEATED";
+  bossDefeatIntroSubtext = "Choose a legendary aura";
+  isPaused = true;
+  setMessage("Boss defeated. Choose your legendary aura.");
+  updateUI();
 }
 
 function applyPendingAuraToUnit(unit){
@@ -1449,7 +1466,7 @@ function applyStage(stageNumber, resetRun=false){
 
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[];
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
-  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; isPaused=false; stageWave=1;
+  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; isPaused=false; stageWave=1;
   pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; hideAuraRewardOverlay();
   stopBossLoop();
   syncAmbientAudio();
@@ -1486,7 +1503,16 @@ function startWave(){
   playWaveSound();
   hideHintChip();
   hideTowerMenu();
-  setMessage(stageWave===stage.bossWave?`${STAGE_BOSS[currentStage]?.name || "Boss"} appeared!`:`Wave ${stageWave} started.`);
+  if(stageWave===stage.bossWave){
+    waveIntroTimer = 0;
+    waveIntroText = "";
+    waveIntroSubtext = "";
+  } else {
+    waveIntroTimer = 1.8;
+    waveIntroText = `Wave ${stageWave}`;
+    waveIntroSubtext = `Stage ${currentStage} · ${stage.name}`;
+  }
+  setMessage(stageWave===stage.bossWave?"":`Wave ${stageWave} started.`);
   updateUI();
 }
 function togglePause(){ if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution) return; isPaused=!isPaused; setMessage(isPaused?"Game paused.":"Game resumed."); updateUI(); }
@@ -1659,9 +1685,17 @@ function triggerBossAbility(enemy){
 }
 
 function update(dt){
-  if(lives<=0 || isPaused) return;
   bossBannerTimer=Math.max(0,bossBannerTimer-dt);
   bossFxTimer=Math.max(0,bossFxTimer-dt);
+  waveIntroTimer=Math.max(0,waveIntroTimer-dt);
+  bossDefeatIntroTimer=Math.max(0,bossDefeatIntroTimer-dt);
+  if(bossDefeatRewardDelayTimer>0){
+    bossDefeatRewardDelayTimer=Math.max(0,bossDefeatRewardDelayTimer-dt);
+    if(bossDefeatRewardDelayTimer===0 && pendingBossResolution && !pendingAuraChoice){
+      beginBossAuraReward();
+    }
+  }
+  if(lives<=0 || isPaused) return;
   spellCooldown.slow = Math.max(0, spellCooldown.slow - dt);
   spellCooldown.damage = Math.max(0, spellCooldown.damage - dt);
   spellCooldown.bomb = Math.max(0, spellCooldown.bomb - dt);
@@ -1812,8 +1846,7 @@ function update(dt){
         } else {
           pendingBossResolution = { type:"endless-next" };
         }
-        beginBossAuraReward();
-        updateUI();
+        queueBossAuraReward();
         return;
       }
       return;
@@ -2894,6 +2927,65 @@ function drawBossBanner(){
   ctx.restore();
 }
 
+function drawWaveIntro(){
+  if(waveIntroTimer<=0) return;
+  const total = 1.8;
+  const progress = 1 - (waveIntroTimer / total);
+  const fadeIn = Math.min(1, progress / 0.18);
+  const fadeOut = Math.min(1, waveIntroTimer / 0.45);
+  const alpha = Math.min(fadeIn, fadeOut);
+  const y = 70 - (1 - alpha) * 10;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  const width = Math.max(220, Math.min(420, ctx.measureText ? 320 : 320));
+  ctx.fillStyle = "rgba(8,17,31,.72)";
+  roundRect(canvas.width/2 - 160, y - 28, 320, 54, 18);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(251,191,36,.18)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "700 22px Arial";
+  ctx.fillText(waveIntroText, canvas.width/2, y - 2);
+  ctx.fillStyle = "rgba(226,232,240,.78)";
+  ctx.font = "600 11px Arial";
+  ctx.fillText(waveIntroSubtext, canvas.width/2, y + 16);
+  ctx.restore();
+}
+
+
+function drawBossDefeatIntro(){
+  if(bossDefeatIntroTimer<=0) return;
+  const total = 1.2;
+  const progress = 1 - (bossDefeatIntroTimer / total);
+  const fadeIn = Math.min(1, progress / 0.16);
+  const fadeOut = Math.min(1, bossDefeatIntroTimer / 0.30);
+  const alpha = Math.min(fadeIn, fadeOut);
+  const y = canvas.height * 0.28 - (1 - alpha) * 8;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  roundRect(canvas.width/2 - 190, y - 34, 380, 72, 22);
+  ctx.fillStyle = "rgba(10,14,24,.76)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(251,191,36,.28)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fde68a";
+  ctx.font = "700 28px Arial";
+  ctx.fillText(bossDefeatIntroText || "BOSS DEFEATED", canvas.width/2, y - 2);
+  ctx.fillStyle = "rgba(226,232,240,.84)";
+  ctx.font = "600 13px Arial";
+  ctx.fillText(bossDefeatIntroSubtext || "Choose a legendary aura", canvas.width/2, y + 20);
+  ctx.restore();
+}
 
 function drawBossAbilityFx(){
   if(bossFxTimer <= 0) return;
@@ -2961,6 +3053,8 @@ function draw(){
   drawBossAbilityFx();
   drawBossHealthBar();
   drawBossBanner();
+  drawWaveIntro();
+  drawBossDefeatIntro();
 }
 function gameLoop(timestamp){
   if(!lastTime) lastTime=timestamp;
