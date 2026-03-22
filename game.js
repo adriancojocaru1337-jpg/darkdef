@@ -146,7 +146,7 @@ const STAGES = {
     route:[{c:0,r:1},{c:6,r:1},{c:6,r:5},{c:10,r:5},{c:10,r:2},{c:15,r:2},{c:15,r:8},{c:17,r:8}],
     grassPatches:[{x:54,y:402,w:144,h:74},{x:744,y:64,w:152,h:66},{x:514,y:434,w:128,h:54}],
     ruins:[{x:184,y:236},{x:790,y:286},{x:918,y:186}]},
-  5: { name:"Catacombs", bossWave:9, difficulty:2.25, bossAbility:"rage",
+  5: { name:"Catacombs", bossWave:9, difficulty:2.05, bossAbility:"rage",
     route:[{c:0,r:6},{c:2,r:6},{c:2,r:1},{c:8,r:1},{c:8,r:8},{c:13,r:8},{c:13,r:3},{c:17,r:3}],
     grassPatches:[{x:78,y:72,w:108,h:48},{x:794,y:434,w:134,h:52},{x:470,y:300,w:116,h:64}],
     ruins:[{x:366,y:258},{x:846,y:154},{x:628,y:456}]},
@@ -245,6 +245,31 @@ let bossDefeatIntroTimer = 0;
 let bossDefeatRewardDelayTimer = 0;
 let bossDefeatIntroText = "";
 let bossDefeatIntroSubtext = "";
+const STAGE_QUOTES = [
+  "Victory is survival with a name.",
+  "The war never ends. Only the soldiers change.",
+  "You didn’t win. You endured.",
+  "Strength is a path. You just crossed the line.",
+  "This is where weakness ends.",
+  "Survival is not victory. It’s permission to continue.",
+  "The towers do not fear. They endure.",
+  "You built this line. Now hold it.",
+  "The tower never retreats.",
+  "Where towers rise, hope resists.",
+  "Your defense is their grave.",
+  "You don’t fight the war. You shape it.",
+  "The towers decide who passes.",
+  "What you’ve awakened now guards your path.",
+  "Your will now echoes through every tower.",
+  "The aura binds you to the battlefield."
+];
+let lastStageQuote = "";
+let stageQuoteTimer = 0;
+let stageQuoteText = "";
+let stageQuoteSubtext = "";
+let stageQuoteResolveTimer = 0;
+let auraBindFxTimer = 0;
+let auraBindFxUnitId = null;
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
@@ -438,17 +463,53 @@ function queueBossAuraReward(){
   updateUI();
 }
 
+function pickStageQuote(){
+  if(!STAGE_QUOTES.length) return "";
+  if(STAGE_QUOTES.length === 1){
+    lastStageQuote = STAGE_QUOTES[0];
+    return STAGE_QUOTES[0];
+  }
+
+  let quote = "";
+  do {
+    quote = STAGE_QUOTES[Math.floor(Math.random() * STAGE_QUOTES.length)];
+  } while(quote === lastStageQuote);
+
+  lastStageQuote = quote;
+  return quote;
+}
+
+function startAuraBindCinematic(unit){
+  auraBindFxUnitId = unit?.id || null;
+  auraBindFxTimer = 1.0;
+  stageQuoteText = pickStageQuote();
+  stageQuoteSubtext = `Stage ${currentStage} cleared`;
+  stageQuoteTimer = 3.6;
+  stageQuoteResolveTimer = 3.2;
+  setMessage(`${unit.name} received ${unit.auraName}.`);
+  updateUI();
+}
+
 function applyPendingAuraToUnit(unit){
   if(!pendingAuraChoice || !unit) return false;
   unit.auraType = pendingAuraChoice.id;
   unit.auraName = pendingAuraChoice.name;
   unit.auraIcon = pendingAuraChoice.icon;
+
+  const appliedAuraName = unit.auraName;
   pendingAuraChoice = null;
   hideAuraRewardOverlay();
-  pushNotification("achievement", "Aura applied", `${unit.name} received ${unit.auraName}. It will keep the aura in future stages.`);
-  setMessage(`${unit.name} received ${unit.auraName}.`);
-  showPopup(cellCenter(unit.c, unit.r).x, cellCenter(unit.c, unit.r).y - 18, unit.auraName, getAuraData(unit.auraType)?.color || "#fde68a");
-  resolveBossWaveCompletion();
+
+  pushNotification("achievement", "Aura applied", `${unit.name} received ${appliedAuraName}. It will keep the aura in future stages.`);
+  showPopup(
+    cellCenter(unit.c, unit.r).x,
+    cellCenter(unit.c, unit.r).y - 18,
+    appliedAuraName,
+    getAuraData(unit.auraType)?.color || "#fde68a"
+  );
+
+  isPaused = true;
+  startAuraBindCinematic(unit);
   return true;
 }
 
@@ -1466,7 +1527,7 @@ function applyStage(stageNumber, resetRun=false){
 
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[];
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
-  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; isPaused=false; stageWave=1;
+  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1;
   pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; hideAuraRewardOverlay();
   stopBossLoop();
   syncAmbientAudio();
@@ -1689,6 +1750,14 @@ function update(dt){
   bossFxTimer=Math.max(0,bossFxTimer-dt);
   waveIntroTimer=Math.max(0,waveIntroTimer-dt);
   bossDefeatIntroTimer=Math.max(0,bossDefeatIntroTimer-dt);
+  stageQuoteTimer = Math.max(0, stageQuoteTimer - dt);
+  auraBindFxTimer = Math.max(0, auraBindFxTimer - dt);
+  if(stageQuoteResolveTimer > 0){
+    stageQuoteResolveTimer = Math.max(0, stageQuoteResolveTimer - dt);
+    if(stageQuoteResolveTimer === 0){
+      resolveBossWaveCompletion();
+    }
+  }
   if(bossDefeatRewardDelayTimer>0){
     bossDefeatRewardDelayTimer=Math.max(0,bossDefeatRewardDelayTimer-dt);
     if(bossDefeatRewardDelayTimer===0 && pendingBossResolution && !pendingAuraChoice){
@@ -2987,6 +3056,86 @@ function drawBossDefeatIntro(){
   ctx.restore();
 }
 
+function drawAuraBindFx(){
+  if(auraBindFxTimer <= 0 || !auraBindFxUnitId) return;
+
+  const unit = getUnitById(auraBindFxUnitId);
+  if(!unit) return;
+
+  const aura = getAuraData(unit.auraType);
+  const color = aura?.color || "#fde68a";
+  const pos = cellCenter(unit.c, unit.r);
+  const t = 1 - (auraBindFxTimer / 1.0);
+
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, 1 - t * 0.9);
+
+  for(let i = 0; i < 2; i++){
+    const radius = 18 + t * 44 + i * 10;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = i === 0 ? 3 : 1.5;
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(pos.x, pos.y, 14 + Math.sin(t * Math.PI * 4) * 2, 0, Math.PI * 2);
+  ctx.fillStyle = `${color}33`;
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function drawStageQuoteCinematic(){
+  if(stageQuoteTimer <= 0) return;
+
+  const total = 3.6;
+  const progress = 1 - (stageQuoteTimer / total);
+  const fadeIn = Math.min(1, progress / 0.18);
+  const fadeOut = Math.min(1, stageQuoteTimer / 0.75);
+  const alpha = Math.min(fadeIn, fadeOut);
+
+  ctx.save();
+
+  ctx.globalAlpha = 0.58 * alpha;
+  ctx.fillStyle = "#05070d";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.globalAlpha = 0.20 * alpha;
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, "rgba(0,0,0,0.95)");
+  grad.addColorStop(0.22, "rgba(0,0,0,0.25)");
+  grad.addColorStop(0.78, "rgba(0,0,0,0.25)");
+  grad.addColorStop(1, "rgba(0,0,0,0.95)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const boxW = Math.min(760, canvas.width - 80);
+  const boxH = 110;
+  const x = canvas.width / 2 - boxW / 2;
+  const y = canvas.height * 0.72 - boxH / 2;
+
+  roundRect(x, y, boxW, boxH, 22);
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(7,10,18,0.72)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(251,191,36,0.22)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "italic 700 24px Georgia";
+  ctx.fillText(stageQuoteText, canvas.width / 2, y + 44);
+
+  ctx.fillStyle = "rgba(226,232,240,0.72)";
+  ctx.font = "600 12px Arial";
+  ctx.fillText(stageQuoteSubtext, canvas.width / 2, y + 72);
+
+  ctx.restore();
+}
+
 function drawBossAbilityFx(){
   if(bossFxTimer <= 0) return;
   const alpha = Math.min(1, bossFxTimer / 0.3);
@@ -3055,6 +3204,8 @@ function draw(){
   drawBossBanner();
   drawWaveIntro();
   drawBossDefeatIntro();
+  drawAuraBindFx();
+  drawStageQuoteCinematic();
 }
 function gameLoop(timestamp){
   if(!lastTime) lastTime=timestamp;
