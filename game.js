@@ -1685,7 +1685,7 @@ function applySplashDamage(center,radius,damage,projectileType){
     const pos=getPathPosition(enemy.progress);
     if(distance(center,pos)<=radius){
       enemy.hp -= damage;
-      addHitParticles(pos.x,pos.y,projectileType==="bomb"?6:4,projectileType==="bomb"?"#fb923c":"#c4b5fd");
+      addHitParticles(pos.x,pos.y,projectileType==="bomb"?4:4,projectileType==="bomb"?"#fb923c":"#c4b5fd");
       showPopup(pos.x,pos.y-10,`-${Math.round(damage)}`,projectileType==="bomb"?"#fb923c":"#c4b5fd");
     }
   }
@@ -1858,7 +1858,7 @@ function update(dt){
         }
       }
       else if(projectile.projectileType==="bomb"){
-        applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb"); addHitParticles(targetPos.x,targetPos.y,14,"#fb923c");
+        applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb"); addHitParticles(targetPos.x,targetPos.y,8,"#fb923c");
         for(const enemy of enemies){
           const pos=getPathPosition(enemy.progress);
           if(distance(targetPos,pos)<=projectile.splash){
@@ -2644,13 +2644,13 @@ function drawPlacedUnit(unit){
       ctx.restore();
 
       ctx.globalCompositeOperation = "screen";
-      for(let i=0;i<4;i++){
-        const px = Math.sin(t * (1.1 + i * 0.23) + i) * (8 + i * 1.6);
-        const py = -18 - i * 7 - ((t * 12 + i * 5) % 8);
-        const pr = i < 2 ? 2.2 : 1.5;
-        ctx.fillStyle = i < 2 ? "rgba(255,196,110,.70)" : "rgba(255,132,52,.55)";
+      for(let i=0;i<2;i++){
+        const px = Math.sin(t * (1.08 + i * 0.18) + i * 0.75) * (6 + i * 1.4);
+        const py = -18 - i * 6 - ((t * 8 + i * 4) % 5);
+        const pr = i === 0 ? 1.7 : 1.15;
+        ctx.fillStyle = i === 0 ? "rgba(255,196,110,.42)" : "rgba(255,132,52,.30)";
         ctx.beginPath();
-        ctx.arc(px, py + bob * 0.4, pr, 0, Math.PI * 2);
+        ctx.arc(px, py + bob * 0.25, pr, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalCompositeOperation = "source-over";
@@ -2660,18 +2660,6 @@ function drawPlacedUnit(unit){
         ctx.rotate(sway);
         ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
         ctx.restore();
-
-        ctx.globalCompositeOperation = "screen";
-        const count = isHunter ? 3 : 2;
-        for(let i=0;i<count;i++){
-          const px = (isHunter ? -10 : 18) + Math.sin(t * (1.2 + i * 0.25) + i) * (isHunter ? 5 : 3);
-          const py = (isHunter ? -18 : -28) - i * (isHunter ? 7 : 10) - ((t * (isHunter ? 7 : 8) + i * 4) % (isHunter ? 5 : 6));
-          ctx.fillStyle = isHunter ? (i === 0 ? "rgba(134,239,172,.42)" : "rgba(74,222,128,.28)") : (i === 0 ? "rgba(255,214,120,.50)" : "rgba(255,138,66,.38)");
-          ctx.beginPath();
-          ctx.arc(px, py + bob * 0.2, isHunter ? (i === 0 ? 1.6 : 1.1) : (i === 0 ? 1.8 : 1.2), 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.globalCompositeOperation = "source-over";
       } else {
         ctx.save();
         ctx.rotate(sway);
@@ -2788,10 +2776,10 @@ function drawProjectile(p){
     ctx.save();
     const grad = ctx.createLinearGradient(p.px, p.py, p.x, p.y);
     grad.addColorStop(0, "rgba(251,146,60,0)");
-    grad.addColorStop(0.45, "rgba(251,146,60,.24)");
-    grad.addColorStop(1, "rgba(255,214,170,.55)");
+    grad.addColorStop(0.45, "rgba(251,146,60,.14)");
+    grad.addColorStop(1, "rgba(255,214,170,.32)");
     ctx.strokeStyle = grad;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 3.6;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(p.px,p.py);
@@ -2799,16 +2787,16 @@ function drawProjectile(p){
     ctx.stroke();
 
     ctx.shadowColor = p.color;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 9;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x,p.y,6.5,0,Math.PI*2);
+    ctx.arc(p.x,p.y,5.2,0,Math.PI*2);
     ctx.fill();
 
     ctx.globalCompositeOperation = "screen";
-    ctx.fillStyle = "rgba(255,240,200,.75)";
+    ctx.fillStyle = "rgba(255,240,200,.48)";
     ctx.beginPath();
-    ctx.arc(p.x + 1.5, p.y - 1.5, 2.2, 0, Math.PI*2);
+    ctx.arc(p.x + 1.2, p.y - 1.2, 1.7, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
     return;
