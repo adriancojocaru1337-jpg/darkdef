@@ -71,6 +71,10 @@ const auraRewardOverlay = document.getElementById("auraRewardOverlay");
 const auraRewardList = document.getElementById("auraRewardList");
 const auraRewardText = document.getElementById("auraRewardText");
 const auraRewardNote = document.getElementById("auraRewardNote");
+const endlessUnlockOverlay = document.getElementById("endlessUnlockOverlay");
+const endlessUnlockText = document.getElementById("endlessUnlockText");
+const enterEndlessBtn = document.getElementById("enterEndlessBtn");
+const backToMenuFromEndlessBtn = document.getElementById("backToMenuFromEndlessBtn");
 
 const unitButtons = document.querySelectorAll(".map-unit-btn");
 const unitInfoPanel = document.getElementById("unitInfoPanel");
@@ -439,6 +443,16 @@ const GAME_OVER_QUOTES = [
   "“Every fall teaches the next stand.”"
 ];
 
+const ENDLESS_UNLOCK_QUOTES = [
+  "“You thought you’d seen it all. You were wrong.”",
+  "“The quiet wasn’t peace… it was a warning.”",
+  "“Something ancient just woke up.”",
+  "“The shadows have been waiting for this moment.”",
+  "“What comes next was never meant to be seen.”",
+  "“The darkness didn’t retreat. It regrouped.”",
+  "“You’ve crossed the threshold. Now the unknown crosses back.”"
+];
+
 const STAGE_QUOTES = [
   "Victory is survival with a name.",
   "The war never ends. Only the soldiers change.",
@@ -479,6 +493,7 @@ const spellConfig = {
 let pendingAuraDraft = null;
 let pendingAuraChoice = null;
 let pendingBossResolution = null;
+let pendingEndlessBossPair = [];
 
 let leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
 let leaderboardRunPromise = null;
@@ -765,17 +780,14 @@ function resolveBossWaveCompletion(){
     endlessUnlocked = true;
     try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
     pushNotification("stage","Endless Mode unlocked",`You finished the campaign. Endless Mode is now unlocked!`);
-    currentMode="endless";
-    currentStage=6;
-    path=STAGES[6].route; pathCells=buildPathCells(path);
-    stageWave = 1;
-    wave += 1;
-    moveUnitsToReserve();
     saveProgress();
     setMessage(`You finished the main campaign. Endless Mode has been unlocked.`);
+    showEndlessUnlockOverlay();
+    updateUI();
+    return;
   } else if(resolution.type === "endless-next") {
     stageWave += 1;
-    wave += 1;
+    if(currentMode === "campaign") wave += 1;
     money += 50;
     bonusScore += 80;
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next.`);
@@ -1635,6 +1647,66 @@ function showTowerMenu(unit){
 }
 
 
+function isCurrentWaveBoss(){
+  return currentMode === "endless" ? (stageWave % 10 === 0) : (stageWave === STAGES[currentStage].bossWave);
+}
+
+function getBossCountForCurrentWave(){
+  if(!isCurrentWaveBoss()) return 0;
+  return currentMode === "endless" ? 2 : 1;
+}
+
+function getWaveEnemyTotal(){
+  if(currentMode === "endless" && isCurrentWaveBoss()) return getBossCountForCurrentWave();
+  return enemyCountForWave(stageWave) + getBossCountForCurrentWave();
+}
+
+function getEndlessCycle(){
+  return Math.max(1, Math.floor(stageWave / 10));
+}
+
+function getDifficultyWaveNumber(){
+  return currentMode === "endless" ? stageWave : wave;
+}
+
+function pickRandomEndlessBossPair(){
+  const ids = Object.keys(STAGE_BOSS).map(Number);
+  for(let i = ids.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  return ids.slice(0,2);
+}
+
+function showEndlessUnlockOverlay(){
+  if(endlessUnlockText){
+    endlessUnlockText.textContent = ENDLESS_UNLOCK_QUOTES[Math.floor(Math.random() * ENDLESS_UNLOCK_QUOTES.length)];
+    endlessUnlockText.classList.remove("quote-fade-in");
+    void endlessUnlockText.offsetWidth;
+    endlessUnlockText.classList.add("quote-fade-in");
+  }
+  endlessUnlockOverlay?.classList.remove("hidden");
+}
+
+function hideEndlessUnlockOverlay(){
+  endlessUnlockOverlay?.classList.add("hidden");
+}
+
+function enterEndlessModeFromUnlock(){
+  hideEndlessUnlockOverlay();
+  currentMode = "endless";
+  currentStage = 6;
+  path = STAGES[6].route;
+  pathCells = buildPathCells(path);
+  stageWave = 1;
+  wave = 1;
+  pendingEndlessBossPair = [];
+  saveProgress();
+  setMessage("Endless Mode begins. Your defenses hold the Dark Portal.");
+  isPaused = false;
+  updateUI();
+}
+
 function moveUnitsToReserve(){
   for(const unit of units){
     const copy=structuredClone(unit);
@@ -1749,11 +1821,11 @@ function getRunSpentGold(){
 
 function openGameOverOverlay(){
   if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : `Endless ${currentStage}`;
-  if(gameOverWaveStat) gameOverWaveStat.textContent = String(wave);
+  if(gameOverWaveStat) gameOverWaveStat.textContent = String(currentMode === "campaign" ? wave : stageWave);
   if(gameOverKillsStat) gameOverKillsStat.textContent = String(kills);
   if(gameOverScoreStat) gameOverScoreStat.textContent = String(totalScore());
   const spent = getRunSpentGold();
-  gameOverText.textContent = `You reached ${currentMode === "campaign" ? "Stage " + currentStage : "Endless Wave " + wave}. Kills: ${kills} · Gold spent: ${spent} · Score: ${totalScore()}.`;
+  gameOverText.textContent = `You reached ${currentMode === "campaign" ? "Stage " + currentStage : "Endless Wave " + stageWave}. Kills: ${kills} · Gold spent: ${spent} · Score: ${totalScore()}.`;
   if(gameOverQuote) gameOverQuote.textContent = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
   gameOverOverlay.classList.remove("hidden");
 }
@@ -1761,10 +1833,10 @@ function openGameOverOverlay(){
 function updateUI(){
   moneyBadge.textContent=`💰 ${money}`;
   livesBadge.textContent=`❤️ ${lives}`;
-  waveBadge.textContent=`🌊 Wave ${wave}`;
-  stageBadge.textContent=currentMode==="campaign" ? `🗺️ Stage ${currentStage} · ${STAGES[currentStage].name}` : `♾️ Endless · Stage ${currentStage}`;
+  waveBadge.textContent=currentMode==="campaign" ? `🌊 Wave ${wave}` : `♾️ Endless Wave ${stageWave}`;
+  stageBadge.textContent=currentMode==="campaign" ? `🗺️ Stage ${currentStage} · ${STAGES[currentStage].name}` : `♾️ Endless · ${STAGES[currentStage].name}`;
   if(waveActive){
-    const total=enemyCountForWave(stageWave)+(stageWave===STAGES[currentStage].bossWave?1:0);
+    const total=getWaveEnemyTotal();
     const progress=((total-spawnLeft)/total)*100;
     waveFill.style.width=`${Math.max(0,Math.min(100,progress))}%`;
     progressText.textContent=`${Math.round(progress)}%`;
@@ -1777,7 +1849,7 @@ function updateUI(){
   enemyCountStat.textContent=String(enemies.length);
   towerCountStat.textContent=String(units.length);
   killsStat.textContent=String(kills);
-  bossInfoStat.textContent=String(STAGES[currentStage].bossWave);
+  bossInfoStat.textContent=currentMode==="campaign" ? String(STAGES[currentStage].bossWave) : "Every 10";
   scoreStat.textContent=String(totalScore());
   bonusScoreStat.textContent=String(bonusScore);
   stageNumberStat.textContent=String(currentStage);
@@ -1813,7 +1885,7 @@ function applyStage(stageNumber, resetRun=false){
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[];
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
   waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1;
-  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; hideAuraRewardOverlay();
+  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingEndlessBossPair = []; hideAuraRewardOverlay(); hideEndlessUnlockOverlay();
   stopBossLoop();
   syncAmbientAudio();
   cancelSpellSelection();
@@ -1843,13 +1915,14 @@ function startWave(){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
   ensureAudio();
   const stage=STAGES[currentStage];
-  spawnLeft=enemyCountForWave(stageWave)+(stageWave===stage.bossWave?1:0);
+  if(currentMode === "endless" && isCurrentWaveBoss()) pendingEndlessBossPair = pickRandomEndlessBossPair();
+  spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
-  if(stageWave===stage.bossWave) bossBannerTimer=2.2;
+  if(isCurrentWaveBoss()) bossBannerTimer=2.2;
   playWaveSound();
   hideHintChip();
   hideTowerMenu();
-  if(stageWave===stage.bossWave){
+  if(isCurrentWaveBoss()){
     waveIntroTimer = 0;
     waveIntroText = "";
     waveIntroSubtext = "";
@@ -1858,7 +1931,7 @@ function startWave(){
     waveIntroText = `Wave ${stageWave}`;
     waveIntroSubtext = `Stage ${currentStage} · ${stage.name}`;
   }
-  setMessage(stageWave===stage.bossWave?"":`Wave ${stageWave} started.`);
+  setMessage(isCurrentWaveBoss() ? "" : `Wave ${stageWave} started.`);
   updateUI();
 }
 function togglePause(){
@@ -1870,24 +1943,31 @@ function togglePause(){
 }
 
 function enemyTemplateForSpawn(indexFromEnd){
-  const stage=STAGES[currentStage], boss=stageWave===stage.bossWave && indexFromEnd===1;
-  if(boss) return {type:"boss",hpMult:4.0*stage.difficulty,speed:.05+currentStage*.003,reward:110};
+  const stage=STAGES[currentStage];
+  if(currentMode === "endless" && isCurrentWaveBoss() && indexFromEnd <= pendingEndlessBossPair.length){
+    const bossStage = pendingEndlessBossPair[pendingEndlessBossPair.length - indexFromEnd];
+    const cycle = getEndlessCycle();
+    const scale = 1 + (cycle - 1) * 0.35;
+    return {type:"boss", hpMult:4.0 * STAGES[bossStage].difficulty * scale, speed:.05 + bossStage * .003 + (cycle - 1) * .005, reward:140 + (cycle - 1) * 30, bossStage, bossColor: STAGE_BOSS[bossStage].color, bossName: STAGE_BOSS[bossStage].name};
+  }
+  const boss=isCurrentWaveBoss() && indexFromEnd===1;
+  if(boss) return {type:"boss",hpMult:4.0*stage.difficulty,speed:.05+currentStage*.003,reward:110, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
   const roll=Math.random();
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
     return {
       type:"fast",
       hpMult:(isLateStageFast ? .52 : .75) * stage.difficulty,
-      speed:isLateStageFast ? (.135 + wave*.0035) : (.15 + wave*.004),
+      speed:isLateStageFast ? (.135 + getDifficultyWaveNumber()*.0035) : (.15 + getDifficultyWaveNumber()*.004),
       reward:isLateStageFast ? 18 : 16
     };
   }
   if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0*stage.difficulty,speed:.07+currentStage*.002,reward:28};
-  return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+wave*.004+currentStage*.002,reward:20};
+  return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
 }
 function spawnEnemy(){
-  const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+wave*13+currentStage*9;
-  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossName: t.type==="boss" ? STAGE_BOSS[currentStage].name : null };
+  const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
+  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -2016,7 +2096,7 @@ function rewardKill(enemy,pos){
   let scoreGain = 0;
   money += reward; kills += 1;
   const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="fast"?70:50;
-  const scoreBonus=stageWave===STAGES[currentStage].bossWave?40:0;
+  const scoreBonus=isCurrentWaveBoss()?40:0;
   addScore(baseScore,scoreBonus);
   if(enemy.lastHitAuraType === "wealth"){
     const owner = getUnitById(enemy.lastHitByUnitId);
@@ -2044,9 +2124,10 @@ function rewardKill(enemy,pos){
   playDeathSound();
 }
 function triggerBossAbility(enemy){
-  const ability=STAGES[currentStage].bossAbility;
+  const bossStage = enemy?.bossStage || currentStage;
+  const ability=STAGES[bossStage].bossAbility;
   if(ability==="summon"){
-    for(let i=0;i<2;i++) enemies.push({ id:idCounter++, hp:40*STAGES[currentStage].difficulty, maxHp:40*STAGES[currentStage].difficulty, speed:.13, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true });
+    for(let i=0;i<2;i++) enemies.push({ id:idCounter++, hp:40*STAGES[bossStage].difficulty, maxHp:40*STAGES[bossStage].difficulty, speed:.13, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true });
     bossFxType = "summon";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned minions!`,"#fca5a5");
@@ -2235,7 +2316,7 @@ function update(dt){
     waveActive=false;
     const stage=STAGES[currentStage];
 
-    if(stageWave===stage.bossWave){
+    if(isCurrentWaveBoss()){
       addScore(500,lives*25);
       if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
 
@@ -2254,10 +2335,10 @@ function update(dt){
     }
 
     stageWave += 1;
-    wave += 1;
+    if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
     bonusScore += 20;
-    setMessage(`Wave complete. Next wave in this stage: ${stageWave}.`);
+    setMessage(currentMode === "campaign" ? `Wave complete. Next wave in this stage: ${stageWave}.` : `Endless wave complete. Next wave: ${stageWave}.`);
     updateUI();
   }
 }
@@ -3143,7 +3224,7 @@ function drawEnemy(enemy){
 
   const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?38:24);
   ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
-  ctx.fillStyle=enemy.type==="boss"?(currentStage===6?"#c084fc":"#f59e0b"):enemy.type==="tank"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
+  ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
   roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
@@ -3361,7 +3442,7 @@ function drawBossBanner(){
   ctx.save(); ctx.globalAlpha=Math.min(1,alpha);
   ctx.fillStyle="rgba(127,29,29,.65)"; roundRect(canvas.width/2-140,40,280,40,20); ctx.fill();
   ctx.strokeStyle=currentStage===6 ? "rgba(192,132,252,.8)" : "rgba(251,191,36,.7)"; ctx.stroke();
-  ctx.fillStyle="#fef3c7"; ctx.font="bold 20px Arial"; ctx.textAlign="center"; ctx.fillText(stageWave===STAGES[currentStage].bossWave ? (STAGE_BOSS[currentStage]?.name || "BOSS WAVE") : "WARNING", canvas.width/2, 66);
+  ctx.fillStyle="#fef3c7"; ctx.font="bold 20px Arial"; ctx.textAlign="center"; ctx.fillText(isCurrentWaveBoss() ? (currentMode === "endless" ? "TWIN BOSS WAVE" : (STAGE_BOSS[currentStage]?.name || "BOSS WAVE")) : "WARNING", canvas.width/2, 66);
   ctx.restore();
 }
 
@@ -3721,6 +3802,17 @@ restartFromGameOverBtn.addEventListener("click",()=>{
 
 returnToMenuBtn?.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
+  resetGame();
+  startOverlay.classList.remove("hidden");
+  setMessage("Returned to the main menu.");
+});
+
+enterEndlessBtn?.addEventListener("click", ()=>{
+  enterEndlessModeFromUnlock();
+});
+
+backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
+  hideEndlessUnlockOverlay();
   resetGame();
   startOverlay.classList.remove("hidden");
   setMessage("Returned to the main menu.");

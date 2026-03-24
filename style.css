@@ -3067,3 +3067,41 @@ kbd {
     font-size:15px;
   }
 }
+
+
+.endless-unlocked-overlay .gameover-media::after{
+  background:linear-gradient(180deg, rgba(18,0,0,.18) 0%, rgba(75,0,0,.26) 42%, rgba(10,1,3,.82) 100%);
+}
+.endless-unlocked-card{
+  max-width: 760px;
+  text-align: center;
+  border: 1px solid rgba(248,113,113,.34);
+  box-shadow: 0 34px 90px rgba(0,0,0,.58), 0 0 0 1px rgba(248,113,113,.14) inset, 0 0 44px rgba(239,68,68,.16);
+}
+.endless-unlocked-card h1{
+  letter-spacing: .08em;
+}
+.endless-unlocked-subtitle{
+  color: #fee2e2;
+  text-shadow: 0 0 18px rgba(248,113,113,.18);
+}
+.endless-unlocked-copy{
+  max-width: 58ch;
+  margin-inline: auto;
+  color: rgba(255,244,244,.9);
+}
+.endless-unlocked-copy.quote-fade-in{
+  opacity: 0;
+  transform: translateY(8px);
+  animation: endlessQuoteFade .65s ease .22s forwards;
+}
+@keyframes endlessQuoteFade{
+  from{
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to{
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
