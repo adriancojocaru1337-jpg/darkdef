@@ -234,7 +234,8 @@ body::after {
   border:1px solid rgba(148,163,184,.18);
   box-shadow:0 18px 40px rgba(0,0,0,.35);
   z-index:12;
-  transform:translate(-50%, -110%);
+  /* Positioning is handled in JS with clamping so the panel stays inside the map. */
+  transform:none;
 }
 
 .tower-menu.hidden{
@@ -264,6 +265,81 @@ body::after {
   font-size:12px;
   line-height:1.45;
   margin-bottom:10px;
+}
+
+
+.tower-specialization-panel{
+  display:grid;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.tower-specialization-panel.hidden{
+  display:none;
+}
+
+.tower-spec-btn{
+  --spec-fill: rgba(139,92,246,.16);
+  --spec-border: rgba(196,181,253,.30);
+  --spec-accent: rgba(196,181,253,.72);
+  --spec-icon: #f5f3ff;
+  --spec-medallion: rgba(91,33,182,.88);
+  --spec-glow: rgba(139,92,246,.24);
+  display:grid;
+  grid-template-columns:40px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  text-align:left;
+  padding:10px 11px;
+  border-radius:14px;
+  border:1px solid var(--spec-border);
+  background:linear-gradient(180deg, color-mix(in srgb, var(--spec-fill) 86%, rgba(15,23,42,.96)), rgba(15,23,42,.94));
+  color:#e2e8f0;
+  cursor:pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 20px rgba(2,6,23,.18);
+}
+
+.tower-spec-medallion{
+  width:34px;
+  height:34px;
+  border-radius:999px;
+  display:grid;
+  place-items:center;
+  background:radial-gradient(circle at 30% 30%, rgba(255,255,255,.18), transparent 34%), var(--spec-medallion);
+  color:var(--spec-icon);
+  border:1px solid var(--spec-accent);
+  box-shadow:0 0 0 3px rgba(2,6,23,.28), 0 0 16px var(--spec-glow);
+  font-size:16px;
+  line-height:1;
+}
+
+.tower-spec-copy{
+  display:grid;
+  gap:3px;
+  min-width:0;
+}
+
+.tower-spec-btn strong{
+  font-size:13px;
+}
+
+.tower-spec-btn span,
+.tower-spec-btn em{
+  font-size:11px;
+  color:#cbd5e1;
+  font-style:normal;
+}
+
+.tower-spec-btn:hover{
+  transform:translateY(-1px);
+  border-color:var(--spec-accent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 12px 24px rgba(2,6,23,.24);
+}
+
+.tower-spec-btn:disabled{
+  opacity:.55;
+  cursor:not-allowed;
+  transform:none;
 }
 
 .tower-menu-actions{
@@ -308,7 +384,7 @@ body::after {
 .map-btn{
   min-height:42px;
   padding:10px 12px;
-  border-radius:14px;
+  border-radius:12px;
   border:1px solid rgba(148,163,184,.18);
   background:rgba(8,17,31,.92);
   color:#e5eefc;
@@ -710,7 +786,7 @@ body::after {
   }
 
   .stat-item strong{
-    font-size:20px;
+    font-size:16px;
   }
 }
 
@@ -2225,14 +2301,6 @@ kbd{
   border-radius:999px;
   background:linear-gradient(90deg, #67e8f9, #38bdf8);
 }
-.unit-info-stats{
-  margin-top:6px;
-  font-size:11px;
-  font-weight:800;
-  letter-spacing:.04em;
-  text-transform:uppercase;
-  color:#dbeafe;
-}
 .unit-card-footer{
   display:flex;
   justify-content:flex-end;
@@ -2933,5 +3001,51 @@ kbd {
 
   .tower-menu{
     max-width:min(220px, calc(100% - 24px - var(--safe-left) - var(--safe-right)));
+  }
+}
+
+
+/* HUD toggle + placement hide */
+.hud-toggle{
+  position:absolute;
+  top:42px;
+  right:8px;
+  width:34px;
+  height:34px;
+  border:none;
+  border-radius:14px;
+  background:rgba(8,17,31,.92);
+  color:#e5eefc;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  z-index:16;
+  box-shadow:0 12px 28px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.06);
+  transition:transform .14s ease, opacity .18s ease, background .18s ease;
+}
+.hud-toggle:hover{ transform:translateY(-1px); }
+.hud-toggle.active{ background:rgba(20,83,45,.88); }
+.canvas-wrap.hud-hide-obstacles .map-controls,
+.canvas-wrap.hud-hide-obstacles .map-spells,
+.canvas-wrap.hud-hide-obstacles .unit-info-panel,
+.canvas-wrap.hud-hide-obstacles .overlay-chip{
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(8px);
+}
+.canvas-wrap .map-controls,
+.canvas-wrap .map-spells,
+.canvas-wrap .unit-info-panel,
+.canvas-wrap .overlay-chip{
+  transition:opacity .18s ease, transform .18s ease;
+}
+@media (max-width:700px){
+  .hud-toggle{
+    top:calc(38px + var(--safe-top));
+    right:calc(8px + var(--safe-right));
+    width:32px;
+    height:32px;
+    border-radius:10px;
+    font-size:15px;
   }
 }

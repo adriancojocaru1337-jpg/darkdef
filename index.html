@@ -63,6 +63,7 @@
           <span><kbd>R</kbd> Reset run</span>
           <span><kbd>V</kbd> Unit panel</span>
           <span><kbd>Esc</kbd> Close menus</span>
+          <span><kbd>H</kbd> Hide / Show HUD</span>
         </div>
       </div>
       <div class="overlay-actions">
@@ -144,6 +145,7 @@
 
         <div class="canvas-wrap" id="canvasWrap">
           <button class="audio-toggle" id="audioToggle" aria-label="Sunet pornit" title="Toggle audio">🔊</button>
+          <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
           <div class="canvas-overlay">
             <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
@@ -194,14 +196,13 @@
                   <strong>🏹 Archer</strong>
                   <span class="unit-role-tag">Fast</span>
                 </div>
-                <span class="unit-cost-badge" data-cost-for="archer">100</span>
+                <span class="unit-cost-badge">50</span>
               </div>
               <div class="unit-bar-group">
                 <div class="unit-bar"><span>DMG</span><i style="--fill:45%"></i></div>
                 <div class="unit-bar"><span>RNG</span><i style="--fill:62%"></i></div>
               </div>
-              <div class="unit-info-meta">Fast single-target damage</div>
-              <div class="unit-info-stats" data-stats-for="archer">DMG 36 · RNG 120 · UPG 150</div>
+              <div class="unit-info-meta">Range 120 · Fast single-target damage</div>
               <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-archer">0</span>
               </div>
@@ -213,14 +214,13 @@
                   <strong>🎯 Hunter</strong>
                   <span class="unit-role-tag power">Power</span>
                 </div>
-                <span class="unit-cost-badge" data-cost-for="hunter">180</span>
+                <span class="unit-cost-badge">90</span>
               </div>
               <div class="unit-bar-group">
                 <div class="unit-bar"><span>DMG</span><i style="--fill:74%"></i></div>
                 <div class="unit-bar"><span>RNG</span><i style="--fill:88%"></i></div>
               </div>
-              <div class="unit-info-meta">Heavy precision shots</div>
-              <div class="unit-info-stats" data-stats-for="hunter">DMG 68 · RNG 178 · UPG 220</div>
+              <div class="unit-info-meta">Range 178 · Heavy precision shots</div>
               <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-hunter">0</span>
               </div>
@@ -232,14 +232,13 @@
                   <strong>🔮 Mage</strong>
                   <span class="unit-role-tag splash">Splash</span>
                 </div>
-                <span class="unit-cost-badge" data-cost-for="mage">240</span>
+                <span class="unit-cost-badge">120</span>
               </div>
               <div class="unit-bar-group">
                 <div class="unit-bar"><span>DMG</span><i style="--fill:58%"></i></div>
                 <div class="unit-bar"><span>RNG</span><i style="--fill:71%"></i></div>
               </div>
-              <div class="unit-info-meta">AoE magic damage</div>
-              <div class="unit-info-stats" data-stats-for="mage">DMG 48 · RNG 150 · UPG 260</div>
+              <div class="unit-info-meta">Range 150 · AoE magic damage</div>
               <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-mage">0</span>
               </div>
@@ -251,14 +250,13 @@
                   <strong>💣 Bomb</strong>
                   <span class="unit-role-tag blast">Blast</span>
                 </div>
-                <span class="unit-cost-badge" data-cost-for="bomb">280</span>
+                <span class="unit-cost-badge">140</span>
               </div>
               <div class="unit-bar-group">
                 <div class="unit-bar"><span>DMG</span><i style="--fill:90%"></i></div>
                 <div class="unit-bar"><span>RNG</span><i style="--fill:65%"></i></div>
               </div>
-              <div class="unit-info-meta">Splash burst tower</div>
-              <div class="unit-info-stats" data-stats-for="bomb">DMG 96 · RNG 140 · UPG 300</div>
+              <div class="unit-info-meta">Range 140 · Splash burst tower</div>
               <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-bomb">0</span>
               </div>
@@ -280,6 +278,7 @@
               <div class="tower-stat-row"><span>Upgrade</span><strong>75</strong></div>
               <div class="tower-stat-row"><span>Sell</span><strong>35</strong></div>
             </div>
+            <div id="towerSpecializationPanel" class="tower-specialization-panel hidden"></div>
             <div class="tower-menu-actions">
               <button class="btn btn-primary" id="towerUpgradeBtn">⬆ Upgrade</button>
               <button class="btn btn-secondary tower-sell-btn" id="towerSellBtn">💰 Sell</button>
@@ -371,6 +370,7 @@
             <div class="shortcut-item"><kbd>R</kbd><span>Reset run</span></div>
             <div class="shortcut-item"><kbd>1-4</kbd><span>Select towers</span></div>
             <div class="shortcut-item"><kbd>V</kbd><span>Tower panel</span></div>
+            <div class="shortcut-item"><kbd>H</kbd><span>Hide / show HUD</span></div>
           </div>
         </section>
       </aside>
