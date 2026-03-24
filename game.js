@@ -95,6 +95,16 @@ const reservePanelEls = {
 const reserveLevelEls = {};
 const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
 
+const TEST_MODE_ONE_HP = false;
+
+function enforceTestModeEnemyHp(enemy){
+  if(!enemy || !TEST_MODE_ONE_HP) return enemy;
+  enemy.maxHp = 1;
+  enemy.hp = Math.min(enemy.hp ?? 1, 1);
+  if(enemy.hp <= 0) enemy.hp = 1;
+  return enemy;
+}
+
 
 function applyHudVisibility(){
   const hidden = !!isHudManuallyHidden;
@@ -1967,7 +1977,7 @@ function enemyTemplateForSpawn(indexFromEnd){
 }
 function spawnEnemy(){
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
-  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
+  const enemy = enforceTestModeEnemyHp({ id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null });
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -2127,19 +2137,21 @@ function triggerBossAbility(enemy){
   const bossStage = enemy?.bossStage || currentStage;
   const ability=STAGES[bossStage].bossAbility;
   if(ability==="summon"){
-    for(let i=0;i<2;i++) enemies.push({ id:idCounter++, hp:40*STAGES[bossStage].difficulty, maxHp:40*STAGES[bossStage].difficulty, speed:.13, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true });
+    for(let i=0;i<2;i++) enemies.push(enforceTestModeEnemyHp({ id:idCounter++, hp:40*STAGES[bossStage].difficulty, maxHp:40*STAGES[bossStage].difficulty, speed:.13, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true }));
     bossFxType = "summon";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned minions!`,"#fca5a5");
   }
   if(ability==="rage"){
     enemy.speed*=1.6; enemy.hp += enemy.maxHp*.15;
+    enforceTestModeEnemyHp(enemy);
     bossFxType = "rage";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered rage mode!`,"#fca5a5");
   }
   if(ability==="shield"){
     enemy.hp += enemy.maxHp*.25;
+    enforceTestModeEnemyHp(enemy);
     bossFxType = "shield";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained a shield!`,"#93c5fd");
@@ -2178,6 +2190,7 @@ function update(dt){
 
   for(let i=enemies.length-1;i>=0;i--){
     const enemy=enemies[i];
+    enforceTestModeEnemyHp(enemy);
     if(enemy.spellSlowTimer){
       enemy.spellSlowTimer = Math.max(0, enemy.spellSlowTimer - dt);
       if(enemy.spellSlowTimer <= 0) enemy.spellSlowFactor = 1;
