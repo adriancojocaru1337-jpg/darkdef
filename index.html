@@ -76,12 +76,24 @@
     </div>
   </div>
 
-  <div class="screen-overlay hidden" id="gameOverOverlay">
-    <div class="overlay-card overlay-danger">
-      <h1>The skeleton army broke through</h1>
-      <p id="gameOverText">Try again and optimize your tower positions.</p>
-      <div class="overlay-actions">
-        <button class="btn btn-primary" id="restartFromGameOverBtn">Restart</button>
+  <div class="screen-overlay hidden gameover-overlay" id="gameOverOverlay">
+    <div class="gameover-media" aria-hidden="true">
+      <img src="assets/ui/dark-defense-defeat.jpg" alt="" />
+    </div>
+    <div class="overlay-card overlay-danger gameover-card">
+      <div class="overlay-kicker overlay-kicker-danger">Dark Defense</div>
+      <h1>DEFEAT</h1>
+      <p class="gameover-subtitle" id="gameOverText">The last defense has fallen. Study the run, then strike back.</p>
+      <p class="gameover-quote" id="gameOverQuote">&ldquo;Even broken walls remember how to stand.&rdquo;</p>
+      <div class="gameover-stats">
+        <div class="gameover-stat"><span>Stage</span><strong id="gameOverStageStat">1</strong></div>
+        <div class="gameover-stat"><span>Wave</span><strong id="gameOverWaveStat">1</strong></div>
+        <div class="gameover-stat"><span>Kills</span><strong id="gameOverKillsStat">0</strong></div>
+        <div class="gameover-stat"><span>Score</span><strong id="gameOverScoreStat">0</strong></div>
+      </div>
+      <div class="overlay-actions gameover-actions two-buttons">
+        <button class="btn btn-primary" id="restartFromGameOverBtn">Rise Again</button>
+        <button class="btn btn-secondary" id="returnToMenuBtn">Main Menu</button>
       </div>
     </div>
   </div>

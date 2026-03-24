@@ -167,6 +167,23 @@ body::after {
 }
 .overlay-danger{ border-color:rgba(251,113,133,.24); }
 
+.overlay-kicker{margin-bottom:10px;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#d8b789}
+.overlay-kicker-danger{color:#ffb3b3}
+.gameover-overlay{overflow:hidden}
+.gameover-overlay::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at center, rgba(150,14,14,.22), transparent 46%),linear-gradient(180deg, rgba(4,4,7,.38), rgba(4,4,7,.76));pointer-events:none}
+.gameover-media{position:absolute;inset:0;pointer-events:none;opacity:.34}
+.gameover-media img{width:100%;height:100%;object-fit:cover;filter:brightness(.48) contrast(1.08) saturate(.92)}
+.gameover-card{position:relative;overflow:hidden;animation:gameOverCardIn 340ms ease-out;border-color:rgba(255,110,110,.26);background:linear-gradient(180deg, rgba(18,17,24,.88), rgba(7,10,18,.94))}
+.gameover-card::after{content:"";position:absolute;inset:-20% auto auto -10%;width:220px;height:220px;background:radial-gradient(circle, rgba(255,76,76,.18), transparent 70%);pointer-events:none}
+.gameover-card h1{margin:0 0 10px;font-size:clamp(42px, 7vw, 74px);line-height:.92;letter-spacing:.05em}
+.gameover-subtitle{margin:0 0 10px;max-width:560px;color:#efe1d6;line-height:1.6}
+.gameover-quote{margin:0 0 22px;max-width:560px;color:#d6b8ad;font-style:italic;line-height:1.6;opacity:.92}
+.gameover-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 22px}
+.gameover-stat{padding:14px 12px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(10,14,24,.70);text-align:center}
+.gameover-stat span{display:block;margin-bottom:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#c3b0a6}
+.gameover-stat strong{display:block;font-size:24px;color:#fff6ee}
+.gameover-actions.two-buttons{grid-template-columns:repeat(2,minmax(0,1fr))}
+@keyframes gameOverCardIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 .overlay-actions{
   display:grid;
@@ -200,6 +217,7 @@ body::after {
   .overlay-actions{
     grid-template-columns:1fr;
   }
+  .gameover-actions.two-buttons{grid-template-columns:1fr}
 }
 
 
@@ -207,7 +225,7 @@ body::after {
 @media (max-width:700px){
   .app{padding:14px}
   .hero,.side-card,.game-panel,.overlay-card{border-radius:22px}
-  .stats-grid,.action-row.two-cols,.action-row.three-cols{grid-template-columns:1fr}
+  .stats-grid,.action-row.two-cols,.action-row.three-cols,.gameover-stats{grid-template-columns:1fr}
   .panel-header{padding:18px}
   .canvas-wrap{padding:12px}
   .canvas-overlay{top:20px;left:20px;right:20px}

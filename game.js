@@ -60,7 +60,13 @@ const startOverlay = document.getElementById("startOverlay");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const startGameBtn = document.getElementById("startGameBtn");
 const restartFromGameOverBtn = document.getElementById("restartFromGameOverBtn");
+const returnToMenuBtn = document.getElementById("returnToMenuBtn");
 const gameOverText = document.getElementById("gameOverText");
+const gameOverQuote = document.getElementById("gameOverQuote");
+const gameOverStageStat = document.getElementById("gameOverStageStat");
+const gameOverWaveStat = document.getElementById("gameOverWaveStat");
+const gameOverKillsStat = document.getElementById("gameOverKillsStat");
+const gameOverScoreStat = document.getElementById("gameOverScoreStat");
 const auraRewardOverlay = document.getElementById("auraRewardOverlay");
 const auraRewardList = document.getElementById("auraRewardList");
 const auraRewardText = document.getElementById("auraRewardText");
@@ -425,6 +431,14 @@ let bossDefeatIntroTimer = 0;
 let bossDefeatRewardDelayTimer = 0;
 let bossDefeatIntroText = "";
 let bossDefeatIntroSubtext = "";
+
+const GAME_OVER_QUOTES = [
+  "“Even broken walls remember how to stand.”",
+  "“From ash and ruin, the bastion rises again.”",
+  "“The dark may enter once, but never unchallenged.”",
+  "“Every fall teaches the next stand.”"
+];
+
 const STAGE_QUOTES = [
   "Victory is survival with a name.",
   "The war never ends. Only the soldiers change.",
@@ -1729,6 +1743,21 @@ function updateSelectedPanel(){
   showTowerMenu(unit);
 }
 
+function getRunSpentGold(){
+  return units.reduce((sum, unit) => sum + (unit.totalSpent || 0), 0);
+}
+
+function openGameOverOverlay(){
+  if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : `Endless ${currentStage}`;
+  if(gameOverWaveStat) gameOverWaveStat.textContent = String(wave);
+  if(gameOverKillsStat) gameOverKillsStat.textContent = String(kills);
+  if(gameOverScoreStat) gameOverScoreStat.textContent = String(totalScore());
+  const spent = getRunSpentGold();
+  gameOverText.textContent = `You reached ${currentMode === "campaign" ? "Stage " + currentStage : "Endless Wave " + wave}. Kills: ${kills} · Gold spent: ${spent} · Score: ${totalScore()}.`;
+  if(gameOverQuote) gameOverQuote.textContent = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
+  gameOverOverlay.classList.remove("hidden");
+}
+
 function updateUI(){
   moneyBadge.textContent=`💰 ${money}`;
   livesBadge.textContent=`❤️ ${lives}`;
@@ -2109,8 +2138,7 @@ function update(dt){
       lives=Math.max(0,lives-(enemy.type==="boss"?3:1));
       if(lives<=0){
         waveActive=false;
-        gameOverText.textContent=`You reached ${currentMode==="campaign" ? "stage "+currentStage : "wave "+wave} with a score of ${totalScore()}.`;
-        gameOverOverlay.classList.remove("hidden");
+        openGameOverOverlay();
         saveProgress();
         if(currentMode==="endless") submitBonusLeaderboardScore();
         if(currentMode==="campaign") submitStoryLeaderboardScore(currentStage);
@@ -3687,8 +3715,15 @@ startGameBtn.addEventListener("click",()=>{
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
-  resetGame();
+  applyStage(currentStage, true);
   if(hasStarted && !isMuted) syncAmbientAudio();
+});
+
+returnToMenuBtn?.addEventListener("click",()=>{
+  gameOverOverlay.classList.add("hidden");
+  resetGame();
+  startOverlay.classList.remove("hidden");
+  setMessage("Returned to the main menu.");
 });
 
 updateAudioToggle();
