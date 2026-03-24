@@ -2225,6 +2225,14 @@ kbd{
   border-radius:999px;
   background:linear-gradient(90deg, #67e8f9, #38bdf8);
 }
+.unit-info-stats{
+  margin-top:6px;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#dbeafe;
+}
 .unit-card-footer{
   display:flex;
   justify-content:flex-end;

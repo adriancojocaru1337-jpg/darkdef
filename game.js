@@ -80,6 +80,8 @@ const reservePanelEls = {
   mage: document.getElementById("panel-reserve-mage"),
   bomb: document.getElementById("panel-reserve-bomb")
 };
+const unitShopCostEls = Object.fromEntries(Array.from(document.querySelectorAll("[data-cost-for]")).map((el)=>[el.dataset.costFor, el]));
+const unitShopStatsEls = Object.fromEntries(Array.from(document.querySelectorAll("[data-stats-for]")).map((el)=>[el.dataset.statsFor, el]));
 const reserveLevelEls = {};
 const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
 
@@ -181,6 +183,14 @@ const UNIT_TYPES = {
   bomb:{name:"Bomb Tower",cost:280,range:140,fireRate:1.55,damage:96,projectileSpeed:320,color:"#ef4444",hood:"#7f1d1d",upgradeCost:300,sellFactor:.84,kind:"bomb",splash:64}
 };
 
+function syncUnitShopCards(){
+  Object.entries(UNIT_TYPES).forEach(([type, stats])=>{
+    if(unitShopCostEls[type]) unitShopCostEls[type].textContent = stats.cost;
+    if(unitShopStatsEls[type]) unitShopStatsEls[type].textContent = `DMG ${Math.round(stats.damage)} · RNG ${Math.round(stats.range)} · UPG ${Math.round(stats.upgradeCost)}`;
+  });
+}
+
+syncUnitShopCards();
 
 const STAGE_BOSS = {
   1: { name: "Ancient Treant Skull", color: "#84cc16" },
