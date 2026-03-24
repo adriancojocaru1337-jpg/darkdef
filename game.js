@@ -110,7 +110,7 @@ function clampTowerMenuPosition(targetLeft, targetTop){
 
 
 const COLS = 18, ROWS = 10, CELL = 56;
-const START_LIVES = 20, START_MONEY = 150;
+const START_LIVES = 20, START_MONEY = 220;
 
 const towerSpriteSources = {
   archer: "assets/towers/archer.png",
@@ -175,10 +175,10 @@ const STAGE_VEGETATION = {
 };
 
 const UNIT_TYPES = {
-  archer:{name:"Archer",cost:50,range:120,fireRate:.8,damage:18,projectileSpeed:430,color:"#34d399",hood:"#065f46",upgradeCost:75,sellFactor:.7,kind:"arrow"},
-  hunter:{name:"Hunter",cost:90,range:178,fireRate:1.3,damage:34,projectileSpeed:500,color:"#f59e0b",hood:"#78350f",upgradeCost:110,sellFactor:.7,kind:"arrow"},
-  mage:{name:"Mage",cost:120,range:150,fireRate:1.15,damage:24,projectileSpeed:390,color:"#a78bfa",hood:"#5b21b6",upgradeCost:130,sellFactor:.72,kind:"magic",splash:46},
-  bomb:{name:"Bomb Tower",cost:140,range:140,fireRate:1.55,damage:48,projectileSpeed:320,color:"#ef4444",hood:"#7f1d1d",upgradeCost:150,sellFactor:.74,kind:"bomb",splash:64}
+  archer:{name:"Archer",cost:100,range:120,fireRate:.8,damage:36,projectileSpeed:430,color:"#34d399",hood:"#065f46",upgradeCost:150,sellFactor:.8,kind:"arrow"},
+  hunter:{name:"Hunter",cost:180,range:178,fireRate:1.3,damage:68,projectileSpeed:500,color:"#f59e0b",hood:"#78350f",upgradeCost:220,sellFactor:.8,kind:"arrow"},
+  mage:{name:"Mage",cost:240,range:150,fireRate:1.15,damage:48,projectileSpeed:390,color:"#a78bfa",hood:"#5b21b6",upgradeCost:260,sellFactor:.82,kind:"magic",splash:46},
+  bomb:{name:"Bomb Tower",cost:280,range:140,fireRate:1.55,damage:96,projectileSpeed:320,color:"#ef4444",hood:"#7f1d1d",upgradeCost:300,sellFactor:.84,kind:"bomb",splash:64}
 };
 
 
@@ -1538,7 +1538,7 @@ function applyStage(stageNumber, resetRun=false){
 
   if(resetRun){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
-    money=START_MONEY + (stageNumber-1)*40;
+    money=START_MONEY + (stageNumber-1)*60;
     lives=START_LIVES; score=0; bonusScore=0; kills=0; wave=1;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
     resetAchievementsUI(); clearNotifications();
@@ -1580,11 +1580,11 @@ function togglePause(){ if(!hasStarted || lives<=0 || pendingAuraChoice || pendi
 
 function enemyTemplateForSpawn(indexFromEnd){
   const stage=STAGES[currentStage], boss=stageWave===stage.bossWave && indexFromEnd===1;
-  if(boss) return {type:"boss",hpMult:4.5*stage.difficulty,speed:.05+currentStage*.003,reward:80};
+  if(boss) return {type:"boss",hpMult:4.0*stage.difficulty,speed:.05+currentStage*.003,reward:110};
   const roll=Math.random();
-  if(roll < 0.18 + currentStage*0.01) return {type:"fast",hpMult:.75*stage.difficulty,speed:.15+wave*.004,reward:12};
-  if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0*stage.difficulty,speed:.07+currentStage*.002,reward:20};
-  return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+wave*.004+currentStage*.002,reward:14};
+  if(roll < 0.18 + currentStage*0.01) return {type:"fast",hpMult:.75*stage.difficulty,speed:.15+wave*.004,reward:16};
+  if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0*stage.difficulty,speed:.07+currentStage*.002,reward:28};
+  return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+wave*.004+currentStage*.002,reward:20};
 }
 function spawnEnemy(){
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+wave*13+currentStage*9;
@@ -1627,10 +1627,10 @@ function upgradeSelectedUnit(){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit) return;
   if(money<unit.nextUpgradeCost){ setMessage("You do not have enough gold for the upgrade."); return; }
   money-=unit.nextUpgradeCost; unit.totalSpent+=unit.nextUpgradeCost; unit.level+=1;
-  unit.damage*=unit.type==="bomb"?1.3:1.22; unit.range*=1.08; unit.fireRate*=.94;
+  unit.damage*=unit.type==="bomb"?1.6:1.44; unit.range*=1.08; unit.fireRate*=.94;
   if(unit.projectileSpeed) unit.projectileSpeed*=1.05;
   if(unit.splash) unit.splash*=1.08;
-  unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.55);
+  unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*2.10);
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
   playUpgradeSound();
@@ -1685,7 +1685,7 @@ function applySplashDamage(center,radius,damage,projectileType){
     const pos=getPathPosition(enemy.progress);
     if(distance(center,pos)<=radius){
       enemy.hp -= damage;
-      addHitParticles(pos.x,pos.y,projectileType==="bomb"?4:4,projectileType==="bomb"?"#fb923c":"#c4b5fd");
+      addHitParticles(pos.x,pos.y,projectileType==="bomb"?6:4,projectileType==="bomb"?"#fb923c":"#c4b5fd");
       showPopup(pos.x,pos.y-10,`-${Math.round(damage)}`,projectileType==="bomb"?"#fb923c":"#c4b5fd");
     }
   }
@@ -1858,7 +1858,7 @@ function update(dt){
         }
       }
       else if(projectile.projectileType==="bomb"){
-        applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb"); addHitParticles(targetPos.x,targetPos.y,8,"#fb923c");
+        applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb"); addHitParticles(targetPos.x,targetPos.y,14,"#fb923c");
         for(const enemy of enemies){
           const pos=getPathPosition(enemy.progress);
           if(distance(targetPos,pos)<=projectile.splash){
@@ -2644,13 +2644,13 @@ function drawPlacedUnit(unit){
       ctx.restore();
 
       ctx.globalCompositeOperation = "screen";
-      for(let i=0;i<2;i++){
-        const px = Math.sin(t * (1.08 + i * 0.18) + i * 0.75) * (6 + i * 1.4);
-        const py = -18 - i * 6 - ((t * 8 + i * 4) % 5);
-        const pr = i === 0 ? 1.7 : 1.15;
-        ctx.fillStyle = i === 0 ? "rgba(255,196,110,.42)" : "rgba(255,132,52,.30)";
+      for(let i=0;i<4;i++){
+        const px = Math.sin(t * (1.1 + i * 0.23) + i) * (8 + i * 1.6);
+        const py = -18 - i * 7 - ((t * 12 + i * 5) % 8);
+        const pr = i < 2 ? 2.2 : 1.5;
+        ctx.fillStyle = i < 2 ? "rgba(255,196,110,.70)" : "rgba(255,132,52,.55)";
         ctx.beginPath();
-        ctx.arc(px, py + bob * 0.25, pr, 0, Math.PI * 2);
+        ctx.arc(px, py + bob * 0.4, pr, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalCompositeOperation = "source-over";
@@ -2660,6 +2660,18 @@ function drawPlacedUnit(unit){
         ctx.rotate(sway);
         ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
         ctx.restore();
+
+        ctx.globalCompositeOperation = "screen";
+        const count = isHunter ? 3 : 2;
+        for(let i=0;i<count;i++){
+          const px = (isHunter ? -10 : 18) + Math.sin(t * (1.2 + i * 0.25) + i) * (isHunter ? 5 : 3);
+          const py = (isHunter ? -18 : -28) - i * (isHunter ? 7 : 10) - ((t * (isHunter ? 7 : 8) + i * 4) % (isHunter ? 5 : 6));
+          ctx.fillStyle = isHunter ? (i === 0 ? "rgba(134,239,172,.42)" : "rgba(74,222,128,.28)") : (i === 0 ? "rgba(255,214,120,.50)" : "rgba(255,138,66,.38)");
+          ctx.beginPath();
+          ctx.arc(px, py + bob * 0.2, isHunter ? (i === 0 ? 1.6 : 1.1) : (i === 0 ? 1.8 : 1.2), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = "source-over";
       } else {
         ctx.save();
         ctx.rotate(sway);
@@ -2776,10 +2788,10 @@ function drawProjectile(p){
     ctx.save();
     const grad = ctx.createLinearGradient(p.px, p.py, p.x, p.y);
     grad.addColorStop(0, "rgba(251,146,60,0)");
-    grad.addColorStop(0.45, "rgba(251,146,60,.14)");
-    grad.addColorStop(1, "rgba(255,214,170,.32)");
+    grad.addColorStop(0.45, "rgba(251,146,60,.24)");
+    grad.addColorStop(1, "rgba(255,214,170,.55)");
     ctx.strokeStyle = grad;
-    ctx.lineWidth = 3.6;
+    ctx.lineWidth = 5;
     ctx.lineCap = "round";
     ctx.beginPath();
     ctx.moveTo(p.px,p.py);
@@ -2787,16 +2799,16 @@ function drawProjectile(p){
     ctx.stroke();
 
     ctx.shadowColor = p.color;
-    ctx.shadowBlur = 9;
+    ctx.shadowBlur = 14;
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x,p.y,5.2,0,Math.PI*2);
+    ctx.arc(p.x,p.y,6.5,0,Math.PI*2);
     ctx.fill();
 
     ctx.globalCompositeOperation = "screen";
-    ctx.fillStyle = "rgba(255,240,200,.48)";
+    ctx.fillStyle = "rgba(255,240,200,.75)";
     ctx.beginPath();
-    ctx.arc(p.x + 1.2, p.y - 1.2, 1.7, 0, Math.PI*2);
+    ctx.arc(p.x + 1.5, p.y - 1.5, 2.2, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
     return;
