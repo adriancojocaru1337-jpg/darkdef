@@ -86,7 +86,7 @@
       <p class="gameover-subtitle" id="gameOverText">The last defense has fallen. Study the run, then strike back.</p>
       <p class="gameover-quote" id="gameOverQuote">&ldquo;Even broken walls remember how to stand.&rdquo;</p>
       <div class="gameover-stats">
-        <div class="gameover-stat"><span>Stage</span><strong id="gameOverStageStat">1</strong></div>
+        <div class="gameover-stat"><span id="gameOverStageLabel">Stage</span><strong id="gameOverStageStat">1</strong></div>
         <div class="gameover-stat"><span>Wave</span><strong id="gameOverWaveStat">1</strong></div>
         <div class="gameover-stat"><span>Kills</span><strong id="gameOverKillsStat">0</strong></div>
         <div class="gameover-stat"><span>Score</span><strong id="gameOverScoreStat">0</strong></div>
@@ -104,14 +104,16 @@
       <h1>Choose a legendary aura</h1>
       <p id="auraRewardText">You defeated the boss. Choose 1 of 3 auras and apply it to a single tower. The aura stays on that tower in the next stages too.</p>
       <div class="reward-grid" id="auraRewardList"></div>
+      <div class="reward-bonus" id="auraRewardBonus">Stage clear reward: +0 gold</div>
       <div class="reward-note" id="auraRewardNote">After choosing, click the tower you want to bless.</div>
     </div>
   </div>
 
   <div class="screen-overlay hidden gameover-overlay endless-unlocked-overlay" id="endlessUnlockOverlay">
     <div class="endless-unlocked-artwork" aria-label="Campaign complete. Endless mode unlocked.">
-      <img src="assets/ui/endless-unlocked.png" alt="Campaign Complete. Endless Mode Unlocked." />
+      <img src="assets/ui/endless-unlocked.jpg" alt="Campaign Complete. Endless Mode Unlocked." />
       <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;You thought you’d seen it all. You were wrong.&rdquo;</p>
+      <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Final stage clear reward: +200 gold</p>
       <button class="artwork-hitbox artwork-hitbox-enter" id="enterEndlessBtn" aria-label="Enter Endless">Enter Endless</button>
       <button class="artwork-hitbox artwork-hitbox-menu" id="backToMenuFromEndlessBtn" aria-label="Back to Menu">Back to Menu</button>
     </div>
@@ -165,13 +167,13 @@
         </header>
 
         <div class="canvas-wrap" id="canvasWrap">
-          <button class="audio-toggle" id="audioToggle" aria-label="Sunet pornit" title="Toggle audio">🔊</button>
+          <button class="audio-toggle" id="audioToggle" aria-label="Audio on" title="Toggle audio">🔊</button>
           <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
           <div class="canvas-overlay">
             <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
             <div class="canvas-top-hud single-row">
-              <div class="badge money" id="moneyBadge">💰 150</div>
+              <div class="badge money" id="moneyBadge">💰 300</div>
               <div class="badge lives" id="livesBadge">❤️ 20</div>
               <div class="badge wave" id="waveBadge">🌊 Wave 1</div>
               <div class="badge level" id="stageBadge">🗺️ Stage 1 · Forest</div>

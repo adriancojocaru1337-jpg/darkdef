@@ -855,7 +855,7 @@ body::after {
   }
 
   .overlay-chip{
-    font-size:10px;
+    font-size:11px;
     max-width:190px;
   }
 }
@@ -2295,7 +2295,7 @@ kbd{
 .unit-bar-group{display:grid;gap:7px;margin:10px 0 8px}
 .unit-bar{
   display:grid;
-  grid-template-columns:34px 1fr;
+  grid-template-columns:72px 1fr;
   align-items:center;
   gap:8px;
   font-size:10px;
@@ -3083,11 +3083,12 @@ kbd {
 }
 .endless-unlocked-artwork{
   position: relative;
-  width: min(100%, 1500px);
+  display: inline-block;
+  width: auto;
+  height: auto;
+  max-width: min(100%, 1500px);
   max-height: calc(100vh - 28px);
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  line-height: 0;
 }
 .endless-unlocked-artwork img{
   display:block;
@@ -3099,6 +3100,17 @@ kbd {
   border-radius: 10px;
   box-shadow: 0 30px 90px rgba(0,0,0,.6);
 }
+
+.reward-bonus{
+  margin-top: 14px;
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fbbf24;
+  text-shadow: 0 2px 14px rgba(0,0,0,.45), 0 0 22px rgba(251,191,36,.18);
+}
+
 .endless-unlocked-copy{
   max-width: 44%;
   margin: 0;
@@ -3109,10 +3121,22 @@ kbd {
 .endless-unlocked-quote{
   position:absolute;
   left:50%;
-  top:49.2%;
+  top:47.9%;
   transform:translate(-50%, -50%);
   font-size: clamp(18px, 1.8vw, 32px);
   line-height:1.45;
+  pointer-events:none;
+}
+.endless-unlocked-reward{
+  position:absolute;
+  left:50%;
+  top:58.8%;
+  transform:translate(-50%, -50%);
+  font-size: clamp(16px, 1.55vw, 25px);
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #fbbf24;
   pointer-events:none;
 }
 .endless-unlocked-copy.quote-fade-in{
@@ -3171,9 +3195,14 @@ kbd {
     max-height: calc(100vh - 16px);
   }
   .endless-unlocked-quote{
-    top: 50.4%;
+    top: 49.6%;
     max-width: 52%;
     font-size: clamp(13px, 2vw, 20px);
+  }
+  .endless-unlocked-reward{
+    top: 60.4%;
+    max-width: 62%;
+    font-size: clamp(12px, 1.9vw, 18px);
   }
   .artwork-hitbox{
     border-radius: 12px;
@@ -3181,8 +3210,13 @@ kbd {
 }
 @media (max-width: 640px){
   .endless-unlocked-quote{
-    top: 51.2%;
+    top: 50.4%;
     max-width: 58%;
     font-size: clamp(11px, 2.2vw, 16px);
+  }
+  .endless-unlocked-reward{
+    top: 61.2%;
+    max-width: 68%;
+    font-size: clamp(11px, 2vw, 15px);
   }
 }

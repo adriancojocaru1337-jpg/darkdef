@@ -63,6 +63,7 @@ const restartFromGameOverBtn = document.getElementById("restartFromGameOverBtn")
 const returnToMenuBtn = document.getElementById("returnToMenuBtn");
 const gameOverText = document.getElementById("gameOverText");
 const gameOverQuote = document.getElementById("gameOverQuote");
+const gameOverStageLabel = document.getElementById("gameOverStageLabel");
 const gameOverStageStat = document.getElementById("gameOverStageStat");
 const gameOverWaveStat = document.getElementById("gameOverWaveStat");
 const gameOverKillsStat = document.getElementById("gameOverKillsStat");
@@ -71,10 +72,14 @@ const auraRewardOverlay = document.getElementById("auraRewardOverlay");
 const auraRewardList = document.getElementById("auraRewardList");
 const auraRewardText = document.getElementById("auraRewardText");
 const auraRewardNote = document.getElementById("auraRewardNote");
+const auraRewardBonus = document.getElementById("auraRewardBonus");
 const endlessUnlockOverlay = document.getElementById("endlessUnlockOverlay");
 const endlessUnlockText = document.getElementById("endlessUnlockText");
+const endlessUnlockReward = document.getElementById("endlessUnlockReward");
 const enterEndlessBtn = document.getElementById("enterEndlessBtn");
 const backToMenuFromEndlessBtn = document.getElementById("backToMenuFromEndlessBtn");
+const endlessUnlockArtwork = document.querySelector(".endless-unlocked-artwork");
+const endlessUnlockArtworkImage = endlessUnlockArtwork?.querySelector("img");
 
 const unitButtons = document.querySelectorAll(".map-unit-btn");
 const unitInfoPanel = document.getElementById("unitInfoPanel");
@@ -95,16 +100,75 @@ const reservePanelEls = {
 const reserveLevelEls = {};
 const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
 
-const TEST_MODE_ONE_HP = false;
+const UNIT_CARD_META = {
+  archer:{emoji:"🏹", role:"Fast", roleClass:"", summary:"Fast single-target damage"},
+  hunter:{emoji:"🎯", role:"Power", roleClass:"power", summary:"Heavy precision shots"},
+  mage:{emoji:"🔮", role:"Splash", roleClass:"splash", summary:"AoE magic damage"},
+  bomb:{emoji:"💣", role:"Blast", roleClass:"blast", summary:"Splash burst tower"}
+};
 
-function enforceTestModeEnemyHp(enemy){
-  if(!enemy || !TEST_MODE_ONE_HP) return enemy;
-  enemy.maxHp = 1;
-  enemy.hp = Math.min(enemy.hp ?? 1, 1);
-  if(enemy.hp <= 0) enemy.hp = 1;
-  return enemy;
+function clampPercent(value){
+  return `${Math.max(8, Math.min(100, Math.round(value)))}%`;
 }
 
+function refreshUnitShopCards(){
+  if(!unitInfoButtons?.length) return;
+  const unitEntries = Object.entries(UNIT_TYPES);
+  const maxDamage = Math.max(...unitEntries.map(([, data]) => data.damage || 0), 1);
+  const maxRange = Math.max(...unitEntries.map(([, data]) => data.range || 0), 1);
+
+  unitInfoButtons.forEach((card)=>{
+    const type = card.dataset.type;
+    const unit = UNIT_TYPES[type];
+    const meta = UNIT_CARD_META[type];
+    if(!unit || !meta) return;
+
+    const titleEl = card.querySelector('.unit-info-top strong');
+    const roleEl = card.querySelector('.unit-role-tag');
+    const costEl = card.querySelector('.unit-cost-badge');
+    const barRows = card.querySelectorAll('.unit-bar');
+    const barEls = card.querySelectorAll('.unit-bar i');
+    const metaEl = card.querySelector('.unit-info-meta');
+
+    if(titleEl) titleEl.textContent = `${meta.emoji} ${unit.name}`;
+    if(roleEl){
+      roleEl.textContent = meta.role;
+      roleEl.className = `unit-role-tag ${meta.roleClass}`.trim();
+    }
+    if(costEl) costEl.textContent = String(unit.cost);
+    if(barRows[0]){
+      const dmgLabelEl = barRows[0].querySelector('span');
+      if(dmgLabelEl) dmgLabelEl.textContent = `DMG ${Math.round(unit.damage)}`;
+    }
+    if(barRows[1]){
+      const rangeLabelEl = barRows[1].querySelector('span');
+      if(rangeLabelEl) rangeLabelEl.textContent = `RNG ${Math.round(unit.range)}`;
+    }
+    if(barEls[0]) barEls[0].style.setProperty('--fill', clampPercent((unit.damage / maxDamage) * 100));
+    if(barEls[1]) barEls[1].style.setProperty('--fill', clampPercent((unit.range / maxRange) * 100));
+    if(metaEl) metaEl.textContent = `${meta.summary}`;
+  });
+}
+
+function getCurrentBossBannerInfo(){
+  if(!isCurrentWaveBoss()) return { title: "WARNING", subtitle: "" };
+  if(currentMode === "endless") {
+    if(pendingEndlessBossPair.length === 2){
+      const [firstBossStage, secondBossStage] = pendingEndlessBossPair;
+      const firstBoss = STAGE_BOSS[firstBossStage]?.name || `Boss ${firstBossStage}`;
+      const secondBoss = STAGE_BOSS[secondBossStage]?.name || `Boss ${secondBossStage}`;
+      return {
+        title: "TWIN HORRORS EMERGE",
+        subtitle: `${firstBoss}  ✦  ${secondBoss}`
+      };
+    }
+    return { title: "TWIN HORRORS EMERGE", subtitle: "Dual boss wave" };
+  }
+  return {
+    title: STAGE_BOSS[currentStage]?.name || "BOSS WAVE",
+    subtitle: `Stage ${currentStage} boss`
+  };
+}
 
 function applyHudVisibility(){
   const hidden = !!isHudManuallyHidden;
@@ -153,7 +217,7 @@ function clampTowerMenuPosition(targetLeft, targetTop){
 
 
 const COLS = 18, ROWS = 10, CELL = 56;
-const START_LIVES = 20, START_MONEY = 220;
+const START_LIVES = 20, START_MONEY = 300;
 
 const towerSpriteSources = {
   archer: "assets/towers/archer.png",
@@ -170,6 +234,38 @@ function loadTowerSprites(){
   });
 }
 loadTowerSprites();
+
+const bossSplashSources = {
+  1: "assets/ui/boss-stage1.jpg",
+  2: "assets/ui/boss-stage2.jpg",
+  3: "assets/ui/boss-stage3.jpg",
+  4: "assets/ui/boss-stage4.jpg",
+  5: "assets/ui/boss-stage5.jpg",
+  6: "assets/ui/boss-stage6.jpg"
+};
+const bossSplashImages = {};
+function loadBossSplashImages(){
+  Object.entries(bossSplashSources).forEach(([stage, src]) => {
+    const img = new Image();
+    img.src = src;
+    bossSplashImages[stage] = img;
+  });
+}
+loadBossSplashImages();
+
+const bossDefeatLogoSources = {
+  campaign: "assets/ui/boss-defeat-campaign.jpg",
+  endless: "assets/ui/boss-defeat-endless.jpg"
+};
+const bossDefeatLogoImages = {};
+function loadBossDefeatLogos(){
+  Object.entries(bossDefeatLogoSources).forEach(([mode, src]) => {
+    const img = new Image();
+    img.src = src;
+    bossDefeatLogoImages[mode] = img;
+  });
+}
+loadBossDefeatLogos();
 
 
 const STAGES = {
@@ -223,6 +319,8 @@ const UNIT_TYPES = {
   mage:{name:"Mage",cost:240,range:150,fireRate:1.15,damage:48,projectileSpeed:390,color:"#a78bfa",hood:"#5b21b6",upgradeCost:220,sellFactor:.82,kind:"magic",splash:46},
   bomb:{name:"Bomb Tower",cost:280,range:140,fireRate:1.55,damage:96,projectileSpeed:320,color:"#ef4444",hood:"#7f1d1d",upgradeCost:320,sellFactor:.84,kind:"bomb",splash:64}
 };
+
+refreshUnitShopCards();
 
 const TOWER_SPECIALIZATIONS = {
   archer: {
@@ -381,6 +479,20 @@ function getSpecializationCost(unit){
 }
 
 
+
+const STAGE_CLEAR_GOLD_REWARD = {
+  1: 80,
+  2: 100,
+  3: 120,
+  4: 140,
+  5: 160,
+  6: 200
+};
+
+function getStageClearGoldReward(stage){
+  return STAGE_CLEAR_GOLD_REWARD[stage] || 0;
+}
+
 const STAGE_BOSS = {
   1: { name: "Ancient Treant Skull", color: "#84cc16" },
   2: { name: "Ruin Warden", color: "#94a3b8" },
@@ -425,7 +537,7 @@ const AURA_REWARDS = {
     className:"wealth",
     color:"#fbbf24",
     desc:"Turns the tower into a snowball engine with extra gold, score, and a temporary buff.",
-    bullets:["+40% gold la kill","+25 bonus score la kill","Pact Surge la fiecare 8 killuri"]
+    bullets:["+40% gold on kill","+25 bonus score on kill","Pact Surge every 8 kills"]
   }
 };
 
@@ -496,7 +608,7 @@ let selectedSpell = null;
 const spellCooldown = { slow:0, damage:0, bomb:0 };
 const spellConfig = {
   slow: { cooldown: 18, radius: 92, factor: 0.45, duration: 3.2 },
-  damage: { cooldown: 24, radius: 84, damage: 160 },
+  damage: { cooldown: 24, radius: 84, damage: 180 },
   bomb: { cooldown: 16, range: 120, damage: 90, chains: 4 }
 };
 
@@ -504,11 +616,55 @@ let pendingAuraDraft = null;
 let pendingAuraChoice = null;
 let pendingBossResolution = null;
 let pendingEndlessBossPair = [];
+let lastEndlessBossPairKey = "";
+let runEndlessBossPairsDefeated = 0;
+let bestEndlessWave = 0;
+let bestEndlessBossPairs = 0;
 
 let leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
 let leaderboardRunPromise = null;
 
-const achievements = { first_kill:false, builder:false, boss_hunter:false, rich:false, wave_master:false, survivor:false };
+const achievements = {
+  first_kill:false,
+  builder:false,
+  boss_hunter:false,
+  rich:false,
+  wave_master:false,
+  survivor:false,
+  first_spell_cast:false,
+  first_tower_upgrade:false,
+  stage6_clear:false,
+  first_endless_boss_pair:false,
+  endless_wave_20:false,
+  endless_wave_30:false
+};
+
+const ACHIEVEMENT_CONFIG = {
+  first_kill:{ title:"First Blood", goldReward:0 },
+  builder:{ title:"Builder", goldReward:0 },
+  boss_hunter:{ title:"Boss Hunter", goldReward:50 },
+  rich:{ title:"Treasurer", goldReward:0 },
+  wave_master:{ title:"Wave Master", goldReward:0 },
+  survivor:{ title:"Survivor", goldReward:0 },
+  first_spell_cast:{ title:"Arcane Initiate", goldReward:25 },
+  first_tower_upgrade:{ title:"Forged for War", goldReward:25 },
+  stage6_clear:{ title:"Campaign Conqueror", goldReward:100 },
+  first_endless_boss_pair:{ title:"Twin Terrors Broken", goldReward:75 },
+  endless_wave_20:{ title:"Abyss Walker", goldReward:75 },
+  endless_wave_30:{ title:"Beyond the Threshold", goldReward:100 }
+};
+
+function getAchievementRewardClaimKey(key){
+  return `sdcAchievementGoldClaimed:${key}`;
+}
+
+function isAchievementRewardClaimed(key){
+  try{ return localStorage.getItem(getAchievementRewardClaimKey(key)) === "1"; }catch(e){ return false; }
+}
+
+function markAchievementRewardClaimed(key){
+  try{ localStorage.setItem(getAchievementRewardClaimKey(key), "1"); }catch(e){}
+}
 
 
 function randomAuraDraft(count=3){
@@ -693,6 +849,11 @@ function showAuraRewardOverlay(){
   pendingAuraChoice = null;
   renderAuraRewardCards();
   auraRewardText.textContent = "The boss has been defeated. Choose 1 of 3 legendary auras, then apply it to a single tower. That aura stays on the tower in future stages.";
+  const upcomingClearReward = pendingBossResolution?.type === "campaign-next-stage" ? getStageClearGoldReward(Math.max(1, pendingBossResolution.nextStage - 1)) : 0;
+  if(auraRewardBonus){
+    auraRewardBonus.textContent = upcomingClearReward > 0 ? `Stage clear reward: +${upcomingClearReward} gold` : "";
+    auraRewardBonus.style.display = upcomingClearReward > 0 ? "block" : "none";
+  }
   auraRewardNote.textContent = units.length ? "Choose the reward, then click the tower that should keep the aura." : "You have no towers on the map. The reward will be skipped.";
   auraRewardOverlay.classList.remove("hidden");
   isPaused = true;
@@ -713,12 +874,12 @@ function beginBossAuraReward(){
 }
 
 function queueBossAuraReward(){
-  bossDefeatIntroTimer = 1.2;
-  bossDefeatRewardDelayTimer = 1.55;
-  bossDefeatIntroText = "BOSS DEFEATED";
-  bossDefeatIntroSubtext = "Choose a legendary aura";
+  bossDefeatIntroTimer = 2.7;
+  bossDefeatRewardDelayTimer = 3.0;
+  bossDefeatIntroText = "AN ANCIENT EVIL FALLS";
+  bossDefeatIntroSubtext = "";
   isPaused = true;
-  setMessage("Boss defeated. Choose your legendary aura.");
+  setMessage(currentMode === "campaign" ? "An ancient evil falls." : "The endless horror falters.");
   updateUI();
 }
 
@@ -779,28 +940,44 @@ function resolveBossWaveCompletion(){
   if(!resolution) return;
 
   if(resolution.type === "campaign-next-stage") {
+    const clearedStage = Math.max(1, resolution.nextStage - 1);
+    const clearReward = getStageClearGoldReward(clearedStage);
     wave += 1;
+    if(clearReward > 0){
+      money += clearReward;
+      bonusScore += Math.round(clearReward * 0.5);
+      pushNotification("gold","Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
+    }
     moveUnitsToReserve();
     applyStage(resolution.nextStage,false);
     pushNotification("stage","Stage Clear",`You reached Stage ${currentStage} — ${STAGES[currentStage].name}. Your towers were moved to reserve.`);
     saveProgress();
-    setMessage(`Stage clear! You reached Stage ${currentStage} — ${STAGES[currentStage].name}.`);
+    setMessage(`Stage clear! +${clearReward} gold. You reached Stage ${currentStage} — ${STAGES[currentStage].name}.`);
   } else if(resolution.type === "unlock-endless") {
+    const clearedStage = currentStage;
+    const clearReward = getStageClearGoldReward(clearedStage);
     submitStoryLeaderboardScore(currentStage);
+    if(clearReward > 0){
+      money += clearReward;
+      bonusScore += Math.round(clearReward * 0.5);
+      pushNotification("gold","Final stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
+    }
     endlessUnlocked = true;
     try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
     pushNotification("stage","Endless Mode unlocked",`You finished the campaign. Endless Mode is now unlocked!`);
     saveProgress();
-    setMessage(`You finished the main campaign. Endless Mode has been unlocked.`);
+    setMessage(`You finished the main campaign. +${clearReward} gold. Endless Mode has been unlocked.`);
     showEndlessUnlockOverlay();
     updateUI();
     return;
   } else if(resolution.type === "endless-next") {
+    runEndlessBossPairsDefeated += 1;
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 50;
     bonusScore += 80;
-    pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next.`);
+    maybeSaveBestEndlessRun();
+    pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
   isPaused = false;
   updateUI();
@@ -1335,6 +1512,10 @@ function startBossLoop(){
 function stopBossLoop(){
   if(audioAssets) audioAssets.boss.stop();
 }
+function syncBossLoop(){
+  if(enemies.some(enemy => enemy.type === "boss")) startBossLoop();
+  else stopBossLoop();
+}
 
 
 function buildPathCells(route){
@@ -1368,7 +1549,7 @@ function updateHintChip(){
   } else if(selectedSpell === "slow"){
     text = "Target Frost Nova at the desired area.";
   } else if(selectedSpell === "damage"){
-    text = "Target Meteor Strike pe grupul de enemies.";
+    text = "Target Meteor Strike on a group of enemies.";
   } else if(selectedSpell === "bomb"){
     text = "Target Chain Lightning near the enemies.";
   } else if(selectedPlacedUnitId){
@@ -1394,8 +1575,8 @@ function updateAudioToggle(){
   if(!audioToggle) return;
   audioToggle.textContent = isMuted ? "🔇" : "🔊";
   audioToggle.classList.toggle("muted", isMuted);
-  audioToggle.setAttribute("aria-label", isMuted ? "Sunet oprit" : "Sunet pornit");
-  audioToggle.title = isMuted ? "Sunet oprit" : "Sunet pornit";
+  audioToggle.setAttribute("aria-label", isMuted ? "Audio off" : "Audio on");
+  audioToggle.title = isMuted ? "Audio off" : "Audio on";
 }
 
 
@@ -1453,6 +1634,7 @@ function castSlowSpell(x, y){
   burstSpellParticles(x, y, "#dbeafe", "#93c5fd", 18);
   spellCooldown.slow = cfg.cooldown;
   cancelSpellSelection();
+  unlockAchievement("first_spell_cast");
   setMessage(affected ? `Frost Nova slowed ${affected} enemies.` : "Frost Nova cast.");
   updateUI();
   return true;
@@ -1476,6 +1658,7 @@ function castDamageSpell(x, y){
   showPopup(x, y - cfg.radius - 6, "Meteor!", "#fdba74");
   spellCooldown.damage = cfg.cooldown;
   cancelSpellSelection();
+  unlockAchievement("first_spell_cast");
   setMessage(affected ? `Meteor Strike hit ${affected} enemies.` : "Meteor Strike cast.");
   updateUI();
   return true;
@@ -1505,6 +1688,7 @@ function castBombSpell(x, y){
   burstSpellParticles(x, y, "#fde68a", "#fde047", 14);
   spellCooldown.bomb = cfg.cooldown;
   cancelSpellSelection();
+  unlockAchievement("first_spell_cast");
   setMessage(affected ? `Chain Lightning hit ${affected} enemies.` : "Chain Lightning cast.");
   updateUI();
   return true;
@@ -1679,13 +1863,33 @@ function getDifficultyWaveNumber(){
   return currentMode === "endless" ? stageWave : wave;
 }
 
+function getBossPairKey(pair){
+  return [...pair].sort((a,b)=>a-b).join("-");
+}
+
 function pickRandomEndlessBossPair(){
   const ids = Object.keys(STAGE_BOSS).map(Number);
-  for(let i = ids.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [ids[i], ids[j]] = [ids[j], ids[i]];
+  const allPairs = [];
+  for(let i = 0; i < ids.length; i++){
+    for(let j = i + 1; j < ids.length; j++){
+      allPairs.push([ids[i], ids[j]]);
+    }
   }
-  return ids.slice(0,2);
+  for(let i = allPairs.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [allPairs[i], allPairs[j]] = [allPairs[j], allPairs[i]];
+  }
+  const preferred = allPairs.find(pair => getBossPairKey(pair) !== lastEndlessBossPairKey);
+  const selected = preferred || allPairs[0] || ids.slice(0,2);
+  lastEndlessBossPairKey = getBossPairKey(selected);
+  return [...selected].sort(()=>Math.random()-0.5);
+}
+
+function syncEndlessUnlockArtworkBounds(){
+  if(!endlessUnlockArtwork || !endlessUnlockArtworkImage) return;
+  const rect = endlessUnlockArtworkImage.getBoundingClientRect();
+  endlessUnlockArtwork.style.width = `${Math.round(rect.width)}px`;
+  endlessUnlockArtwork.style.height = `${Math.round(rect.height)}px`;
 }
 
 function showEndlessUnlockOverlay(){
@@ -1696,6 +1900,7 @@ function showEndlessUnlockOverlay(){
     endlessUnlockText.classList.add("quote-fade-in");
   }
   endlessUnlockOverlay?.classList.remove("hidden");
+  requestAnimationFrame(syncEndlessUnlockArtworkBounds);
 }
 
 function hideEndlessUnlockOverlay(){
@@ -1711,6 +1916,8 @@ function enterEndlessModeFromUnlock(){
   stageWave = 1;
   wave = 1;
   pendingEndlessBossPair = [];
+  lastEndlessBossPairKey = "";
+  runEndlessBossPairsDefeated = 0;
   saveProgress();
   setMessage("Endless Mode begins. Your defenses hold the Dark Portal.");
   isPaused = false;
@@ -1782,6 +1989,36 @@ function clearNotifications(){
 const addScore=(base,bonus=0)=>{ score+=base; bonusScore+=bonus; };
 const totalScore=()=>score+bonusScore;
 
+function getSavedEndlessWave(){
+  return Number(localStorage.getItem("sdcBestEndlessWave") || 0);
+}
+
+function getSavedEndlessBossPairs(){
+  return Number(localStorage.getItem("sdcBestEndlessBossPairs") || 0);
+}
+
+function syncBestEndlessStats(){
+  try{
+    bestEndlessWave = getSavedEndlessWave();
+    bestEndlessBossPairs = getSavedEndlessBossPairs();
+  }catch(e){
+    bestEndlessWave = 0;
+    bestEndlessBossPairs = 0;
+  }
+}
+
+function maybeSaveBestEndlessRun(){
+  if(currentMode !== "endless") return;
+  try{
+    const nextBestWave = Math.max(stageWave, getSavedEndlessWave());
+    const nextBestPairs = Math.max(runEndlessBossPairsDefeated, getSavedEndlessBossPairs());
+    localStorage.setItem("sdcBestEndlessWave", String(nextBestWave));
+    localStorage.setItem("sdcBestEndlessBossPairs", String(nextBestPairs));
+    bestEndlessWave = nextBestWave;
+    bestEndlessBossPairs = nextBestPairs;
+  }catch(e){}
+}
+
 function saveProgress(){
   try{
     const best=Math.max(totalScore(), Number(localStorage.getItem("sdcBestScore")||0));
@@ -1789,6 +2026,7 @@ function saveProgress(){
     localStorage.setItem("sdcBestScore", String(best));
     localStorage.setItem("sdcFurthestStage", String(furthest));
     localStorage.setItem("sdcEndlessUnlocked", endlessUnlocked ? "1" : localStorage.getItem("sdcEndlessUnlocked") || "0");
+    syncBestEndlessStats();
   }catch(e){}
 }
 function loadProgressNotice(){
@@ -1796,8 +2034,9 @@ function loadProgressNotice(){
     const best=Number(localStorage.getItem("sdcBestScore")||0);
     const furthest=Number(localStorage.getItem("sdcFurthestStage")||1);
     endlessUnlocked = localStorage.getItem("sdcEndlessUnlocked")==="1";
-    if(best>0 || furthest>1 || endlessUnlocked){
-      pushNotification("stage","Progress loaded",`Best score: ${best} · Furthest stage: ${furthest}${endlessUnlocked ? " · Endless unlocked" : ""}`);
+    syncBestEndlessStats();
+    if(best>0 || furthest>1 || endlessUnlocked || bestEndlessWave>0){
+      pushNotification("stage","Progress loaded",`Best score: ${best} · Furthest stage: ${furthest}${endlessUnlocked ? " · Endless unlocked" : ""}${bestEndlessWave>0 ? ` · Best endless wave: ${bestEndlessWave}` : ""}`);
     }
   }catch(e){}
 }
@@ -1805,15 +2044,24 @@ function loadProgressNotice(){
 function unlockAchievement(key){
   if(achievements[key]) return;
   achievements[key]=true;
-  const titles={first_kill:"First Blood",builder:"Builder",boss_hunter:"Boss Hunter",rich:"Treasurer",wave_master:"Wave Master",survivor:"Survivor"};
+  const config = ACHIEVEMENT_CONFIG[key] || { title:"Achievement", goldReward:0 };
   showPopup(canvas.width/2,40,"Achievement unlocked!","#bbf7d0");
-  pushNotification("achievement",`🏆 ${titles[key]||"Achievement"}`,"New achievement unlocked.");
+  pushNotification("achievement",`🏆 ${config.title || "Achievement"}`,"New achievement unlocked.");
+  if(config.goldReward > 0 && !isAchievementRewardClaimed(key)){
+    money += config.goldReward;
+    markAchievementRewardClaimed(key);
+    showPopup(canvas.width/2, 68, `+${config.goldReward} gold`, "#facc15");
+    pushNotification("gold", "Achievement reward", `${config.title || "Achievement"} granted +${config.goldReward} gold.`);
+    updateUI();
+  }
 }
 function checkAchievements(){
   if(kills>=1) unlockAchievement("first_kill");
   if(units.length>=5) unlockAchievement("builder");
   if(money>=500) unlockAchievement("rich");
   if(wave>=10) unlockAchievement("wave_master");
+  if(currentMode === "endless" && stageWave >= 20) unlockAchievement("endless_wave_20");
+  if(currentMode === "endless" && stageWave >= 30) unlockAchievement("endless_wave_30");
 }
 
 function updateSelectedPanel(){
@@ -1830,13 +2078,20 @@ function getRunSpentGold(){
 }
 
 function openGameOverOverlay(){
-  if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : `Endless ${currentStage}`;
+  if(currentMode === "endless") maybeSaveBestEndlessRun();
+  if(gameOverStageLabel) gameOverStageLabel.textContent = currentMode === "campaign" ? "Stage" : "Mode";
+  if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : "Endless";
   if(gameOverWaveStat) gameOverWaveStat.textContent = String(currentMode === "campaign" ? wave : stageWave);
   if(gameOverKillsStat) gameOverKillsStat.textContent = String(kills);
   if(gameOverScoreStat) gameOverScoreStat.textContent = String(totalScore());
   const spent = getRunSpentGold();
-  gameOverText.textContent = `You reached ${currentMode === "campaign" ? "Stage " + currentStage : "Endless Wave " + stageWave}. Kills: ${kills} · Gold spent: ${spent} · Score: ${totalScore()}.`;
-  if(gameOverQuote) gameOverQuote.textContent = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
+  if(currentMode === "endless") {
+    gameOverText.textContent = `You survived ${stageWave} Endless Waves. Boss pairs defeated: ${runEndlessBossPairsDefeated}. Best Endless Wave: ${bestEndlessWave}.`;
+    if(gameOverQuote) gameOverQuote.textContent = `The abyss marked ${runEndlessBossPairsDefeated} boss waves this run. Best boss-pair record: ${bestEndlessBossPairs}.`;
+  } else {
+    gameOverText.textContent = `You reached Stage ${currentStage}. Kills: ${kills} · Gold spent: ${spent} · Score: ${totalScore()}.`;
+    if(gameOverQuote) gameOverQuote.textContent = GAME_OVER_QUOTES[Math.floor(Math.random() * GAME_OVER_QUOTES.length)];
+  }
   gameOverOverlay.classList.remove("hidden");
 }
 
@@ -1844,7 +2099,7 @@ function updateUI(){
   moneyBadge.textContent=`💰 ${money}`;
   livesBadge.textContent=`❤️ ${lives}`;
   waveBadge.textContent=currentMode==="campaign" ? `🌊 Wave ${wave}` : `♾️ Endless Wave ${stageWave}`;
-  stageBadge.textContent=currentMode==="campaign" ? `🗺️ Stage ${currentStage} · ${STAGES[currentStage].name}` : `♾️ Endless · ${STAGES[currentStage].name}`;
+  stageBadge.textContent=currentMode==="campaign" ? `🗺️ Stage ${currentStage} · ${STAGES[currentStage].name}` : `🕳️ Endless Mode · ${STAGES[currentStage].name}`;
   if(waveActive){
     const total=getWaveEnemyTotal();
     const progress=((total-spawnLeft)/total)*100;
@@ -1859,12 +2114,12 @@ function updateUI(){
   enemyCountStat.textContent=String(enemies.length);
   towerCountStat.textContent=String(units.length);
   killsStat.textContent=String(kills);
-  bossInfoStat.textContent=currentMode==="campaign" ? String(STAGES[currentStage].bossWave) : "Every 10";
+  bossInfoStat.textContent=currentMode==="campaign" ? String(STAGES[currentStage].bossWave) : "Dual every 10";
   scoreStat.textContent=String(totalScore());
   bonusScoreStat.textContent=String(bonusScore);
   stageNumberStat.textContent=String(currentStage);
   stageWaveStat.textContent=String(stageWave);
-  modeStat.textContent=currentMode==="campaign" ? "Story" : "Endless";
+  modeStat.textContent=currentMode==="campaign" ? "Story" : "Endless Run";
   bestScoreStat.textContent=String(Number(localStorage.getItem("sdcBestScore")||0));
   furthestStageStat.textContent=String(Number(localStorage.getItem("sdcFurthestStage")||1));
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
@@ -1895,7 +2150,7 @@ function applyStage(stageNumber, resetRun=false){
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[];
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
   waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1;
-  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingEndlessBossPair = []; hideAuraRewardOverlay(); hideEndlessUnlockOverlay();
+  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingEndlessBossPair = []; lastEndlessBossPairKey = ""; hideAuraRewardOverlay(); hideEndlessUnlockOverlay();
   stopBossLoop();
   syncAmbientAudio();
   cancelSpellSelection();
@@ -1907,6 +2162,7 @@ function applyStage(stageNumber, resetRun=false){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
     money=START_MONEY + (stageNumber-1)*60;
     lives=START_LIVES; score=0; bonusScore=0; kills=0; wave=1;
+    runEndlessBossPairsDefeated = 0;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
     resetAchievementsUI(); clearNotifications();
     currentMode="campaign";
@@ -1928,7 +2184,7 @@ function startWave(){
   if(currentMode === "endless" && isCurrentWaveBoss()) pendingEndlessBossPair = pickRandomEndlessBossPair();
   spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
-  if(isCurrentWaveBoss()) bossBannerTimer=2.2;
+  if(isCurrentWaveBoss()) bossBannerTimer = currentMode === "endless" ? 3.2 : 2.2;
   playWaveSound();
   hideHintChip();
   hideTowerMenu();
@@ -1977,7 +2233,7 @@ function enemyTemplateForSpawn(indexFromEnd){
 }
 function spawnEnemy(){
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
-  const enemy = enforceTestModeEnemyHp({ id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null });
+  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -2025,6 +2281,7 @@ function applySpecializationToSelectedUnit(specId){
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
   playUpgradeSound();
+  unlockAchievement("first_tower_upgrade");
   setMessage(`${unit.name} specialized into ${choice.name}.`);
   updateUI();
 }
@@ -2045,6 +2302,7 @@ function upgradeSelectedUnit(){
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
   playUpgradeSound();
+  unlockAchievement("first_tower_upgrade");
   setMessage(`${unit.name} was upgraded to Lv.${unit.level}.`);
   updateUI();
 }
@@ -2137,21 +2395,19 @@ function triggerBossAbility(enemy){
   const bossStage = enemy?.bossStage || currentStage;
   const ability=STAGES[bossStage].bossAbility;
   if(ability==="summon"){
-    for(let i=0;i<2;i++) enemies.push(enforceTestModeEnemyHp({ id:idCounter++, hp:40*STAGES[bossStage].difficulty, maxHp:40*STAGES[bossStage].difficulty, speed:.13, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true }));
+    for(let i=0;i<2;i++) enemies.push({ id:idCounter++, hp:40*STAGES[bossStage].difficulty, maxHp:40*STAGES[bossStage].difficulty, speed:.13, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true });
     bossFxType = "summon";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned minions!`,"#fca5a5");
   }
   if(ability==="rage"){
     enemy.speed*=1.6; enemy.hp += enemy.maxHp*.15;
-    enforceTestModeEnemyHp(enemy);
     bossFxType = "rage";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered rage mode!`,"#fca5a5");
   }
   if(ability==="shield"){
     enemy.hp += enemy.maxHp*.25;
-    enforceTestModeEnemyHp(enemy);
     bossFxType = "shield";
     bossFxTimer = 1.0;
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained a shield!`,"#93c5fd");
@@ -2190,7 +2446,6 @@ function update(dt){
 
   for(let i=enemies.length-1;i>=0;i--){
     const enemy=enemies[i];
-    enforceTestModeEnemyHp(enemy);
     if(enemy.spellSlowTimer){
       enemy.spellSlowTimer = Math.max(0, enemy.spellSlowTimer - dt);
       if(enemy.spellSlowTimer <= 0) enemy.spellSlowFactor = 1;
@@ -2228,7 +2483,7 @@ function update(dt){
     if(enemy.type==="boss" && !enemy.abilityUsed && enemy.hp<enemy.maxHp*.55) triggerBossAbility(enemy);
     if(enemy.progress>=1){
       enemies.splice(i,1);
-      if(enemy.type==="boss") stopBossLoop();
+      if(enemy.type==="boss") syncBossLoop();
       lives=Math.max(0,lives-(enemy.type==="boss"?3:1));
       if(lives<=0){
         waveActive=false;
@@ -2309,7 +2564,14 @@ function update(dt){
   }
 
   for(let i=enemies.length-1;i>=0;i--){
-    if(enemies[i].hp<=0){ const defeatedEnemy = enemies[i]; const pos=getPathPosition(defeatedEnemy.progress); rewardKill(defeatedEnemy,pos); if(defeatedEnemy.type==="boss") stopBossLoop(); enemies.splice(i,1); updateUI(); }
+    if(enemies[i].hp<=0){
+      const defeatedEnemy = enemies[i];
+      const pos=getPathPosition(defeatedEnemy.progress);
+      rewardKill(defeatedEnemy,pos);
+      enemies.splice(i,1);
+      if(defeatedEnemy.type==="boss") syncBossLoop();
+      updateUI();
+    }
   }
 
   for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.life-=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=.96; p.vy*=.96; if(p.life<=0) particles.splice(i,1); }
@@ -2337,8 +2599,10 @@ function update(dt){
         if(currentMode==="campaign" && currentStage < Object.keys(STAGES).length){
           pendingBossResolution = { type:"campaign-next-stage", nextStage: currentStage + 1 };
         } else if(currentMode==="campaign" && currentStage >= Object.keys(STAGES).length){
+          unlockAchievement("stage6_clear");
           pendingBossResolution = { type:"unlock-endless" };
         } else {
+          unlockAchievement("first_endless_boss_pair");
           pendingBossResolution = { type:"endless-next" };
         }
         queueBossAuraReward();
@@ -3451,11 +3715,103 @@ function drawBossHealthBar(){
 
 function drawBossBanner(){
   if(bossBannerTimer<=0) return;
-  const alpha=Math.min(1,bossBannerTimer/.4,bossBannerTimer);
-  ctx.save(); ctx.globalAlpha=Math.min(1,alpha);
-  ctx.fillStyle="rgba(127,29,29,.65)"; roundRect(canvas.width/2-140,40,280,40,20); ctx.fill();
-  ctx.strokeStyle=currentStage===6 ? "rgba(192,132,252,.8)" : "rgba(251,191,36,.7)"; ctx.stroke();
-  ctx.fillStyle="#fef3c7"; ctx.font="bold 20px Arial"; ctx.textAlign="center"; ctx.fillText(isCurrentWaveBoss() ? (currentMode === "endless" ? "TWIN BOSS WAVE" : (STAGE_BOSS[currentStage]?.name || "BOSS WAVE")) : "WARNING", canvas.width/2, 66);
+  const alpha=Math.min(1,bossBannerTimer/.45,bossBannerTimer);
+  const pulse = currentMode === "endless" ? 1 + Math.sin(performance.now() * 0.014) * 0.02 : 1;
+  const imageStages = currentMode === "endless"
+    ? (pendingEndlessBossPair.length === 2 ? pendingEndlessBossPair.slice() : [])
+    : [currentStage];
+  const splashImages = imageStages
+    .map(stage => bossSplashImages[stage])
+    .filter(img => img && img.complete && img.naturalWidth > 0);
+
+  if(splashImages.length === imageStages.length && splashImages.length > 0){
+    const panelY = currentMode === "endless" ? 28 : 20;
+    const panelHeight = currentMode === "endless" ? 250 : 290;
+    const gap = currentMode === "endless" ? 18 : 0;
+    const panelWidth = currentMode === "endless"
+      ? Math.min(canvas.width - 72, 340 * splashImages.length + gap * (splashImages.length - 1))
+      : Math.min(canvas.width - 80, 420);
+    const singleWidth = currentMode === "endless"
+      ? (panelWidth - gap * (splashImages.length - 1)) / splashImages.length
+      : panelWidth;
+    const x = canvas.width / 2 - panelWidth / 2;
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.32, alpha * 0.34);
+    ctx.fillStyle = currentMode === "endless" ? "#140505" : "#08111f";
+    ctx.fillRect(0, 0, canvas.width, panelY + panelHeight + 26);
+
+    ctx.globalAlpha = alpha;
+    ctx.translate(canvas.width/2, panelY + panelHeight/2);
+    ctx.scale(pulse, pulse);
+    ctx.translate(-canvas.width/2, -(panelY + panelHeight/2));
+
+    splashImages.forEach((img, idx) => {
+      const px = x + idx * (singleWidth + gap);
+      const py = panelY;
+      ctx.save();
+      roundRect(px, py, singleWidth, panelHeight, 20);
+      ctx.clip();
+      ctx.fillStyle = currentMode === "endless" ? "rgba(8,6,10,0.96)" : "rgba(4,8,18,0.96)";
+      ctx.fillRect(px, py, singleWidth, panelHeight);
+      const pad = currentMode === "endless" ? 10 : 12;
+      const availW = Math.max(10, singleWidth - pad * 2);
+      const availH = Math.max(10, panelHeight - pad * 2);
+      const scale = Math.min(availW / img.naturalWidth, availH / img.naturalHeight);
+      const drawW = img.naturalWidth * scale;
+      const drawH = img.naturalHeight * scale;
+      const drawX = px + (singleWidth - drawW) / 2;
+      const drawY = py + (panelHeight - drawH) / 2;
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+      const gradient = ctx.createLinearGradient(0, py, 0, py + panelHeight);
+      gradient.addColorStop(0, "rgba(2,6,23,0.04)");
+      gradient.addColorStop(0.6, "rgba(2,6,23,0.0)");
+      gradient.addColorStop(1, "rgba(2,6,23,0.12)");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(px, py, singleWidth, panelHeight);
+      ctx.restore();
+      ctx.lineWidth = currentMode === "endless" ? 2.2 : 2;
+      ctx.strokeStyle = currentMode === "endless" ? "rgba(248,113,113,.90)" : "rgba(255,255,255,.22)";
+      roundRect(px, py, singleWidth, panelHeight, 20);
+      ctx.stroke();
+    });
+
+    ctx.restore();
+    return;
+  }
+
+  const info = getCurrentBossBannerInfo();
+  const title = info.title || "WARNING";
+  const subtitle = info.subtitle || "";
+  const width = Math.max(340, Math.min(640, 220 + Math.max(title.length * 10, subtitle.length * 8)));
+  const height = subtitle ? 62 : 44;
+  const x = canvas.width/2 - width/2;
+  const y = 34;
+  ctx.save();
+  if(currentMode === "endless"){
+    ctx.globalAlpha = Math.min(0.22, alpha * 0.24);
+    ctx.fillStyle = "#7f1d1d";
+    ctx.fillRect(0, 0, canvas.width, 118);
+  }
+  ctx.globalAlpha=Math.min(1,alpha);
+  ctx.translate(canvas.width/2, y + height/2);
+  ctx.scale(pulse, pulse);
+  ctx.translate(-canvas.width/2, -(y + height/2));
+  ctx.fillStyle=currentMode === "endless" ? "rgba(71,10,10,.82)" : "rgba(127,29,29,.65)";
+  roundRect(x,y,width,height,22);
+  ctx.fill();
+  ctx.strokeStyle=currentMode === "endless" ? "rgba(248,113,113,.95)" : (currentStage===6 ? "rgba(192,132,252,.8)" : "rgba(251,191,36,.7)");
+  ctx.lineWidth = currentMode === "endless" ? 2.2 : 1.6;
+  ctx.stroke();
+  ctx.textAlign="center";
+  ctx.fillStyle="#fff7ed";
+  ctx.font= currentMode === "endless" ? "800 24px Arial" : (title.length > 24 ? "bold 16px Arial" : "bold 20px Arial");
+  ctx.fillText(title, canvas.width/2, subtitle ? y + 25 : y + 29);
+  if(subtitle){
+    ctx.fillStyle = currentMode === "endless" ? "rgba(254,226,226,.9)" : "rgba(226,232,240,.82)";
+    ctx.font = currentMode === "endless" ? "700 13px Arial" : "600 11px Arial";
+    ctx.fillText(subtitle, canvas.width/2, y + 44);
+  }
   ctx.restore();
 }
 
@@ -3492,30 +3848,39 @@ function drawWaveIntro(){
 
 function drawBossDefeatIntro(){
   if(bossDefeatIntroTimer<=0) return;
-  const total = 1.2;
+  const total = 2.7;
   const progress = 1 - (bossDefeatIntroTimer / total);
-  const fadeIn = Math.min(1, progress / 0.16);
-  const fadeOut = Math.min(1, bossDefeatIntroTimer / 0.30);
+  const fadeIn = Math.min(1, progress / 0.14);
+  const fadeOut = Math.min(1, bossDefeatIntroTimer / 0.40);
   const alpha = Math.min(fadeIn, fadeOut);
-  const y = canvas.height * 0.28 - (1 - alpha) * 8;
+  const modeKey = currentMode === "endless" ? "endless" : "campaign";
+  const img = bossDefeatLogoImages[modeKey];
+  const panelW = Math.min(canvas.width * 0.78, 760);
+  const panelH = panelW * 0.5625;
+  const x = canvas.width/2 - panelW/2;
+  const y = canvas.height * 0.22 - (1 - alpha) * 14;
 
   ctx.save();
   ctx.globalAlpha = alpha;
 
-  roundRect(canvas.width/2 - 190, y - 34, 380, 72, 22);
-  ctx.fillStyle = "rgba(10,14,24,.76)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(251,191,36,.28)";
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
+  if(img && img.complete && img.naturalWidth){
+    ctx.shadowColor = currentMode === "endless" ? "rgba(168,85,247,.38)" : "rgba(248,113,113,.34)";
+    ctx.shadowBlur = 28;
+    ctx.drawImage(img, x, y, panelW, panelH);
+  } else {
+    roundRect(x, y + 28, panelW, panelH - 56, 26);
+    ctx.fillStyle = currentMode === "endless" ? "rgba(26,8,34,.84)" : "rgba(18,8,8,.84)";
+    ctx.fill();
+    ctx.strokeStyle = currentMode === "endless" ? "rgba(192,132,252,.35)" : "rgba(248,113,113,.34)";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
 
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#fde68a";
-  ctx.font = "700 28px Arial";
-  ctx.fillText(bossDefeatIntroText || "BOSS DEFEATED", canvas.width/2, y - 2);
-  ctx.fillStyle = "rgba(226,232,240,.84)";
-  ctx.font = "600 13px Arial";
-  ctx.fillText(bossDefeatIntroSubtext || "Choose a legendary aura", canvas.width/2, y + 20);
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#f8fafc";
+    ctx.font = "800 34px Arial";
+    ctx.fillText(bossDefeatIntroText || "AN ANCIENT EVIL FALLS", canvas.width/2, y + panelH/2 + 8);
+  }
+
   ctx.restore();
 }
 
@@ -3831,6 +4196,9 @@ backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
   setMessage("Returned to the main menu.");
 });
 
+window.addEventListener("resize", syncEndlessUnlockArtworkBounds);
+endlessUnlockArtworkImage?.addEventListener("load", syncEndlessUnlockArtworkBounds);
+
 updateAudioToggle();
 applyHudVisibility();
 applyStage(1,true);
@@ -3930,7 +4298,7 @@ audioToggle?.addEventListener("click",(event)=>{
   if(isMuted){ stopBossLoop(); clearAmbientAudio(); }
   else { syncAmbientAudio(); }
   updateAudioToggle();
-  setMessage(isMuted ? "Sunet oprit." : "Sunet pornit.");
+  setMessage(isMuted ? "Audio off." : "Audio on.");
 });
 
 document.addEventListener("keydown",(event)=>{
