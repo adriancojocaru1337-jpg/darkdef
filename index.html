@@ -98,6 +98,20 @@
     </div>
   </div>
 
+  <div class="screen-overlay hidden" id="leaderboardNameOverlay">
+    <div class="overlay-card leaderboard-name-card">
+      <div class="overlay-kicker">Leaderboard</div>
+      <h1 id="leaderboardNameTitle">Submit your score</h1>
+      <p id="leaderboardNameText">Choose the name that will appear on the online leaderboard.</p>
+      <label class="leaderboard-name-label" for="leaderboardNameInput">Player name</label>
+      <input id="leaderboardNameInput" class="leaderboard-name-input" type="text" maxlength="20" autocomplete="nickname" spellcheck="false" placeholder="Player" />
+      <div class="overlay-actions leaderboard-name-actions">
+        <button class="btn btn-primary" id="leaderboardNameSubmitBtn" type="button">Submit</button>
+        <button class="btn btn-secondary" id="leaderboardNameCancelBtn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <div class="screen-overlay hidden" id="auraRewardOverlay">
     <div class="overlay-card overlay-reward">
       <div class="reward-kicker">Boss Reward</div>
