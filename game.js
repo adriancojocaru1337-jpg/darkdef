@@ -1088,7 +1088,7 @@ async function loadBonusLeaderboard(){
       bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
       return;
     }
-    bonusLeaderboardList.innerHTML = rows.slice(0,5).map((row, index) => {
+    bonusLeaderboardList.innerHTML = rows.slice(0,3).map((row, index) => {
       const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
       const bonus = Number(row.bonus_score || 0);
       const waveReached = Number(row.wave_reached || 0);
@@ -3445,6 +3445,11 @@ function drawSkyAtmosphere(){
 }
 
 function drawStageLightBands(){
+  if(currentStage === 1){
+    drawStageBirds();
+    return;
+  }
+
   const bandColors = {
     1: "rgba(246,194,118,0.050)",
     2: "rgba(214,220,228,0.016)",
@@ -3470,6 +3475,39 @@ function drawStageLightBands(){
     ctx.fillRect(-34, 0, 68, canvas.height + 140);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
+  ctx.restore();
+}
+
+function drawStageBirds(){
+  const t = performance.now() * 0.00042;
+  const flocks = [
+    { baseX: canvas.width * 0.18, baseY: 84, spread: 86, speed: 34, scale: 0.95 },
+    { baseX: canvas.width * 0.42, baseY: 122, spread: 104, speed: 28, scale: 0.8 },
+    { baseX: canvas.width * 0.7, baseY: 96, spread: 72, speed: 24, scale: 0.68 }
+  ];
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  flocks.forEach((flock, flockIndex) => {
+    for(let i = 0; i < 3; i++){
+      const drift = (t * flock.speed + i * 0.9 + flockIndex * 1.7);
+      const x = flock.baseX + Math.sin(drift) * flock.spread + i * 18;
+      const y = flock.baseY + Math.cos(drift * 1.4) * 12 + i * 10;
+      const wing = (Math.sin(drift * 7.2) * 0.5 + 0.5) * 8 + 4;
+      const size = flock.scale + i * 0.08;
+
+      ctx.strokeStyle = `rgba(18,24,18,${(0.52 - i * 0.06).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1.4, 2.2 * size);
+      ctx.beginPath();
+      ctx.moveTo(x - 10 * size, y + 1);
+      ctx.quadraticCurveTo(x - 4 * size, y - wing, x, y);
+      ctx.quadraticCurveTo(x + 4 * size, y - wing, x + 10 * size, y + 1);
+      ctx.stroke();
+    }
+  });
+
   ctx.restore();
 }
 
