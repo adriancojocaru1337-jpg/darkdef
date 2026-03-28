@@ -142,6 +142,13 @@
       return Number(value || 0).toLocaleString("en-US");
     }
 
+    function buildProfileLink(row) {
+      const profileUsername = String(row?.profile_username || "").trim();
+      const label = escapeHtml(row?.player_name || "Anonymous");
+      if (!profileUsername) return `<strong>${label}</strong>`;
+      return `<a href="/profile.html?user=${encodeURIComponent(profileUsername)}"><strong>${label}</strong></a>`;
+    }
+
     function getRankMeta(index) {
       if (index === 0) return { label: "1st", crown: "👑", medal: "gold" };
       if (index === 1) return { label: "2nd", crown: "✦", medal: "silver" };
@@ -157,14 +164,14 @@
 
       const topThree = rows.slice(0, 3);
       target.innerHTML = topThree.map((row, index) => {
-        const name = escapeHtml(row.player_name || "Anonymous");
+        const name = buildProfileLink(row);
         const rank = getRankMeta(index);
         const primary = type === "story" ? `Stage ${formatNumber(row.wave_reached)}` : `Wave ${formatNumber(row.wave_reached)}`;
         const secondary = type === "story" ? `${formatNumber(row.score_total)} total` : `+${formatNumber(row.bonus_score)} bonus`;
         return `
           <div class="leaderboard-podium-card ${rank.medal} ${type}">
             <div class="leaderboard-podium-rank">${rank.crown} ${rank.label}</div>
-            <strong>${name}</strong>
+            ${name}
             <span>${primary}</span>
             <small>${secondary}</small>
           </div>
@@ -179,14 +186,14 @@
       }
 
       target.innerHTML = rows.map((row, index) => {
-        const name = escapeHtml(row.player_name || "Anonymous");
+        const name = buildProfileLink(row);
         const rank = getRankMeta(index);
         const rankClass = rank.medal ? ` ${rank.medal}` : "";
         if (type === "story") {
           return `
             <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
               <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
-              <div class="leaderboard-player-cell"><strong>${name}</strong><span>${formatNumber(row.kills)} kills</span></div>
+              <div class="leaderboard-player-cell">${name}<span>${formatNumber(row.kills)} kills</span></div>
               <div>${formatNumber(row.wave_reached)}</div>
               <div>${formatNumber(row.score_total)}</div>
               <div>+${formatNumber(row.bonus_score)}</div>
@@ -196,7 +203,7 @@
         return `
           <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
             <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
-            <div class="leaderboard-player-cell"><strong>${name}</strong><span>${formatNumber(row.kills)} kills</span></div>
+            <div class="leaderboard-player-cell">${name}<span>${formatNumber(row.kills)} kills</span></div>
             <div>${formatNumber(row.wave_reached)}</div>
             <div>+${formatNumber(row.bonus_score)}</div>
             <div>${formatNumber(row.score_total)}</div>

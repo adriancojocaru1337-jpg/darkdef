@@ -6,17 +6,33 @@ exports.handler = async function handler() {
   try {
     const [endlessRows, storyRows] = await Promise.all([
       sql`
-        select player_name, score_total, bonus_score, wave_reached, kills, created_at
-        from leaderboard_scores
-        where mode = 'endless'
-        order by bonus_score desc, wave_reached desc, score_total desc, created_at asc
+        select
+          ls.player_name,
+          ls.score_total,
+          ls.bonus_score,
+          ls.wave_reached,
+          ls.kills,
+          ls.created_at,
+          u.username as profile_username
+        from leaderboard_scores ls
+        left join users u on lower(u.username) = lower(ls.player_name)
+        where ls.mode = 'endless'
+        order by ls.bonus_score desc, ls.wave_reached desc, ls.score_total desc, ls.created_at asc
         limit 10
       `,
       sql`
-        select player_name, score_total, bonus_score, wave_reached, kills, created_at
-        from leaderboard_scores
-        where mode = 'campaign'
-        order by wave_reached desc, score_total desc, bonus_score desc, created_at asc
+        select
+          ls.player_name,
+          ls.score_total,
+          ls.bonus_score,
+          ls.wave_reached,
+          ls.kills,
+          ls.created_at,
+          u.username as profile_username
+        from leaderboard_scores ls
+        left join users u on lower(u.username) = lower(ls.player_name)
+        where ls.mode = 'campaign'
+        order by ls.wave_reached desc, ls.score_total desc, ls.bonus_score desc, ls.created_at asc
         limit 10
       `
     ]);

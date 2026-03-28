@@ -2866,6 +2866,15 @@ kbd{
   overflow:hidden;
   text-overflow:ellipsis;
 }
+.leaderboard-player-cell a,
+.leaderboard-podium-card a{
+  color:inherit;
+  text-decoration:none;
+}
+.leaderboard-player-cell a:hover strong,
+.leaderboard-podium-card a:hover strong{
+  color:#f8e7ba;
+}
 .leaderboard-player-cell span{ color:var(--muted); font-size:12px; }
 .medal{
   display:inline-flex;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Player Profile - Dark Defense</title>
-  <meta name="description" content="View your Dark Defense player profile, account identity, and long-term battle stats." />
+  <meta name="description" content="View Dark Defense player profiles, long-term battle stats, and recent recorded runs." />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="style.css" />
   <style>
@@ -22,6 +22,15 @@
     .profile-stat span{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#93c5fd;font-weight:800;margin-bottom:8px}
     .profile-stat strong{display:block;font-size:30px;color:#f8fafc}
     .profile-stat small{display:block;margin-top:8px;color:var(--muted);line-height:1.5}
+    .profile-run-panel{margin-top:18px;padding:18px;border-radius:24px;background:rgba(8,17,31,.56);border:1px solid rgba(148,163,184,.10)}
+    .profile-run-panel h2{margin:0 0 14px;font-size:24px}
+    .profile-run-list{display:grid;gap:10px}
+    .profile-run-item{display:grid;grid-template-columns:110px 1fr auto;gap:14px;align-items:center;padding:14px 16px;border-radius:18px;background:rgba(8,17,31,.72);border:1px solid rgba(148,163,184,.10)}
+    .profile-run-mode{display:inline-flex;align-items:center;justify-content:center;padding:8px 10px;border-radius:999px;background:rgba(59,130,246,.14);border:1px solid rgba(96,165,250,.18);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#bfdbfe;font-weight:900}
+    .profile-run-main strong{display:block;font-size:16px}
+    .profile-run-main span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
+    .profile-run-date{color:#cbd5e1;font-size:13px;text-align:right}
+    .profile-run-empty{padding:16px;border-radius:18px;background:rgba(8,17,31,.72);border:1px solid rgba(148,163,184,.10);color:var(--muted)}
     .profile-side{background:linear-gradient(180deg, rgba(14,25,43,.95), rgba(8,17,31,.97))}
     .profile-side h2{margin:0 0 14px;font-size:28px}
     .profile-info-list{display:grid;gap:12px}
@@ -35,7 +44,7 @@
     .profile-empty p{margin:0 auto;color:var(--muted);line-height:1.7;max-width:660px}
     .profile-empty .profile-actions{justify-content:center;margin-top:24px}
     .hidden{display:none!important}
-    @media (max-width:920px){.profile-grid{grid-template-columns:1fr}.profile-hero,.profile-side,.profile-empty{padding:20px;border-radius:24px}}
+    @media (max-width:920px){.profile-grid{grid-template-columns:1fr}.profile-hero,.profile-side,.profile-empty{padding:20px;border-radius:24px}.profile-run-item{grid-template-columns:1fr;align-items:flex-start}.profile-run-date{text-align:left}}
     @media (max-width:640px){.profile-shell{padding:14px}.profile-stat-grid{grid-template-columns:1fr}.profile-side h2{font-size:24px}.profile-hero h1,.profile-empty h1{font-size:30px}}
   </style>
 </head>
@@ -45,9 +54,9 @@
       <article class="glass profile-hero">
         <div class="profile-title-row">
           <div>
-            <div class="panel-kicker">Profile</div>
+            <div class="panel-kicker" id="profileKicker">Profile</div>
             <h1 id="profileUsername">Player</h1>
-            <p class="profile-tagline">Your Dark Defense identity, long-term progression, and account-ready battle stats in one place.</p>
+            <p class="profile-tagline" id="profileTagline">Dark Defense account identity, long-term progression, and recorded battle stats.</p>
           </div>
           <div class="profile-chip-row">
             <div class="profile-chip" id="profileCreatedChip">Created recently</div>
@@ -59,7 +68,7 @@
           <div class="profile-stat">
             <span>Best Endless Score</span>
             <strong id="profileBestEndless">0</strong>
-            <small>Highest survival bonus recorded on your account so far.</small>
+            <small>Highest survival bonus recorded on this profile so far.</small>
           </div>
           <div class="profile-stat">
             <span>Best Story Stage</span>
@@ -74,9 +83,16 @@
           <div class="profile-stat">
             <span>Total Runs</span>
             <strong id="profileTotalRuns">0</strong>
-            <small>Every accepted attempt that counted toward your profile stats.</small>
+            <small>Every accepted attempt that counted toward this profile.</small>
           </div>
         </div>
+
+        <section class="profile-run-panel">
+          <h2>Recent runs</h2>
+          <div class="profile-run-list" id="profileRecentRuns">
+            <div class="profile-run-empty">Loading recent runs...</div>
+          </div>
+        </section>
       </article>
 
       <aside class="glass profile-side">
@@ -86,17 +102,17 @@
           <div class="profile-info-card">
             <span>Username</span>
             <strong id="profileUsernameCard">Player</strong>
-            <p>Your public account name for future profile and leaderboard linking.</p>
+            <p id="profileUsernameCopy">Public identity used for leaderboard and profile discovery.</p>
           </div>
-          <div class="profile-info-card">
+          <div class="profile-info-card" id="profileEmailCard">
             <span>Email</span>
             <strong id="profileEmail">Unknown</strong>
-            <p>Stored securely for sign-in and password recovery.</p>
+            <p>This field is only shown to the account owner.</p>
           </div>
           <div class="profile-info-card">
             <span>Account Created</span>
             <strong id="profileCreatedDate">Unknown date</strong>
-            <p>This helps anchor the long-term history of your Dark Defense account.</p>
+            <p>This anchors the long-term history of the account.</p>
           </div>
         </div>
         <div class="profile-actions">
@@ -108,9 +124,9 @@
     </section>
 
     <section id="profileEmpty" class="glass profile-empty hidden">
-      <div class="panel-kicker">Profile</div>
-      <h1>Sign in to view your player profile</h1>
-      <p>This page is ready for every account, but it needs an authenticated session to load your identity, stats, and progression summary.</p>
+      <div class="panel-kicker" id="profileEmptyKicker">Profile</div>
+      <h1 id="profileEmptyTitle">Sign in to view your player profile</h1>
+      <p id="profileEmptyCopy">This page is ready for every account, but it needs an authenticated session to load your identity, stats, and progression summary.</p>
       <div class="profile-actions">
         <a href="/account.html" class="btn btn-primary">Sign in or create account</a>
         <a href="/" class="btn btn-secondary">Back to game</a>
@@ -121,10 +137,17 @@
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 
   <script>
+    const params = new URLSearchParams(window.location.search);
+    const requestedUsername = String(params.get('user') || '').trim();
+
     const profileContent = document.getElementById('profileContent');
     const profileEmpty = document.getElementById('profileEmpty');
+    const profileKicker = document.getElementById('profileKicker');
     const profileUsername = document.getElementById('profileUsername');
     const profileUsernameCard = document.getElementById('profileUsernameCard');
+    const profileUsernameCopy = document.getElementById('profileUsernameCopy');
+    const profileTagline = document.getElementById('profileTagline');
+    const profileEmailCard = document.getElementById('profileEmailCard');
     const profileEmail = document.getElementById('profileEmail');
     const profileCreatedChip = document.getElementById('profileCreatedChip');
     const profileRunChip = document.getElementById('profileRunChip');
@@ -133,6 +156,14 @@
     const profileBestStory = document.getElementById('profileBestStory');
     const profileTotalKills = document.getElementById('profileTotalKills');
     const profileTotalRuns = document.getElementById('profileTotalRuns');
+    const profileRecentRuns = document.getElementById('profileRecentRuns');
+    const profileEmptyKicker = document.getElementById('profileEmptyKicker');
+    const profileEmptyTitle = document.getElementById('profileEmptyTitle');
+    const profileEmptyCopy = document.getElementById('profileEmptyCopy');
+
+    function escapeHtml(value) {
+      return String(value || '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
+    }
 
     function formatNumber(value) {
       return Number(value || 0).toLocaleString('en-US');
@@ -145,45 +176,127 @@
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
-    function showGuestState() {
+    function formatDateTime(value) {
+      if (!value) return 'Unknown date';
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return 'Unknown date';
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function showEmptyState(title, copy, kicker = 'Profile') {
       profileContent.classList.add('hidden');
       profileEmpty.classList.remove('hidden');
+      profileEmptyKicker.textContent = kicker;
+      profileEmptyTitle.textContent = title;
+      profileEmptyCopy.textContent = copy;
     }
 
-    function showProfile(user) {
+    function renderRecentRuns(runs) {
+      if (!Array.isArray(runs) || runs.length === 0) {
+        profileRecentRuns.innerHTML = '<div class="profile-run-empty">No recorded runs yet for this profile.</div>';
+        return;
+      }
+
+      profileRecentRuns.innerHTML = runs.map((run) => {
+        const modeLabel = run.mode === 'campaign' ? 'Story' : 'Endless';
+        const depthLabel = run.mode === 'campaign'
+          ? `Stage ${formatNumber(run.wave_reached)}`
+          : `Wave ${formatNumber(run.wave_reached)}`;
+        return `
+          <article class="profile-run-item">
+            <div class="profile-run-mode">${modeLabel}</div>
+            <div class="profile-run-main">
+              <strong>${depthLabel} · ${formatNumber(run.score_total)} total</strong>
+              <span>Bonus +${formatNumber(run.bonus_score)} · ${formatNumber(run.kills)} kills</span>
+            </div>
+            <div class="profile-run-date">${formatDateTime(run.created_at)}</div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function showProfile(profile) {
+      const isOwner = !!profile.isOwner;
       profileEmpty.classList.add('hidden');
       profileContent.classList.remove('hidden');
-      profileUsername.textContent = user.username || 'Player';
-      profileUsernameCard.textContent = user.username || 'Player';
-      profileEmail.textContent = user.email || 'Unknown';
-      profileCreatedChip.textContent = `Created ${formatDate(user.createdAt)}`;
-      profileCreatedDate.textContent = formatDate(user.createdAt);
-      profileRunChip.textContent = `${formatNumber(user.stats?.totalRuns || 0)} runs recorded`;
-      profileBestEndless.textContent = formatNumber(user.stats?.bestEndlessScore || 0);
-      profileBestStory.textContent = formatNumber(user.stats?.bestStoryStage || 1);
-      profileTotalKills.textContent = formatNumber(user.stats?.totalKills || 0);
-      profileTotalRuns.textContent = formatNumber(user.stats?.totalRuns || 0);
+      profileKicker.textContent = isOwner ? 'Your Profile' : 'Public Profile';
+      profileUsername.textContent = profile.username || 'Player';
+      profileUsernameCard.textContent = profile.username || 'Player';
+      profileUsernameCopy.textContent = isOwner
+        ? 'This is your public account identity across leaderboards and profile views.'
+        : 'Public identity used for leaderboard and profile discovery.';
+      profileTagline.textContent = isOwner
+        ? 'Your Dark Defense account identity, long-term progression, and most recent recorded runs.'
+        : 'Public Dark Defense profile with long-term stats and recently recorded runs.';
+      profileCreatedChip.textContent = `Created ${formatDate(profile.createdAt)}`;
+      profileCreatedDate.textContent = formatDate(profile.createdAt);
+      profileRunChip.textContent = `${formatNumber(profile.stats?.totalRuns || 0)} runs recorded`;
+      profileBestEndless.textContent = formatNumber(profile.stats?.bestEndlessScore || 0);
+      profileBestStory.textContent = formatNumber(profile.stats?.bestStoryStage || 1);
+      profileTotalKills.textContent = formatNumber(profile.stats?.totalKills || 0);
+      profileTotalRuns.textContent = formatNumber(profile.stats?.totalRuns || 0);
+      profileEmailCard.classList.toggle('hidden', !isOwner);
+      if (isOwner) profileEmail.textContent = profile.email || 'Unknown';
+      renderRecentRuns(profile.recentRuns || []);
     }
 
-    async function loadProfile() {
+    async function loadOwnProfile() {
       try {
         const response = await fetch('/.netlify/functions/me', { credentials: 'include', cache: 'no-store' });
         if (!response.ok) {
-          showGuestState();
+          showEmptyState(
+            'Sign in to view your player profile',
+            'This page is ready for every account, but it needs an authenticated session to load your identity, stats, and progression summary.'
+          );
           return;
         }
         const data = await response.json();
         if (!data.authenticated || !data.user) {
-          showGuestState();
+          showEmptyState(
+            'Sign in to view your player profile',
+            'This page is ready for every account, but it needs an authenticated session to load your identity, stats, and progression summary.'
+          );
           return;
         }
-        showProfile(data.user);
+
+        const profileResponse = await fetch(`/.netlify/functions/get-profile?username=${encodeURIComponent(data.user.username)}`, {
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        if (!profileResponse.ok) {
+          showEmptyState('Profile unavailable', 'The account profile could not be loaded right now.');
+          return;
+        }
+        const profileData = await profileResponse.json();
+        showProfile(profileData.profile);
       } catch (_) {
-        showGuestState();
+        showEmptyState('Profile unavailable', 'The account profile could not be loaded right now.');
       }
     }
 
-    loadProfile();
+    async function loadPublicProfile(username) {
+      try {
+        const response = await fetch(`/.netlify/functions/get-profile?username=${encodeURIComponent(username)}`, {
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        const data = await response.json();
+        if (!response.ok || !data.profile) {
+          showEmptyState(
+            'Profile not found',
+            `No public player profile exists for "${username}".`,
+            'Public Profile'
+          );
+          return;
+        }
+        showProfile(data.profile);
+      } catch (_) {
+        showEmptyState('Profile unavailable', 'The public profile could not be loaded right now.', 'Public Profile');
+      }
+    }
+
+    if (requestedUsername) loadPublicProfile(requestedUsername);
+    else loadOwnProfile();
   </script>
 </body>
 </html>
