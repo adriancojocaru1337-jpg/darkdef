@@ -5,7 +5,9 @@ const moneyBadge = document.getElementById("moneyBadge");
 const livesBadge = document.getElementById("livesBadge");
 const waveBadge = document.getElementById("waveBadge");
 const stageBadge = document.getElementById("stageBadge");
+const panelHeaderUserLink = document.getElementById("panelHeaderUserLink");
 const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
+const panelHeaderLogoutBtn = document.getElementById("panelHeaderLogoutBtn");
 const progressText = document.getElementById("progressText");
 const waveFill = document.getElementById("waveFill");
 const messageBox = document.getElementById("messageBox");
@@ -128,6 +130,8 @@ function setPanelUserLabel(name){
 
 async function loadPanelUserSession(){
   setPanelUserLabel("Guest");
+  panelHeaderUserLink?.setAttribute("href", "/account.html");
+  panelHeaderLogoutBtn?.classList.add("hidden");
   try{
     const response = await fetch("/.netlify/functions/me", {
       credentials: "include",
@@ -137,6 +141,8 @@ async function loadPanelUserSession(){
     const data = await response.json();
     if(!data?.authenticated || !data?.user?.username) return;
     setPanelUserLabel(data.user.username);
+    panelHeaderUserLink?.setAttribute("href", "/profile.html");
+    panelHeaderLogoutBtn?.classList.remove("hidden");
   }catch(_){
     setPanelUserLabel("Guest");
   }
@@ -5311,3 +5317,15 @@ refreshLeaderboardBtn?.addEventListener("click", ()=>{ loadBonusLeaderboard(); }
 syncMobileHudLayout();
 window.addEventListener("resize", syncMobileHudLayout);
 mobileLayoutMedia.addEventListener?.("change", syncMobileHudLayout);
+
+panelHeaderLogoutBtn?.addEventListener("click", async (event)=>{
+  event.preventDefault();
+  try{
+    const response = await fetch("/.netlify/functions/logout", {
+      method: "POST",
+      credentials: "include"
+    });
+    if(!response.ok) return;
+    window.location.reload();
+  }catch(_){}
+});
