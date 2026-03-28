@@ -1,6 +1,7 @@
 (function () {
   const body = document.body;
   if (!body) return;
+  const isHomePage = window.location.pathname === "/" || window.location.pathname.endsWith("/index.html");
 
   function escapeHtml(value) {
     return String(value || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
@@ -8,6 +9,13 @@
 
   function renderGuestBar() {
     const crest = window.DarkDefenseCrest?.markup("Guest", "dd-crest-sm") || "";
+    const guestStatus = isHomePage ? "" : `
+            <a class="global-account-pill" href="/account.html">
+              ${crest}
+              <span class="global-account-kicker">Player</span>
+              <strong>Guest</strong>
+            </a>
+    `;
     return `
       <div class="global-account-bar">
         <div class="global-account-bar-inner">
@@ -15,11 +23,7 @@
             <a href="/">Dark Defense</a>
           </div>
           <div class="global-account-status">
-            <a class="global-account-pill" href="/account.html">
-              ${crest}
-              <span class="global-account-kicker">Player</span>
-              <strong>Guest</strong>
-            </a>
+            ${guestStatus}
             <div class="global-account-links">
               <a href="/account.html" class="btn btn-secondary">Sign in</a>
             </div>
@@ -32,6 +36,13 @@
   function renderUserBar(user) {
     const username = escapeHtml(user?.username || "Player");
     const crest = window.DarkDefenseCrest?.markup(user?.username || "Player", "dd-crest-sm", user?.crestId || null) || "";
+    const userStatus = isHomePage ? "" : `
+            <a class="global-account-pill" href="/profile.html">
+              ${crest}
+              <span class="global-account-kicker">Player</span>
+              <strong>${username}</strong>
+            </a>
+    `;
     return `
       <div class="global-account-bar">
         <div class="global-account-bar-inner">
@@ -39,11 +50,7 @@
             <a href="/">Dark Defense</a>
           </div>
           <div class="global-account-status">
-            <a class="global-account-pill" href="/profile.html">
-              ${crest}
-              <span class="global-account-kicker">Player</span>
-              <strong>${username}</strong>
-            </a>
+            ${userStatus}
             <div class="global-account-links">
               <a href="/profile.html" class="btn btn-secondary">Profile</a>
               <a href="/account.html" class="btn btn-secondary">Account</a>

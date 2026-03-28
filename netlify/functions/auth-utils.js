@@ -155,17 +155,32 @@ async function getSessionUser(event) {
   const rawToken = cookies[COOKIE_NAME];
   if (!rawToken) return null;
   const tokenHash = sha256(rawToken);
-  const rows = await sql`
-    select s.id as session_id, s.user_id, s.expires_at, u.username, u.email, u.created_at,
-           p.best_endless_score, p.best_story_stage, p.total_kills, p.total_runs, p.crest_id
-    from user_sessions s
-    join users u on u.id = s.user_id
-    left join user_profiles p on p.user_id = u.id
-    where s.token_hash = ${tokenHash}
-      and s.expires_at > now()
-    limit 1
-  `;
-  return rows[0] || null;
+  try {
+    const rows = await sql`
+      select s.id as session_id, s.user_id, s.expires_at, u.username, u.email, u.created_at,
+             p.best_endless_score, p.best_story_stage, p.total_kills, p.total_runs, p.crest_id
+      from user_sessions s
+      join users u on u.id = s.user_id
+      left join user_profiles p on p.user_id = u.id
+      where s.token_hash = ${tokenHash}
+        and s.expires_at > now()
+      limit 1
+    `;
+    return rows[0] || null;
+  } catch (_) {
+    const rows = await sql`
+      select s.id as session_id, s.user_id, s.expires_at, u.username, u.email, u.created_at,
+             p.best_endless_score, p.best_story_stage, p.total_kills, p.total_runs,
+             null::text as crest_id
+      from user_sessions s
+      join users u on u.id = s.user_id
+      left join user_profiles p on p.user_id = u.id
+      where s.token_hash = ${tokenHash}
+        and s.expires_at > now()
+      limit 1
+    `;
+    return rows[0] || null;
+  }
 }
 
 async function deleteSession(event) {

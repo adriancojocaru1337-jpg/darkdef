@@ -37,6 +37,9 @@ exports.handler = async function handler(event) {
 
     return json(200, { ok: true, crestId });
   } catch (error) {
+    if (String(error?.message || "").toLowerCase().includes("crest_id")) {
+      return json(503, { error: "Profile crest storage is not ready yet. Apply the latest database migration first." });
+    }
     return json(500, { error: "Failed to update profile." });
   }
 };

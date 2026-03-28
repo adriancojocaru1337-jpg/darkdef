@@ -12,22 +12,42 @@ exports.handler = async function handler(event) {
 
   try {
     const session = await getSessionUser(event).catch(() => null);
-    const users = await sql`
-      select
-        u.id,
-        u.username,
-        u.email,
-        u.created_at,
-        p.best_endless_score,
-        p.best_story_stage,
-        p.total_kills,
-        p.total_runs,
-        p.crest_id
-      from users u
-      left join user_profiles p on p.user_id = u.id
-      where lower(u.username) = lower(${requestedUsername})
-      limit 1
-    `;
+    let users;
+    try {
+      users = await sql`
+        select
+          u.id,
+          u.username,
+          u.email,
+          u.created_at,
+          p.best_endless_score,
+          p.best_story_stage,
+          p.total_kills,
+          p.total_runs,
+          p.crest_id
+        from users u
+        left join user_profiles p on p.user_id = u.id
+        where lower(u.username) = lower(${requestedUsername})
+        limit 1
+      `;
+    } catch (_) {
+      users = await sql`
+        select
+          u.id,
+          u.username,
+          u.email,
+          u.created_at,
+          p.best_endless_score,
+          p.best_story_stage,
+          p.total_kills,
+          p.total_runs,
+          null::text as crest_id
+        from users u
+        left join user_profiles p on p.user_id = u.id
+        where lower(u.username) = lower(${requestedUsername})
+        limit 1
+      `;
+    }
 
     const user = users[0];
     if (!user) {
