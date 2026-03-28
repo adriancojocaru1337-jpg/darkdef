@@ -5,6 +5,7 @@ const moneyBadge = document.getElementById("moneyBadge");
 const livesBadge = document.getElementById("livesBadge");
 const waveBadge = document.getElementById("waveBadge");
 const stageBadge = document.getElementById("stageBadge");
+const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
 const progressText = document.getElementById("progressText");
 const waveFill = document.getElementById("waveFill");
 const messageBox = document.getElementById("messageBox");
@@ -117,6 +118,28 @@ const UNIT_CARD_META = {
 
 function clampPercent(value){
   return `${Math.max(8, Math.min(100, Math.round(value)))}%`;
+}
+
+function setPanelUserLabel(name){
+  if(!panelHeaderUserValue) return;
+  const trimmedName = String(name || "").trim();
+  panelHeaderUserValue.textContent = trimmedName || "Guest";
+}
+
+async function loadPanelUserSession(){
+  setPanelUserLabel("Guest");
+  try{
+    const response = await fetch("/.netlify/functions/me", {
+      credentials: "include",
+      cache: "no-store"
+    });
+    if(!response.ok) return;
+    const data = await response.json();
+    if(!data?.authenticated || !data?.user?.username) return;
+    setPanelUserLabel(data.user.username);
+  }catch(_){
+    setPanelUserLabel("Guest");
+  }
 }
 
 function refreshUnitShopCards(){
@@ -5101,6 +5124,7 @@ endlessUnlockArtworkImage?.addEventListener("load", syncEndlessUnlockArtworkBoun
 updateAudioToggle();
 applyHudVisibility();
 applyStage(1,true);
+loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
 draw();

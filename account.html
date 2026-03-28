@@ -163,6 +163,7 @@
             <div class="session-stat"><span>Total Runs</span><strong id="totalRunsStat">0</strong></div>
           </div>
           <div class="session-actions">
+            <a href="/profile.html" class="btn btn-secondary">View profile</a>
             <a href="/leaderboards.html" class="btn btn-secondary">View leaderboards</a>
             <a href="/" class="btn btn-primary">Play Dark Defense</a>
           </div>
@@ -175,6 +176,7 @@
 
   <script>
     const tabs = document.querySelectorAll('.auth-tab');
+    const authTabs = document.querySelector('.auth-tabs');
     const registerPane = document.getElementById('registerPane');
     const loginPane = document.getElementById('loginPane');
     const statusEl = document.getElementById('authStatus');
@@ -196,6 +198,13 @@
       tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === next));
       registerPane.classList.toggle('hidden', next !== 'register');
       loginPane.classList.toggle('hidden', next !== 'login');
+    }
+
+    function toggleAuthForms(visible) {
+      authTabs.classList.toggle('hidden', !visible);
+      registerPane.classList.toggle('hidden', !visible || !tabs[0]?.classList.contains('active'));
+      loginPane.classList.toggle('hidden', !visible || !tabs[1]?.classList.contains('active'));
+      if (!visible) forgotPasswordBox.classList.add('hidden');
     }
 
     function showStatus(message, tone = 'error') {
@@ -224,13 +233,16 @@
         const response = await fetch('/.netlify/functions/me', { credentials: 'include', cache: 'no-store' });
         if (!response.ok) {
           sessionCard.classList.add('hidden');
+          toggleAuthForms(true);
           return;
         }
         const data = await response.json();
         if (!data.authenticated || !data.user) {
           sessionCard.classList.add('hidden');
+          toggleAuthForms(true);
           return;
         }
+        toggleAuthForms(false);
         sessionCard.classList.remove('hidden');
         sessionUsername.textContent = data.user.username;
         sessionMeta.textContent = `${data.user.email} · account created ${formatDate(data.user.createdAt)}`;
@@ -240,6 +252,7 @@
         totalRunsStat.textContent = formatNumber(data.user.stats?.totalRuns || 0);
       } catch (_) {
         sessionCard.classList.add('hidden');
+        toggleAuthForms(true);
       }
     }
 
@@ -346,6 +359,8 @@
           return;
         }
         sessionCard.classList.add('hidden');
+        toggleAuthForms(true);
+        setTab('login');
         showStatus('You have been signed out.', 'success');
       } catch (_) {
         showStatus('Network error while signing out.');
