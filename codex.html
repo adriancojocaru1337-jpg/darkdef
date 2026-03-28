@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Defense Codex - Towers, Enemies, Bosses</title>
+  <meta name="description" content="Study the Dark Defense codex with tower roles, spell timings, enemy archetypes, and boss abilities before your next run." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://darkdefense.netlify.app/codex.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="/crest.js"></script>
+  <script src="/account-bar.js" defer></script>
+</head>
+<body>
+  <main class="page-content">
+    <nav class="manual-nav" aria-label="Player manual navigation">
+      <a href="/how-to-play.html" class="manual-nav-link">How to Play</a>
+      <a href="/codex.html" class="manual-nav-link active" aria-current="page">Codex</a>
+    </nav>
+
+    <section class="glass content-hero">
+      <div class="panel-kicker">Codex</div>
+      <h1>Field manual for towers, enemies, and boss threats</h1>
+      <p>The Dark Defense codex is built for quick tactical reference. Learn which towers solve which waves, what each spell is best at, and how every boss tries to break your line.</p>
+    </section>
+
+    <section class="content-grid">
+      <article class="glass content-card">
+        <div class="panel-kicker">Battle Doctrine</div>
+        <h2>How to use this codex</h2>
+        <ul class="guide-list">
+          <li>Use <strong>Archer</strong> and <strong>Hunter</strong> to stabilize priority targets and early leaks.</li>
+          <li>Use <strong>Mage</strong> and <strong>Bomb Tower</strong> when the route creates natural choke points.</li>
+          <li>Save <strong>Frost Nova</strong> to lock enemies inside a kill zone, not just to buy random time.</li>
+          <li>Respect boss waves: each boss has a named ability and changes how you should place towers.</li>
+          <li>In Endless Mode, balance safety and greed. Surviving one more wave matters more than a flashy build.</li>
+        </ul>
+      </article>
+
+      <aside class="glass content-card">
+        <div class="panel-kicker">At A Glance</div>
+        <h2>Quick reference</h2>
+        <div class="codex-chip-grid">
+          <div class="codex-chip"><strong>4</strong><span>Towers</span></div>
+          <div class="codex-chip"><strong>3</strong><span>Spells</span></div>
+          <div class="codex-chip"><strong>4</strong><span>Enemy archetypes</span></div>
+          <div class="codex-chip"><strong>6</strong><span>Bosses</span></div>
+        </div>
+        <p>The goal is simple: know what threatens your setup before the wave starts, then build specifically for that problem.</p>
+      </aside>
+    </section>
+
+    <section class="glass content-card">
+      <div class="panel-kicker">Tower Codex</div>
+      <h2>Core towers and what they are really for</h2>
+      <div class="codex-grid">
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Archer</span>
+            <span class="codex-tag">Starter</span>
+          </div>
+          <h3>Archer</h3>
+          <p>Cheap, flexible, and perfect for opening waves. Best when you need reliable coverage without overcommitting gold.</p>
+          <ul class="guide-list">
+            <li><strong>Cost:</strong> 90</li>
+            <li><strong>Best use:</strong> early coverage, anti-leak support, efficient filler around corners</li>
+            <li><strong>Weakness:</strong> falls off if you ask it to solve armored pressure alone</li>
+            <li><strong>Specs:</strong> <strong>Rapid Shot</strong> for fast enemies, <strong>Heavy Arrows</strong> for tougher fronts</li>
+          </ul>
+        </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Hunter</span>
+            <span class="codex-tag">Single Target</span>
+          </div>
+          <h3>Hunter</h3>
+          <p>High range and stronger hits make Hunter your answer to elite enemies and bosses that need focused damage.</p>
+          <ul class="guide-list">
+            <li><strong>Cost:</strong> 190</li>
+            <li><strong>Best use:</strong> boss lanes, priority targets, long-route maps</li>
+            <li><strong>Weakness:</strong> inefficient into large clustered waves without splash support</li>
+            <li><strong>Specs:</strong> <strong>Sniper</strong> for reach and burst, <strong>Tracker</strong> for anti-fast pressure</li>
+          </ul>
+        </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Mage</span>
+            <span class="codex-tag">Splash</span>
+          </div>
+          <h3>Mage</h3>
+          <p>Magic splash tower for packed lanes. Mage shines when enemies overlap and your single-target towers start wasting shots.</p>
+          <ul class="guide-list">
+            <li><strong>Cost:</strong> 235</li>
+            <li><strong>Best use:</strong> clustered enemies, mid-game wave control, choke points</li>
+            <li><strong>Weakness:</strong> less efficient when enemies are spread out</li>
+            <li><strong>Specs:</strong> <strong>Frost Mage</strong> for control, <strong>Arc Mage</strong> for heavier area damage</li>
+          </ul>
+        </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Bomb</span>
+            <span class="codex-tag">Burst AoE</span>
+          </div>
+          <h3>Bomb Tower</h3>
+          <p>Heavy splash burst that punishes dense waves and armored clusters. Strongest when the path forces enemies to stack.</p>
+          <ul class="guide-list">
+            <li><strong>Cost:</strong> 305</li>
+            <li><strong>Best use:</strong> choke points, armored windows, damage spikes before leaks</li>
+            <li><strong>Weakness:</strong> expensive to rush too early</li>
+            <li><strong>Specs:</strong> <strong>Siege</strong> for raw impact, <strong>Shock</strong> for more disruptive wave control</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="glass content-card">
+      <div class="panel-kicker">Spell Codex</div>
+      <h2>Three spells, three different jobs</h2>
+      <div class="codex-grid codex-grid-tight">
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Frost Nova</span>
+            <span class="codex-tag">18s CD</span>
+          </div>
+          <p>Large slow field. Best used when a dangerous pack is entering your main tower cluster.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Meteor Strike</span>
+            <span class="codex-tag">24s CD</span>
+          </div>
+          <p>Reliable area damage. Strong against grouped waves and boss escort packs that are about to break through.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Chain Lightning</span>
+            <span class="codex-tag">16s CD</span>
+          </div>
+          <p>Fast cleanup tool that jumps between nearby enemies. Excellent for stabilizing messy fronts and finishing runners.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="glass content-card">
+      <div class="panel-kicker">Enemy Codex</div>
+      <h2>Know the wave before it reaches the gate</h2>
+      <div class="codex-grid">
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Normal</span>
+            <span class="codex-tag">Baseline</span>
+          </div>
+          <p>Standard pressure unit. They define whether your build is efficient or merely flashy.</p>
+          <ul class="guide-list">
+            <li>Use them to judge if your opening is stable.</li>
+            <li>If normals leak, your economy or placement is off.</li>
+          </ul>
+        </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Fast</span>
+            <span class="codex-tag">Leak Risk</span>
+          </div>
+          <p>Low durability, high speed. They punish greedy builds and weak corner coverage.</p>
+          <ul class="guide-list">
+            <li>Use Rapid Archer, Tracker Hunter, or Frost Nova.</li>
+            <li>Late-stage fast waves can snowball into instant panic.</li>
+          </ul>
+        </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Tank</span>
+            <span class="codex-tag">Attrition</span>
+          </div>
+          <p>Slower but much harder to kill. Tanks expose weak single-target damage and overreliance on cheap towers.</p>
+          <ul class="guide-list">
+            <li>Hunters and Heavy Arrow Archers help a lot.</li>
+            <li>Do not let tanks absorb all your splash while fast enemies slip by.</li>
+          </ul>
+        </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Armored</span>
+            <span class="codex-tag">Wave Spike</span>
+          </div>
+          <p>Appears in heavier wave windows and demands burst plus enough total coverage behind it.</p>
+          <ul class="guide-list">
+            <li>Bomb Towers are strongest when armored enemies bunch together.</li>
+            <li>Backline support still matters because armored units often screen faster threats.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section class="glass content-card">
+      <div class="panel-kicker">Boss Codex</div>
+      <h2>Stage bosses and their signature abilities</h2>
+      <div class="codex-grid">
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Stage 1</span>
+            <span class="codex-tag">Root Grasp</span>
+          </div>
+          <h3>Ancient Treant Skull</h3>
+          <p>Snare-based boss. It punishes overreliance on a single carry tower by temporarily disabling key positions.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Stage 2</span>
+            <span class="codex-tag">Blood Rage</span>
+          </div>
+          <h3>Ruin Warden</h3>
+          <p>Gains a dangerous power surge. Prepare burst damage or a control spell before it hits the middle of the route.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Stage 3</span>
+            <span class="codex-tag">Grave Summons</span>
+          </div>
+          <h3>Grave Necromancer</h3>
+          <p>Spawns fast minions while pressuring the lane itself. Splash plus anti-fast support is mandatory here.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Stage 4</span>
+            <span class="codex-tag">Void Bulwark</span>
+          </div>
+          <h3>Iron Castellan</h3>
+          <p>Protective shield boss. If your burst is badly timed, it can walk through your best damage window almost untouched.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Stage 5</span>
+            <span class="codex-tag">Blood Rage</span>
+          </div>
+          <h3>Catacomb Devourer</h3>
+          <p>An even harsher rage variant. This is where weak scaling and sloppy spell timing start to collapse entire runs.</p>
+        </article>
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Stage 6</span>
+            <span class="codex-tag">Void Bulwark</span>
+          </div>
+          <h3>Dark Portal Overlord</h3>
+          <p>The campaign capstone. Expect huge pressure, shielding, and far less room for inefficient placements.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="glass content-card">
+      <div class="panel-kicker">Tactical Advice</div>
+      <h2>Best habits before you start a serious run</h2>
+      <ul class="guide-list">
+        <li>Build for the path, not just for tower fantasy. Choke points are where splash earns its gold.</li>
+        <li>Never let your entire defense depend on one tower surviving or one spell being off cooldown.</li>
+        <li>Use early-game efficiency to afford cleaner mid-game scaling, not to hoard gold forever.</li>
+        <li>Before every boss wave, ask: do I need more burst, more control, or more anti-fast backup?</li>
+      </ul>
+      <div class="cta-row">
+        <a href="/" class="btn btn-primary">Play Dark Defense</a>
+        <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
+        <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+</body>
+</html>
