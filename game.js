@@ -303,7 +303,7 @@ const STAGES = {
     route:[{c:0,r:6},{c:2,r:6},{c:2,r:2},{c:8,r:2},{c:8,r:7},{c:13,r:7},{c:13,r:3},{c:17,r:3}],
     grassPatches:[{x:78,y:72,w:108,h:48},{x:794,y:434,w:134,h:52},{x:470,y:300,w:116,h:64}],
     ruins:[{x:366,y:258},{x:846,y:154},{x:628,y:456}]},
-  6: { name:"Dark Portal", bossWave:10, difficulty:2.4, bossAbility:"shield",
+  6: { name:"Dark Portal", bossWave:10, difficulty:2.25, bossAbility:"shield",
     route:[{c:0,r:2},{c:5,r:2},{c:5,r:7},{c:8,r:7},{c:8,r:2},{c:13,r:2},{c:13,r:7},{c:17,r:7}],
     grassPatches:[{x:86,y:42,w:120,h:62},{x:752,y:344,w:166,h:84},{x:500,y:458,w:124,h:52}],
     ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]}
@@ -2458,7 +2458,7 @@ function enemyTemplateForSpawn(indexFromEnd){
     return {type:"boss", hpMult:4.0 * STAGES[bossStage].difficulty * scale * getBossHpBonus(bossStage), speed:.05 + bossStage * .003 + (cycle - 1) * .005, reward:140 + (cycle - 1) * 30, bossStage, bossColor: STAGE_BOSS[bossStage].color, bossName: STAGE_BOSS[bossStage].name};
   }
   const boss=isCurrentWaveBoss() && indexFromEnd===1;
-  if(boss) return {type:"boss",hpMult:4.0*stage.difficulty*getBossHpBonus(currentStage),speed:.05+currentStage*.003,reward:110, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
+  if(boss) return {type:"boss",hpMult:4.0*stage.difficulty*getBossHpBonus(currentStage),speed:.05+currentStage*.003,reward:125, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
   if(stageWave % 5 === 0){
     const armoredWindow = enemyCountForWave(stageWave);
     if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * 0.4))){
@@ -2470,7 +2470,7 @@ function enemyTemplateForSpawn(indexFromEnd){
     const isLateStageFast = currentStage >= 5;
     const difficultyWave = getDifficultyWaveNumber();
     const lateStageFastSpeed = currentStage === 6
-      ? Math.min(0.185, 0.118 + difficultyWave * 0.0022)
+      ? Math.min(0.185, 0.10856 + difficultyWave * 0.002024)
       : (.135 + difficultyWave * .0035);
     return {
       type:"fast",
@@ -2837,7 +2837,7 @@ function triggerBossAbility(enemy){
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered rage mode!`,"#fca5a5");
   }
   if(ability==="shield"){
-    const shieldAmount = bossStage === 6 ? .32 : (bossStage === 4 ? .30 : .25);
+    const shieldAmount = bossStage === 6 ? .25 : (bossStage === 4 ? .30 : .25);
     enemy.hp += enemy.maxHp*shieldAmount;
     enemy.shieldFxTimer = 2.8;
     bossFxType = "shield";
