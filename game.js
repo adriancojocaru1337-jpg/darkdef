@@ -1094,6 +1094,48 @@ function prewarmLeaderboardRun(modeHint=currentMode){
   return leaderboardRunPromise;
 }
 
+function getStoredLeaderboardName(){
+  try{
+    return String(localStorage.getItem("sdcPlayerName") || "").trim().slice(0, 20);
+  }catch(_){
+    return "";
+  }
+}
+
+async function finishTrackedRun(modeHint=currentMode, finalWave=currentMode === "campaign" ? currentStage : stageWave){
+  const mode = modeHint || currentMode;
+  if(!leaderboardRun.runId || !leaderboardRun.runToken || leaderboardRun.mode !== mode) {
+    try{
+      await ensureLeaderboardRun(mode);
+    }catch(_){
+      return false;
+    }
+  }
+
+  if(!leaderboardRun.runId || !leaderboardRun.runToken || leaderboardRun.mode !== mode) return false;
+
+  try{
+    const response = await fetch("/.netlify/functions/finish-run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        mode,
+        name: getStoredLeaderboardName(),
+        score: totalScore(),
+        bonusScore: bonusScore,
+        wave: finalWave,
+        kills: kills,
+        runId: leaderboardRun.runId,
+        runToken: leaderboardRun.runToken
+      })
+    });
+    return response.ok;
+  }catch(_){
+    return false;
+  }
+}
+
 async function ensureLeaderboardRun(modeHint=currentMode){
   const mode = modeHint || currentMode;
   const stillValid = leaderboardRun.runId && leaderboardRun.runToken && leaderboardRun.expiresAt > (Date.now() + 5000) && leaderboardRun.mode === mode;
@@ -1143,10 +1185,9 @@ async function loadBonusLeaderboard(){
 
 async function submitStoryLeaderboardScore(finalStage=currentStage){
   if(currentMode !== "campaign") return;
+  await finishTrackedRun("campaign", finalStage);
   let playerName = "";
-  try{
-    playerName = localStorage.getItem("sdcPlayerName") || "";
-  }catch(e){}
+  playerName = getStoredLeaderboardName();
   if(!playerName){
     playerName = await requestLeaderboardName("Story", "Choose the name that will appear for your campaign run.");
   }
@@ -1182,11 +1223,11 @@ async function submitStoryLeaderboardScore(finalStage=currentStage){
 }
 
 async function submitBonusLeaderboardScore(){
-  if(currentMode !== "endless" || bonusScore <= 0) return;
+  if(currentMode !== "endless") return;
+  await finishTrackedRun("endless", stageWave);
+  if(bonusScore <= 0) return;
   let playerName = "";
-  try{
-    playerName = localStorage.getItem("sdcPlayerName") || "";
-  }catch(e){}
+  playerName = getStoredLeaderboardName();
   if(!playerName){
     playerName = await requestLeaderboardName("Endless Bonus", "Choose the name that will appear for your endless run.");
   }
@@ -2150,6 +2191,7 @@ function enterEndlessModeFromUnlock(){
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
   saveProgress();
+  prewarmLeaderboardRun("endless");
   setMessage("Endless Mode begins. Your defenses hold the Dark Portal.");
   isPaused = false;
   updateUI();

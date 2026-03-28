@@ -55,41 +55,114 @@ exports.handler = async function handler(event) {
     }
 
     const isOwner = !!session && String(session.username || "").toLowerCase() === String(user.username || "").toLowerCase();
-    const recentRuns = isOwner
-      ? await sql`
-          select mode, score_total, bonus_score, wave_reached, kills, created_at
-          from leaderboard_scores
-          where user_id = ${user.id}
-          order by created_at desc
-          limit 20
-        `
-      : await sql`
-          select mode, score_total, bonus_score, wave_reached, kills, created_at
-          from leaderboard_scores
-          where lower(player_name) = lower(${user.username})
-          order by created_at desc
-          limit 8
-        `;
+    let recentRuns;
+    let aggregatedStatsRows;
 
-    const aggregatedStatsRows = isOwner
-      ? await sql`
-          select
-            coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
-            coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
-            coalesce(sum(kills), 0)::int as total_kills,
-            coalesce(count(*), 0)::int as total_runs
-          from leaderboard_scores
-          where user_id = ${user.id}
-        `
-      : await sql`
-          select
-            coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
-            coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
-            coalesce(sum(kills), 0)::int as total_kills,
-            coalesce(count(*), 0)::int as total_runs
-          from leaderboard_scores
-          where lower(player_name) = lower(${user.username})
-        `;
+    try {
+      recentRuns = isOwner
+        ? await sql`
+            select
+              mode,
+              score_total,
+              bonus_score,
+              wave_reached,
+              kills,
+              coalesce(submitted_at, updated_at, started_at) as created_at
+            from game_runs
+            where status in ('completed', 'submitted')
+              and (user_id = ${user.id} or lower(player_name) = lower(${user.username}))
+            order by coalesce(submitted_at, updated_at, started_at) desc
+            limit 20
+          `
+        : await sql`
+            select
+              mode,
+              score_total,
+              bonus_score,
+              wave_reached,
+              kills,
+              coalesce(submitted_at, updated_at, started_at) as created_at
+            from game_runs
+            where status in ('completed', 'submitted')
+              and lower(player_name) = lower(${user.username})
+            order by coalesce(submitted_at, updated_at, started_at) desc
+            limit 8
+          `;
+
+      aggregatedStatsRows = isOwner
+        ? await sql`
+            select
+              coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+              coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+              coalesce(sum(kills), 0)::int as total_kills,
+              coalesce(count(*), 0)::int as total_runs
+            from game_runs
+            where status in ('completed', 'submitted')
+              and (user_id = ${user.id} or lower(player_name) = lower(${user.username}))
+          `
+        : await sql`
+            select
+              coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+              coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+              coalesce(sum(kills), 0)::int as total_kills,
+              coalesce(count(*), 0)::int as total_runs
+            from game_runs
+            where status in ('completed', 'submitted')
+              and lower(player_name) = lower(${user.username})
+          `;
+    } catch (_) {
+      recentRuns = isOwner
+        ? await sql`
+            select
+              mode,
+              score_total,
+              bonus_score,
+              wave_reached,
+              kills,
+              coalesce(submitted_at, updated_at, started_at) as created_at
+            from game_runs
+            where status in ('completed', 'submitted')
+              and lower(player_name) = lower(${user.username})
+            order by coalesce(submitted_at, updated_at, started_at) desc
+            limit 20
+          `
+        : await sql`
+            select
+              mode,
+              score_total,
+              bonus_score,
+              wave_reached,
+              kills,
+              coalesce(submitted_at, updated_at, started_at) as created_at
+            from game_runs
+            where lower(player_name) = lower(${user.username})
+              and status in ('completed', 'submitted')
+            order by coalesce(submitted_at, updated_at, started_at) desc
+            limit 8
+          `;
+
+      aggregatedStatsRows = isOwner
+        ? await sql`
+            select
+              coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+              coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+              coalesce(sum(kills), 0)::int as total_kills,
+              coalesce(count(*), 0)::int as total_runs
+            from game_runs
+            where status in ('completed', 'submitted')
+              and lower(player_name) = lower(${user.username})
+          `
+        : await sql`
+            select
+              coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+              coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+              coalesce(sum(kills), 0)::int as total_kills,
+              coalesce(count(*), 0)::int as total_runs
+            from game_runs
+            where lower(player_name) = lower(${user.username})
+              and status in ('completed', 'submitted')
+          `;
+    }
 
     const aggregatedStats = aggregatedStatsRows[0] || {};
     const bestEndlessScore = Math.max(

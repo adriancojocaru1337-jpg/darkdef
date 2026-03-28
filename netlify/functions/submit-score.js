@@ -1,7 +1,7 @@
 
 const { neon } = require("@netlify/neon");
 const crypto = require("crypto");
-const { getSessionUser } = require("./auth-utils");
+const { getSessionUser, syncUserProfileStats } = require("./auth-utils");
 
 const sql = neon();
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
@@ -247,7 +247,7 @@ exports.handler = async function handler(event) {
     const expiresAtMs = new Date(run.token_expires_at).getTime();
     const expectedToken = signRunToken(run.run_id, expiresAtMs);
 
-    if (run.status !== "active") {
+    if (!["active", "completed"].includes(run.status)) {
       return reject({ statusCode: 409, error: "Run already used", ipHash, playerName, runId, payload, suspicious: true, runDbId });
     }
 
@@ -298,7 +298,7 @@ exports.handler = async function handler(event) {
         update game_runs
         set status = 'submitted', submitted_at = now(), player_name = ${playerName}, score_total = ${scoreTotal}, bonus_score = ${bonus}, wave_reached = ${waveReached}, kills = ${killsCount}, updated_at = now()
         where id = ${runDbId}
-          and status = 'active'
+          and status in ('active', 'completed')
       `;
 
       await sql`
@@ -309,25 +309,7 @@ exports.handler = async function handler(event) {
       `;
 
       if (sessionUser?.user_id) {
-        const nextBestStoryStage = run.mode === "campaign" ? waveReached : 1;
-        await sql`
-          insert into user_profiles (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
-          values (
-            ${sessionUser.user_id},
-            ${run.mode === "endless" ? bonus : 0},
-            ${nextBestStoryStage},
-            ${killsCount},
-            1,
-            now()
-          )
-          on conflict (user_id)
-          do update set
-            best_endless_score = greatest(user_profiles.best_endless_score, ${run.mode === "endless" ? bonus : 0}),
-            best_story_stage = greatest(user_profiles.best_story_stage, ${nextBestStoryStage}),
-            total_kills = user_profiles.total_kills + ${killsCount},
-            total_runs = user_profiles.total_runs + 1,
-            updated_at = now()
-        `;
+        await syncUserProfileStats(sessionUser.user_id).catch(() => null);
       }
 
       await logSubmissionAttempt({

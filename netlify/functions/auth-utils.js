@@ -191,6 +191,83 @@ async function deleteSession(event) {
   await sql`delete from user_sessions where token_hash = ${tokenHash}`;
 }
 
+async function syncUserProfileStats(userId) {
+  if (!userId) return null;
+
+  let statsRows;
+  try {
+    statsRows = await sql`
+      select
+        coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+        coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+        coalesce(sum(kills), 0)::int as total_kills,
+        coalesce(count(*), 0)::int as total_runs
+      from game_runs
+      where user_id = ${userId}
+        and status in ('completed', 'submitted')
+    `;
+  } catch (_) {
+    const userRows = await sql`
+      select username
+      from users
+      where id = ${userId}
+      limit 1
+    `;
+    const username = String(userRows?.[0]?.username || "").trim();
+
+    if (username) {
+      statsRows = await sql`
+        select
+          coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+          coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+          coalesce(sum(kills), 0)::int as total_kills,
+          coalesce(count(*), 0)::int as total_runs
+        from game_runs
+        where status in ('completed', 'submitted')
+          and lower(player_name) = lower(${username})
+      `;
+    } else {
+      statsRows = await sql`
+        select
+          coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+          coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+          coalesce(sum(kills), 0)::int as total_kills,
+          coalesce(count(*), 0)::int as total_runs
+        from leaderboard_scores
+        where user_id = ${userId}
+      `;
+    }
+  }
+
+  const stats = statsRows[0] || {
+    best_endless_score: 0,
+    best_story_stage: 1,
+    total_kills: 0,
+    total_runs: 0
+  };
+
+  await sql`
+    insert into user_profiles (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
+    values (
+      ${userId},
+      ${Number(stats.best_endless_score || 0)},
+      ${Math.max(1, Number(stats.best_story_stage || 1))},
+      ${Number(stats.total_kills || 0)},
+      ${Number(stats.total_runs || 0)},
+      now()
+    )
+    on conflict (user_id)
+    do update set
+      best_endless_score = excluded.best_endless_score,
+      best_story_stage = excluded.best_story_stage,
+      total_kills = excluded.total_kills,
+      total_runs = excluded.total_runs,
+      updated_at = now()
+  `;
+
+  return stats;
+}
+
 module.exports = {
   sql,
   json,
@@ -205,6 +282,7 @@ module.exports = {
   createSession,
   getSessionUser,
   deleteSession,
+  syncUserProfileStats,
   clearSessionCookie,
   COOKIE_NAME,
   sha256,

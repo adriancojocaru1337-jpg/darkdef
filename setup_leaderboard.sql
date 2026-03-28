@@ -22,6 +22,7 @@ create table if not exists game_runs (
   id bigserial primary key,
   run_id text not null unique,
   mode text not null default 'endless',
+  user_id bigint,
   token_signature text not null,
   token_expires_at timestamptz not null,
   ip_hash text not null,
@@ -41,6 +42,9 @@ create table if not exists game_runs (
 
 create index if not exists game_runs_active_idx
   on game_runs (status, token_expires_at desc);
+
+create index if not exists game_runs_user_idx
+  on game_runs (user_id, updated_at desc);
 
 create table if not exists score_submissions (
   id bigserial primary key,

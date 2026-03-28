@@ -36,8 +36,14 @@ create index if not exists user_sessions_exp_idx on user_sessions (expires_at de
 alter table leaderboard_scores
   add column if not exists user_id bigint references users(id) on delete set null;
 
+alter table game_runs
+  add column if not exists user_id bigint references users(id) on delete set null;
+
 alter table user_profiles
   add column if not exists crest_id text;
 
 create index if not exists leaderboard_scores_user_idx
   on leaderboard_scores (user_id, created_at desc);
+
+create index if not exists game_runs_user_idx
+  on game_runs (user_id, updated_at desc);
