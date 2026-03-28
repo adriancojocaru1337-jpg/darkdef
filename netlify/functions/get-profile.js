@@ -71,6 +71,44 @@ exports.handler = async function handler(event) {
           limit 8
         `;
 
+    const aggregatedStatsRows = isOwner
+      ? await sql`
+          select
+            coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+            coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+            coalesce(sum(kills), 0)::int as total_kills,
+            coalesce(count(*), 0)::int as total_runs
+          from leaderboard_scores
+          where user_id = ${user.id}
+        `
+      : await sql`
+          select
+            coalesce(max(case when mode = 'endless' then bonus_score end), 0)::int as best_endless_score,
+            coalesce(max(case when mode = 'campaign' then wave_reached end), 1)::int as best_story_stage,
+            coalesce(sum(kills), 0)::int as total_kills,
+            coalesce(count(*), 0)::int as total_runs
+          from leaderboard_scores
+          where lower(player_name) = lower(${user.username})
+        `;
+
+    const aggregatedStats = aggregatedStatsRows[0] || {};
+    const bestEndlessScore = Math.max(
+      Number(user.best_endless_score || 0),
+      Number(aggregatedStats.best_endless_score || 0)
+    );
+    const bestStoryStage = Math.max(
+      Number(user.best_story_stage || 1),
+      Number(aggregatedStats.best_story_stage || 1)
+    );
+    const totalKills = Math.max(
+      Number(user.total_kills || 0),
+      Number(aggregatedStats.total_kills || 0)
+    );
+    const totalRuns = Math.max(
+      Number(user.total_runs || 0),
+      Number(aggregatedStats.total_runs || 0)
+    );
+
     return json(200, {
       profile: {
         username: user.username,
@@ -79,10 +117,10 @@ exports.handler = async function handler(event) {
         isOwner,
         crestId: user.crest_id || null,
         stats: {
-          bestEndlessScore: user.best_endless_score || 0,
-          bestStoryStage: user.best_story_stage || 1,
-          totalKills: user.total_kills || 0,
-          totalRuns: user.total_runs || 0
+          bestEndlessScore,
+          bestStoryStage,
+          totalKills,
+          totalRuns
         },
         recentRuns: recentRuns || []
       }

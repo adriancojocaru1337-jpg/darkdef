@@ -35,6 +35,11 @@
     .profile-run-main span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
     .profile-run-date{color:#cbd5e1;font-size:13px;text-align:right}
     .profile-run-empty{padding:16px;border-radius:18px;background:rgba(8,17,31,.72);border:1px solid rgba(148,163,184,.10);color:var(--muted)}
+    .profile-loading{display:grid;gap:14px}
+    .profile-skeleton{border-radius:22px;background:linear-gradient(90deg, rgba(15,23,42,.95), rgba(30,41,59,.88), rgba(15,23,42,.95));background-size:200% 100%;animation:profileSkeleton 1.2s linear infinite}
+    .profile-skeleton.hero{height:360px}
+    .profile-skeleton.side{height:320px}
+    @keyframes profileSkeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
     .profile-side{background:linear-gradient(180deg, rgba(14,25,43,.95), rgba(8,17,31,.97))}
     .profile-side h2{margin:0 0 14px;font-size:28px}
     .profile-info-list{display:grid;gap:12px}
@@ -54,6 +59,14 @@
 </head>
 <body>
   <main class="profile-shell">
+    <section id="profileLoading" class="profile-grid">
+      <article class="glass profile-loading">
+        <div class="profile-skeleton hero"></div>
+      </article>
+      <aside class="glass profile-loading">
+        <div class="profile-skeleton side"></div>
+      </aside>
+    </section>
     <section id="profileContent" class="profile-grid hidden">
       <article class="glass profile-hero">
         <div class="profile-title-row">
@@ -151,6 +164,7 @@
 
     const profileContent = document.getElementById('profileContent');
     const profileEmpty = document.getElementById('profileEmpty');
+    const profileLoading = document.getElementById('profileLoading');
     const profileKicker = document.getElementById('profileKicker');
     const profileCrest = document.getElementById('profileCrest');
     const profileUsername = document.getElementById('profileUsername');
@@ -194,6 +208,7 @@
     }
 
     function showEmptyState(title, copy, kicker = 'Profile') {
+      profileLoading.classList.add('hidden');
       profileContent.classList.add('hidden');
       profileEmpty.classList.remove('hidden');
       profileEmptyKicker.textContent = kicker;
@@ -227,6 +242,7 @@
 
     function showProfile(profile) {
       const isOwner = !!profile.isOwner;
+      profileLoading.classList.add('hidden');
       profileEmpty.classList.add('hidden');
       profileContent.classList.remove('hidden');
       profileKicker.textContent = isOwner ? 'Your Profile' : 'Public Profile';

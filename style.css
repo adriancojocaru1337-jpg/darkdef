@@ -3015,6 +3015,7 @@ kbd{
   padding:14px 16px;
   border-bottom:1px solid rgba(148,163,184,.08);
   min-height:72px;
+  transition:transform .14s ease, border-color .14s ease, box-shadow .14s ease;
 }
 .leaderboard-table-row:last-child{ border-bottom:none; }
 .wow-row{
@@ -3022,6 +3023,22 @@ kbd{
 }
 .wow-row:nth-child(odd){
   background:linear-gradient(180deg, rgba(14,25,43,.82), rgba(8,17,31,.9));
+}
+.wow-row:hover{
+  transform:translateY(-1px);
+  border-color:rgba(125,211,252,.16);
+  box-shadow:0 12px 28px rgba(2,6,23,.22);
+}
+.leaderboard-skeleton-row{
+  pointer-events:none;
+  background:linear-gradient(180deg, rgba(10,18,34,.72), rgba(8,17,31,.86));
+}
+.leaderboard-skeleton-row > div{
+  min-height:18px;
+  border-radius:999px;
+  background:linear-gradient(90deg, rgba(15,23,42,.95), rgba(30,41,59,.88), rgba(15,23,42,.95));
+  background-size:200% 100%;
+  animation:leaderboardSkeleton 1.2s linear infinite;
 }
 .leaderboard-player-cell{ min-width:0; display:grid; gap:4px; }
 .leaderboard-player-cell strong{
@@ -3199,6 +3216,11 @@ kbd{
   border:1px solid rgba(148,163,184,.14);
   box-shadow:0 14px 34px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.03);
   overflow:hidden;
+  transition:transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.leaderboard-podium-card:hover{
+  transform:translateY(-2px);
+  box-shadow:0 18px 38px rgba(0,0,0,.30), inset 0 0 0 1px rgba(255,255,255,.04);
 }
 .leaderboard-podium-card::after{
   content:"";
@@ -3228,6 +3250,17 @@ kbd{
   align-items:center;
   justify-content:center;
   color:var(--muted);
+}
+.leaderboard-skeleton-card{
+  pointer-events:none;
+  min-height:150px;
+  background:linear-gradient(90deg, rgba(15,23,42,.95), rgba(30,41,59,.88), rgba(15,23,42,.95));
+  background-size:200% 100%;
+  animation:leaderboardSkeleton 1.2s linear infinite;
+}
+@keyframes leaderboardSkeleton{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
 }
 .wow-row:nth-child(1){
   background:linear-gradient(180deg, rgba(69,54,15,.30), rgba(8,17,31,.92));
