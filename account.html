@@ -60,6 +60,11 @@
     .crest-picker-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
     .crest-picker-head strong{font-size:18px}
     .crest-picker-copy{margin:0;color:var(--muted);font-size:14px;line-height:1.6}
+    .crest-current{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:14px;padding:14px 16px;border-radius:18px;background:rgba(8,17,31,.72);border:1px solid rgba(148,163,184,.10)}
+    .crest-current.hidden{display:none!important}
+    .crest-current-main{display:flex;align-items:center;gap:14px}
+    .crest-current-text strong{display:block;font-size:16px}
+    .crest-current-text span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
     .crest-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
     .crest-option{display:grid;justify-items:center;gap:8px;padding:14px 10px;border-radius:18px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.72);color:#f8fafc;cursor:pointer;transition:border-color .14s ease, transform .14s ease, box-shadow .14s ease}
     .crest-option span{font-size:12px;color:var(--muted);text-align:center}
@@ -188,6 +193,16 @@
               <div class="session-crest" id="sessionCrestPreview"></div>
             </div>
             <p class="crest-picker-copy">Your selected crest will appear in the global header, profile page, and leaderboard entries linked to your account.</p>
+            <div class="crest-current hidden" id="crestCurrent">
+              <div class="crest-current-main">
+                <div class="session-crest" id="crestCurrentPreview"></div>
+                <div class="crest-current-text">
+                  <strong id="crestCurrentName">Current emblem</strong>
+                  <span>Visible across your account presence.</span>
+                </div>
+              </div>
+              <button class="btn btn-secondary" id="changeCrestBtn" type="button">Change emblem</button>
+            </div>
             <div class="crest-grid" id="crestGrid"></div>
             <div class="crest-save-row">
               <button class="btn btn-secondary" id="saveCrestBtn" type="button">Save crest</button>
@@ -224,12 +239,17 @@
     const totalRunsStat = document.getElementById('totalRunsStat');
     const crestGrid = document.getElementById('crestGrid');
     const saveCrestBtn = document.getElementById('saveCrestBtn');
+    const crestCurrent = document.getElementById('crestCurrent');
+    const crestCurrentPreview = document.getElementById('crestCurrentPreview');
+    const crestCurrentName = document.getElementById('crestCurrentName');
+    const changeCrestBtn = document.getElementById('changeCrestBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const forgotPasswordToggle = document.getElementById('forgotPasswordToggle');
     const forgotPasswordBox = document.getElementById('forgotPasswordBox');
     const forgotPasswordForm = document.getElementById('forgotPasswordForm');
     let currentSessionUser = null;
     let selectedCrestId = '';
+    let isChangingCrest = false;
 
     function setTab(next) {
       tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === next));
@@ -265,8 +285,17 @@
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
+    function getCrestLabel(crestId) {
+      return window.DarkDefenseCrest?.presets?.[crestId]?.label || 'Generated Crest';
+    }
+
     function renderCrestPicker(username, crestId) {
       if (!crestGrid || !window.DarkDefenseCrest) return;
+      const hasSavedCrest = !!crestId;
+      const showGrid = !hasSavedCrest || isChangingCrest;
+      crestGrid.classList.toggle('hidden', !showGrid);
+      saveCrestBtn?.classList.toggle('hidden', !showGrid);
+      crestCurrent?.classList.toggle('hidden', !hasSavedCrest || isChangingCrest);
       crestGrid.innerHTML = window.DarkDefenseCrest.presetList.map((preset) => `
         <button class="crest-option${preset.id === crestId ? ' active' : ''}" type="button" data-crest-id="${preset.id}">
           ${window.DarkDefenseCrest.markup(username, 'dd-crest-lg', preset.id)}
@@ -275,6 +304,12 @@
       `).join('');
       if (sessionCrestPreview) {
         sessionCrestPreview.innerHTML = window.DarkDefenseCrest.markup(username, 'dd-crest-lg', crestId || null);
+      }
+      if (crestCurrentPreview) {
+        crestCurrentPreview.innerHTML = window.DarkDefenseCrest.markup(username, 'dd-crest-lg', crestId || null);
+      }
+      if (crestCurrentName) {
+        crestCurrentName.textContent = getCrestLabel(crestId);
       }
       selectedCrestId = crestId || '';
     }
@@ -303,6 +338,7 @@
         bestStoryStat.textContent = formatNumber(data.user.stats?.bestStoryStage || 1);
         totalKillsStat.textContent = formatNumber(data.user.stats?.totalKills || 0);
         totalRunsStat.textContent = formatNumber(data.user.stats?.totalRuns || 0);
+        isChangingCrest = !(data.user.crestId || '');
         renderCrestPicker(data.user.username, data.user.crestId || '');
       } catch (_) {
         sessionCard.classList.add('hidden');
@@ -404,7 +440,14 @@
       const button = event.target.closest('[data-crest-id]');
       if (!button || !currentSessionUser) return;
       selectedCrestId = button.dataset.crestId || '';
+      isChangingCrest = true;
       renderCrestPicker(currentSessionUser.username, selectedCrestId);
+    });
+
+    changeCrestBtn?.addEventListener('click', () => {
+      if (!currentSessionUser) return;
+      isChangingCrest = true;
+      renderCrestPicker(currentSessionUser.username, selectedCrestId || currentSessionUser.crestId || '');
     });
 
     saveCrestBtn?.addEventListener('click', async () => {
@@ -425,10 +468,12 @@
           return;
         }
         currentSessionUser.crestId = data.crestId;
+        isChangingCrest = false;
         if (sessionCrest) sessionCrest.innerHTML = window.DarkDefenseCrest?.markup(currentSessionUser.username, 'dd-crest-lg', data.crestId) || '';
         if (sessionCrestPreview) sessionCrestPreview.innerHTML = window.DarkDefenseCrest?.markup(currentSessionUser.username, 'dd-crest-lg', data.crestId) || '';
+        renderCrestPicker(currentSessionUser.username, data.crestId);
         showStatus('Player crest updated successfully.', 'success');
-        setTimeout(() => window.location.reload(), 500);
+        saveCrestBtn.disabled = false;
       } catch (_) {
         showStatus('Network error while saving crest.');
         saveCrestBtn.disabled = false;
