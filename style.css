@@ -121,9 +121,26 @@ body::after {
   letter-spacing:.08em;
   text-transform:uppercase;
   flex:0 0 auto;
+  overflow:hidden;
 }
 .dd-crest span{
   transform:translateY(-1px);
+}
+.dd-crest-image-wrap{
+  clip-path:none;
+  border-radius:16px;
+  padding:0;
+  background:rgba(8,17,31,.22);
+  border-color:rgba(255,255,255,.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 10px 24px rgba(0,0,0,.22);
+}
+.dd-crest-image{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:contain;
 }
 .dd-crest-sm{
   width:34px;

@@ -1,13 +1,13 @@
 (function () {
   const PRESETS = {
-    "ember-shield": { label: "Ember Shield", symbol: "E", hue: 18, hueAlt: 42 },
-    "moon-sigil": { label: "Moon Sigil", symbol: "M", hue: 226, hueAlt: 264 },
-    "forest-warden": { label: "Forest Warden", symbol: "F", hue: 124, hueAlt: 156 },
-    "storm-mark": { label: "Storm Mark", symbol: "S", hue: 198, hueAlt: 228 },
-    "royal-flare": { label: "Royal Flare", symbol: "R", hue: 332, hueAlt: 18 },
-    "void-bloom": { label: "Void Bloom", symbol: "V", hue: 280, hueAlt: 318 },
-    "iron-oath": { label: "Iron Oath", symbol: "I", hue: 206, hueAlt: 30 },
-    "sunforged": { label: "Sunforged", symbol: "U", hue: 42, hueAlt: 66 }
+    "ember-shield": { label: "Ember Shield", symbol: "E", hue: 18, hueAlt: 42, assetPath: "/assets/crests/ember-shield.webp" },
+    "moon-sigil": { label: "Moon Sigil", symbol: "M", hue: 226, hueAlt: 264, assetPath: "/assets/crests/moon-sigil.webp" },
+    "forest-warden": { label: "Forest Warden", symbol: "F", hue: 124, hueAlt: 156, assetPath: "/assets/crests/forest-warden.webp" },
+    "storm-mark": { label: "Storm Mark", symbol: "S", hue: 198, hueAlt: 228, assetPath: "/assets/crests/storm-mark.webp" },
+    "royal-flare": { label: "Royal Flare", symbol: "R", hue: 332, hueAlt: 18, assetPath: "/assets/crests/royal-flare.webp" },
+    "void-bloom": { label: "Void Bloom", symbol: "V", hue: 280, hueAlt: 318, assetPath: "/assets/crests/void-bloom.webp" },
+    "iron-oath": { label: "Iron Oath", symbol: "I", hue: 206, hueAlt: 30, assetPath: "/assets/crests/iron-oath.webp" },
+    "sunforged": { label: "Sunforged", symbol: "U", hue: 42, hueAlt: 66, assetPath: "/assets/crests/sunforged.webp" }
   };
 
   function hashName(value) {
@@ -32,7 +32,7 @@
     const preset = PRESETS[presetId] || null;
     if (preset) {
       const style = `--crest-hue:${preset.hue};--crest-hue-alt:${preset.hueAlt};`;
-      return { initials: preset.symbol, style, label: safeValue, presetId, presetLabel: preset.label };
+      return { initials: preset.symbol, style, label: safeValue, presetId, presetLabel: preset.label, assetPath: preset.assetPath || null };
     }
 
     const hash = hashName(safeValue);
@@ -40,7 +40,7 @@
     const hueAlt = (hue + 42) % 360;
     const initials = getInitials(safeValue);
     const style = `--crest-hue:${hue};--crest-hue-alt:${hueAlt};`;
-    return { initials, style, label: safeValue, presetId: null, presetLabel: "Generated Crest" };
+    return { initials, style, label: safeValue, presetId: null, presetLabel: "Generated Crest", assetPath: null };
   }
 
   function escapeHtml(value) {
@@ -50,6 +50,9 @@
   function markup(value, className = "", presetId = null) {
     const crest = build(value, presetId);
     const extraClass = className ? ` ${className}` : "";
+    if (crest.assetPath) {
+      return `<span class="dd-crest${extraClass} dd-crest-image-wrap" style="${crest.style}" aria-hidden="true"><img class="dd-crest-image" src="${escapeHtml(crest.assetPath)}" alt="" loading="lazy" decoding="async" /></span>`;
+    }
     return `<span class="dd-crest${extraClass}" style="${crest.style}" aria-hidden="true"><span>${escapeHtml(crest.initials)}</span></span>`;
   }
 
