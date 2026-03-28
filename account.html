@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <script src="/crest.js"></script>
+  <script src="/account-bar.js" defer></script>
   <style>
     .account-shell{max-width:1180px;margin:0 auto;padding:24px;}
     .account-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:stretch}
@@ -50,8 +52,20 @@
     .auth-status.success{border-color:rgba(34,197,94,.24);color:#dcfce7;background:rgba(8,48,28,.45)}
     .session-card{margin-top:18px;padding:18px;border-radius:22px;background:linear-gradient(180deg, rgba(17,35,61,.90), rgba(8,17,31,.92));border:1px solid rgba(56,189,248,.16)}
     .session-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
+    .session-identity{display:flex;align-items:center;gap:14px}
+    .session-crest{display:flex;align-items:center;justify-content:center;flex:0 0 auto}
     .session-head h3{margin:0;font-size:24px}
     .session-meta{color:var(--muted);font-size:14px;line-height:1.6}
+    .crest-picker{margin-top:18px;padding:16px;border-radius:20px;background:rgba(8,17,31,.58);border:1px solid rgba(148,163,184,.10)}
+    .crest-picker-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+    .crest-picker-head strong{font-size:18px}
+    .crest-picker-copy{margin:0;color:var(--muted);font-size:14px;line-height:1.6}
+    .crest-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
+    .crest-option{display:grid;justify-items:center;gap:8px;padding:14px 10px;border-radius:18px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.72);color:#f8fafc;cursor:pointer;transition:border-color .14s ease, transform .14s ease, box-shadow .14s ease}
+    .crest-option span{font-size:12px;color:var(--muted);text-align:center}
+    .crest-option.active{border-color:rgba(125,211,252,.42);box-shadow:0 0 0 3px rgba(56,189,248,.10);transform:translateY(-1px)}
+    .crest-save-row{display:flex;justify-content:flex-end;margin-top:14px}
+    @media (max-width:640px){.crest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
     .session-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
     .session-stat{padding:14px;border-radius:18px;background:rgba(8,17,31,.7);border:1px solid rgba(148,163,184,.1)}
     .session-stat span{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
@@ -149,9 +163,12 @@
 
         <section id="sessionCard" class="session-card hidden">
           <div class="session-head">
-            <div>
-              <div class="panel-kicker">Signed in</div>
-              <h3 id="sessionUsername">Player</h3>
+            <div class="session-identity">
+              <div class="session-crest" id="sessionCrest"></div>
+              <div>
+                <div class="panel-kicker">Signed in</div>
+                <h3 id="sessionUsername">Player</h3>
+              </div>
             </div>
             <button class="btn btn-secondary" id="logoutBtn" type="button">Logout</button>
           </div>
@@ -161,6 +178,20 @@
             <div class="session-stat"><span>Best Story Stage</span><strong id="bestStoryStat">1</strong></div>
             <div class="session-stat"><span>Total Kills</span><strong id="totalKillsStat">0</strong></div>
             <div class="session-stat"><span>Total Runs</span><strong id="totalRunsStat">0</strong></div>
+          </div>
+          <div class="crest-picker">
+            <div class="crest-picker-head">
+              <div>
+                <div class="panel-kicker">Crest</div>
+                <strong>Choose your player emblem</strong>
+              </div>
+              <div class="session-crest" id="sessionCrestPreview"></div>
+            </div>
+            <p class="crest-picker-copy">Your selected crest will appear in the global header, profile page, and leaderboard entries linked to your account.</p>
+            <div class="crest-grid" id="crestGrid"></div>
+            <div class="crest-save-row">
+              <button class="btn btn-secondary" id="saveCrestBtn" type="button">Save crest</button>
+            </div>
           </div>
           <div class="session-actions">
             <a href="/profile.html" class="btn btn-secondary">View profile</a>
@@ -183,16 +214,22 @@
     const registerForm = document.getElementById('registerForm');
     const loginForm = document.getElementById('loginForm');
     const sessionCard = document.getElementById('sessionCard');
+    const sessionCrest = document.getElementById('sessionCrest');
+    const sessionCrestPreview = document.getElementById('sessionCrestPreview');
     const sessionUsername = document.getElementById('sessionUsername');
     const sessionMeta = document.getElementById('sessionMeta');
     const bestEndlessStat = document.getElementById('bestEndlessStat');
     const bestStoryStat = document.getElementById('bestStoryStat');
     const totalKillsStat = document.getElementById('totalKillsStat');
     const totalRunsStat = document.getElementById('totalRunsStat');
+    const crestGrid = document.getElementById('crestGrid');
+    const saveCrestBtn = document.getElementById('saveCrestBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const forgotPasswordToggle = document.getElementById('forgotPasswordToggle');
     const forgotPasswordBox = document.getElementById('forgotPasswordBox');
     const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    let currentSessionUser = null;
+    let selectedCrestId = '';
 
     function setTab(next) {
       tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === next));
@@ -228,6 +265,20 @@
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
+    function renderCrestPicker(username, crestId) {
+      if (!crestGrid || !window.DarkDefenseCrest) return;
+      crestGrid.innerHTML = window.DarkDefenseCrest.presetList.map((preset) => `
+        <button class="crest-option${preset.id === crestId ? ' active' : ''}" type="button" data-crest-id="${preset.id}">
+          ${window.DarkDefenseCrest.markup(username, 'dd-crest-lg', preset.id)}
+          <span>${preset.label}</span>
+        </button>
+      `).join('');
+      if (sessionCrestPreview) {
+        sessionCrestPreview.innerHTML = window.DarkDefenseCrest.markup(username, 'dd-crest-lg', crestId || null);
+      }
+      selectedCrestId = crestId || '';
+    }
+
     async function loadSession() {
       try {
         const response = await fetch('/.netlify/functions/me', { credentials: 'include', cache: 'no-store' });
@@ -244,12 +295,15 @@
         }
         toggleAuthForms(false);
         sessionCard.classList.remove('hidden');
+        currentSessionUser = data.user;
+        if (sessionCrest) sessionCrest.innerHTML = window.DarkDefenseCrest?.markup(data.user.username, 'dd-crest-lg', data.user.crestId || null) || '';
         sessionUsername.textContent = data.user.username;
         sessionMeta.textContent = `${data.user.email} · account created ${formatDate(data.user.createdAt)}`;
         bestEndlessStat.textContent = formatNumber(data.user.stats?.bestEndlessScore || 0);
         bestStoryStat.textContent = formatNumber(data.user.stats?.bestStoryStage || 1);
         totalKillsStat.textContent = formatNumber(data.user.stats?.totalKills || 0);
         totalRunsStat.textContent = formatNumber(data.user.stats?.totalRuns || 0);
+        renderCrestPicker(data.user.username, data.user.crestId || '');
       } catch (_) {
         sessionCard.classList.add('hidden');
         toggleAuthForms(true);
@@ -343,6 +397,41 @@
         showStatus(data.message || 'If an account exists for that email, a reset link has been sent.', 'success');
       } catch (_) {
         showStatus('Network error while requesting password reset.');
+      }
+    });
+
+    crestGrid?.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-crest-id]');
+      if (!button || !currentSessionUser) return;
+      selectedCrestId = button.dataset.crestId || '';
+      renderCrestPicker(currentSessionUser.username, selectedCrestId);
+    });
+
+    saveCrestBtn?.addEventListener('click', async () => {
+      if (!currentSessionUser || !selectedCrestId) return;
+      clearStatus();
+      saveCrestBtn.disabled = true;
+      try {
+        const response = await fetch('/.netlify/functions/update-profile', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ crestId: selectedCrestId })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to save crest.');
+          saveCrestBtn.disabled = false;
+          return;
+        }
+        currentSessionUser.crestId = data.crestId;
+        if (sessionCrest) sessionCrest.innerHTML = window.DarkDefenseCrest?.markup(currentSessionUser.username, 'dd-crest-lg', data.crestId) || '';
+        if (sessionCrestPreview) sessionCrestPreview.innerHTML = window.DarkDefenseCrest?.markup(currentSessionUser.username, 'dd-crest-lg', data.crestId) || '';
+        showStatus('Player crest updated successfully.', 'success');
+        setTimeout(() => window.location.reload(), 500);
+      } catch (_) {
+        showStatus('Network error while saving crest.');
+        saveCrestBtn.disabled = false;
       }
     });
 

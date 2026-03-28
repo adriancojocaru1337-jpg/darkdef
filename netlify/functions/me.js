@@ -18,6 +18,7 @@ exports.handler = async function handler(event) {
         username: session.username,
         email: session.email,
         createdAt: session.created_at,
+        crestId: session.crest_id || null,
         stats: {
           bestEndlessScore: session.best_endless_score || 0,
           bestStoryStage: session.best_story_stage || 1,

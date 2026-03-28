@@ -13,6 +13,7 @@ create table if not exists user_profiles (
   best_story_stage integer not null default 1,
   total_kills integer not null default 0,
   total_runs integer not null default 0,
+  crest_id text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -34,6 +35,9 @@ create index if not exists user_sessions_exp_idx on user_sessions (expires_at de
 
 alter table leaderboard_scores
   add column if not exists user_id bigint references users(id) on delete set null;
+
+alter table user_profiles
+  add column if not exists crest_id text;
 
 create index if not exists leaderboard_scores_user_idx
   on leaderboard_scores (user_id, created_at desc);

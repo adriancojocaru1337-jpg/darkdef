@@ -11,6 +11,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
+  <script src="/crest.js"></script>
+  <script src="/account-bar.js" defer></script>
 </head>
 <body>
   <main class="page-content leaderboard-page">
@@ -145,8 +147,11 @@
     function buildProfileLink(row) {
       const profileUsername = String(row?.profile_username || "").trim();
       const label = escapeHtml(row?.player_name || "Anonymous");
-      if (!profileUsername) return `<strong>${label}</strong>`;
-      return `<a href="/profile.html?user=${encodeURIComponent(profileUsername)}"><strong>${label}</strong></a>`;
+      const crest = window.DarkDefenseCrest?.markup(row?.player_name || "Anonymous", "dd-crest-sm", row?.profile_crest_id || null) || "";
+      if (!profileUsername) {
+        return `<span class="leaderboard-player-link">${crest}<strong>${label}</strong></span>`;
+      }
+      return `<a class="leaderboard-player-link" href="/profile.html?user=${encodeURIComponent(profileUsername)}">${crest}<strong>${label}</strong></a>`;
     }
 
     function getRankMeta(index) {
@@ -171,7 +176,7 @@
         return `
           <div class="leaderboard-podium-card ${rank.medal} ${type}">
             <div class="leaderboard-podium-rank">${rank.crown} ${rank.label}</div>
-            ${name}
+            <div class="leaderboard-podium-player">${name}</div>
             <span>${primary}</span>
             <small>${secondary}</small>
           </div>

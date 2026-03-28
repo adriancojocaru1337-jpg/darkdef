@@ -1,6 +1,7 @@
 
 const { neon } = require("@netlify/neon");
 const crypto = require("crypto");
+const { getSessionUser } = require("./auth-utils");
 
 const sql = neon();
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
@@ -154,8 +155,10 @@ exports.handler = async function handler(event) {
   let playerName = "";
   let runId = null;
   let payload = {};
+  let sessionUser = null;
 
   try {
+    sessionUser = await getSessionUser(event).catch(() => null);
     const rawBody = String(event.body || "");
     if (!rawBody || rawBody.length > 1600) {
       return json(400, { error: "Invalid payload size" });
@@ -300,10 +303,32 @@ exports.handler = async function handler(event) {
 
       await sql`
         insert into leaderboard_scores
-        (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash)
+        (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash, user_id)
         values
-        (${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount}, ${run.mode}, ${runId}, ${ipHash})
+        (${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount}, ${run.mode}, ${runId}, ${ipHash}, ${sessionUser?.user_id || null})
       `;
+
+      if (sessionUser?.user_id) {
+        const nextBestStoryStage = run.mode === "campaign" ? waveReached : 1;
+        await sql`
+          insert into user_profiles (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
+          values (
+            ${sessionUser.user_id},
+            ${run.mode === "endless" ? bonus : 0},
+            ${nextBestStoryStage},
+            ${killsCount},
+            1,
+            now()
+          )
+          on conflict (user_id)
+          do update set
+            best_endless_score = greatest(user_profiles.best_endless_score, ${run.mode === "endless" ? bonus : 0}),
+            best_story_stage = greatest(user_profiles.best_story_stage, ${nextBestStoryStage}),
+            total_kills = user_profiles.total_kills + ${killsCount},
+            total_runs = user_profiles.total_runs + 1,
+            updated_at = now()
+        `;
+      }
 
       await logSubmissionAttempt({
         ipHash,

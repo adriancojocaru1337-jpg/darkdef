@@ -7,12 +7,16 @@
   <meta name="description" content="View Dark Defense player profiles, long-term battle stats, and recent recorded runs." />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="stylesheet" href="style.css" />
+  <script src="/crest.js"></script>
+  <script src="/account-bar.js" defer></script>
   <style>
     .profile-shell{max-width:1180px;margin:0 auto;padding:24px}
     .profile-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;align-items:start}
     .profile-hero,.profile-side,.profile-empty{border-radius:30px;padding:28px}
     .profile-hero{background:radial-gradient(circle at top right, rgba(56,189,248,.12), transparent 28%),radial-gradient(circle at left center, rgba(250,204,21,.10), transparent 25%),linear-gradient(180deg, rgba(12,22,40,.95), rgba(8,17,31,.97))}
     .profile-title-row{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap}
+    .profile-title-main{display:flex;align-items:flex-start;gap:18px}
+    .profile-title-text{min-width:0}
     .profile-hero h1{margin:10px 0 10px;font-size:clamp(34px,4vw,54px);line-height:.98}
     .profile-tagline{margin:0;color:var(--muted);line-height:1.7;max-width:720px}
     .profile-chip-row{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0 26px}
@@ -54,9 +58,14 @@
       <article class="glass profile-hero">
         <div class="profile-title-row">
           <div>
-            <div class="panel-kicker" id="profileKicker">Profile</div>
-            <h1 id="profileUsername">Player</h1>
-            <p class="profile-tagline" id="profileTagline">Dark Defense account identity, long-term progression, and recorded battle stats.</p>
+            <div class="profile-title-main">
+              <div id="profileCrest"></div>
+              <div class="profile-title-text">
+                <div class="panel-kicker" id="profileKicker">Profile</div>
+                <h1 id="profileUsername">Player</h1>
+                <p class="profile-tagline" id="profileTagline">Dark Defense account identity, long-term progression, and recorded battle stats.</p>
+              </div>
+            </div>
           </div>
           <div class="profile-chip-row">
             <div class="profile-chip" id="profileCreatedChip">Created recently</div>
@@ -143,6 +152,7 @@
     const profileContent = document.getElementById('profileContent');
     const profileEmpty = document.getElementById('profileEmpty');
     const profileKicker = document.getElementById('profileKicker');
+    const profileCrest = document.getElementById('profileCrest');
     const profileUsername = document.getElementById('profileUsername');
     const profileUsernameCard = document.getElementById('profileUsernameCard');
     const profileUsernameCopy = document.getElementById('profileUsernameCopy');
@@ -220,6 +230,7 @@
       profileEmpty.classList.add('hidden');
       profileContent.classList.remove('hidden');
       profileKicker.textContent = isOwner ? 'Your Profile' : 'Public Profile';
+      if (profileCrest) profileCrest.innerHTML = window.DarkDefenseCrest?.markup(profile.username || 'Player', 'dd-crest-lg', profile.crestId || null) || '';
       profileUsername.textContent = profile.username || 'Player';
       profileUsernameCard.textContent = profile.username || 'Player';
       profileUsernameCopy.textContent = isOwner

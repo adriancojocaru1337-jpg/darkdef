@@ -157,7 +157,7 @@ async function getSessionUser(event) {
   const tokenHash = sha256(rawToken);
   const rows = await sql`
     select s.id as session_id, s.user_id, s.expires_at, u.username, u.email, u.created_at,
-           p.best_endless_score, p.best_story_stage, p.total_kills, p.total_runs
+           p.best_endless_score, p.best_story_stage, p.total_kills, p.total_runs, p.crest_id
     from user_sessions s
     join users u on u.id = s.user_id
     left join user_profiles p on p.user_id = u.id

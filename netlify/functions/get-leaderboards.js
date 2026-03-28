@@ -13,9 +13,11 @@ exports.handler = async function handler() {
           ls.wave_reached,
           ls.kills,
           ls.created_at,
-          u.username as profile_username
+          u.username as profile_username,
+          p.crest_id as profile_crest_id
         from leaderboard_scores ls
         left join users u on lower(u.username) = lower(ls.player_name)
+        left join user_profiles p on p.user_id = u.id
         where ls.mode = 'endless'
         order by ls.bonus_score desc, ls.wave_reached desc, ls.score_total desc, ls.created_at asc
         limit 10
@@ -28,9 +30,11 @@ exports.handler = async function handler() {
           ls.wave_reached,
           ls.kills,
           ls.created_at,
-          u.username as profile_username
+          u.username as profile_username,
+          p.crest_id as profile_crest_id
         from leaderboard_scores ls
         left join users u on lower(u.username) = lower(ls.player_name)
+        left join user_profiles p on p.user_id = u.id
         where ls.mode = 'campaign'
         order by ls.wave_reached desc, ls.score_total desc, ls.bonus_score desc, ls.created_at asc
         limit 10

@@ -1113,13 +1113,14 @@ async function loadBonusLeaderboard(){
     }
     bonusLeaderboardList.innerHTML = rows.slice(0,3).map((row, index) => {
       const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+      const crest = window.DarkDefenseCrest?.markup(row.player_name || "Anonim", "dd-crest-sm", row.profile_crest_id || null) || "";
       const bonus = Number(row.bonus_score || 0);
       const waveReached = Number(row.wave_reached || 0);
       return `
         <div class="leaderboard-row">
           <div class="leaderboard-rank">${index + 1}</div>
           <div class="leaderboard-main">
-            <span class="leaderboard-name">${safeName}</span>
+            <span class="leaderboard-name">${crest}${safeName}</span>
             <span class="leaderboard-meta">Wave ${waveReached}</span>
           </div>
           <div class="leaderboard-score">+${bonus}</div>
