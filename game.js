@@ -3129,11 +3129,9 @@ function rewardKill(enemy,pos){
   if(enemy.type==="boss") vibrate([45, 50, 65]);
   playDeathSound();
 }
-function triggerBossAbility(enemy){
-  const bossStage = enemy?.bossStage || currentStage;
-  const ability=STAGES[bossStage].bossAbility;
-  const meta = getBossAbilityMeta(bossStage);
-  if(ability==="summon"){
+function castBossAbility(enemy, abilityId, bossStage){
+  const meta = BOSS_ABILITY_META[abilityId] || getBossAbilityMeta(bossStage);
+  if(abilityId==="summon"){
     const minionHp = bossStage === 3 ? 48 * STAGES[bossStage].difficulty : 40 * STAGES[bossStage].difficulty;
     const minionSpeed = bossStage === 3 ? .125 : .13;
     const summonCount = bossStage === 3 ? 3 : 2;
@@ -3142,8 +3140,9 @@ function triggerBossAbility(enemy){
     bossFxTimer = 1.0;
     startBossCastBanner(meta.label, meta.color);
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned minions!`,"#fca5a5");
+    return;
   }
-  if(ability==="rage"){
+  if(abilityId==="rage"){
     const speedMultiplier = bossStage === 5 ? 1.75 : 1.68;
     const bonusHp = bossStage === 5 ? .18 : .15;
     enemy.speed*=speedMultiplier; enemy.hp += enemy.maxHp*bonusHp;
@@ -3152,8 +3151,9 @@ function triggerBossAbility(enemy){
     bossFxTimer = 1.0;
     startBossCastBanner(meta.label, meta.color);
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered rage mode!`,"#fca5a5");
+    return;
   }
-  if(ability==="shield"){
+  if(abilityId==="shield"){
     const shieldAmount = bossStage === 6 ? .25 : (bossStage === 4 ? .30 : .25);
     enemy.hp += enemy.maxHp*shieldAmount;
     enemy.shieldFxTimer = 2.8;
@@ -3161,8 +3161,9 @@ function triggerBossAbility(enemy){
     bossFxTimer = 1.0;
     startBossCastBanner(meta.label, meta.color);
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained a shield!`,"#93c5fd");
+    return;
   }
-  if(ability==="roots"){
+  if(abilityId==="roots"){
     const activeUnits = units.filter(unit => (unit.snaredUntil || 0) <= performance.now());
     if(activeUnits.length){
       let rootedUnit = null;
@@ -3186,6 +3187,19 @@ function triggerBossAbility(enemy){
         showPopup(rootedPos.x, rootedPos.y - 26, "Rooted!", "#86efac");
         showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entangled a tower!`,"#86efac");
       }
+    }
+  }
+}
+
+function triggerBossAbility(enemy){
+  const bossStage = enemy?.bossStage || currentStage;
+  const primaryAbility = STAGES[bossStage].bossAbility;
+  castBossAbility(enemy, primaryAbility, bossStage);
+  if(bossStage === 6){
+    const extraPool = ["roots", "rage", "summon"].filter(abilityId => abilityId !== primaryAbility);
+    const extraAbility = extraPool[Math.floor(Math.random() * extraPool.length)];
+    if(extraAbility){
+      castBossAbility(enemy, extraAbility, bossStage);
     }
   }
   enemy.abilityUsed=true;
