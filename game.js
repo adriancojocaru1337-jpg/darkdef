@@ -9,6 +9,8 @@ const panelHeaderUserLink = document.getElementById("panelHeaderUserLink");
 const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
 const panelHeaderCrestPerk = document.getElementById("panelHeaderCrestPerk");
 const panelHeaderLogoutBtn = document.getElementById("panelHeaderLogoutBtn");
+const panelModeStory = document.getElementById("panelModeStory");
+const panelModeEndless = document.getElementById("panelModeEndless");
 const progressText = document.getElementById("progressText");
 const waveFill = document.getElementById("waveFill");
 const messageBox = document.getElementById("messageBox");
@@ -147,6 +149,17 @@ function getCrestCombatNote(){
   const perk = getActiveCrestPerk();
   if(!perk) return "";
   return `Active Crest: ${perk.title}. ${perk.summary}`;
+}
+
+function refreshModePills(){
+  if(panelModeStory){
+    panelModeStory.classList.toggle("active", currentMode === "campaign");
+  }
+  if(panelModeEndless){
+    panelModeEndless.classList.toggle("active", currentMode === "endless");
+    panelModeEndless.classList.toggle("locked", !endlessUnlocked && currentMode !== "endless");
+    panelModeEndless.textContent = endlessUnlocked || currentMode === "endless" ? "Endless" : "Endless Locked";
+  }
 }
 
 function refreshPanelCrestPerk(){
@@ -2468,6 +2481,7 @@ function openGameOverOverlay(){
 }
 
 function updateUI(){
+  refreshModePills();
   moneyBadge.textContent = `💰 ${money}`;
   livesBadge.textContent = `❤️ ${lives}`;
   waveBadge.textContent = currentMode==="campaign" ? `🌊 Wave ${wave}` : `♾️ Endless Wave ${stageWave}`;
