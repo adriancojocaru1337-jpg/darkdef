@@ -4534,6 +4534,18 @@ function drawPlacedUnit(unit){
 }
 const drawUnits=()=>units.forEach(drawPlacedUnit);
 
+function getEnemyIndicator(enemy){
+  if(!enemy) return null;
+  if(enemy.type==="boss") return { text:"BOSS", fill:"rgba(91,33,182,.88)", stroke:"rgba(216,180,254,.70)", textColor:"#f5d0fe" };
+  if(enemy.type==="armored") return { text:"ARMOR", fill:"rgba(51,65,85,.86)", stroke:"rgba(203,213,225,.62)", textColor:"#e2e8f0" };
+  if(enemy.type==="tank") return { text:"TANK", fill:"rgba(69,10,10,.86)", stroke:"rgba(252,165,165,.60)", textColor:"#ffe4e6" };
+  if(enemy.type==="fast") return { text:"FAST", fill:"rgba(8,47,73,.84)", stroke:"rgba(125,211,252,.62)", textColor:"#e0f2fe" };
+  if(enemy.type==="splitter") return { text:"SPLIT", fill:"rgba(76,5,25,.88)", stroke:"rgba(253,164,175,.60)", textColor:"#ffe4e6" };
+  if(enemy.type==="hexed") return { text:"HEX", fill:"rgba(88,28,135,.88)", stroke:"rgba(240,171,252,.64)", textColor:"#fae8ff" };
+  if(enemy.type==="shardling") return { text:"SHARD", fill:"rgba(131,24,67,.84)", stroke:"rgba(251,113,133,.58)", textColor:"#fff1f2" };
+  return null;
+}
+
 function drawEnemy(enemy){
   const pos=getPathPosition(enemy.progress), bob=Math.sin(performance.now()*.01+enemy.wobble)*(enemy.type==="boss"?2.8:1.8);
   const x=pos.x,y=pos.y+bob, scale=enemy.type==="boss"?1.55:enemy.type==="tank"?1.18:enemy.type==="armored"?1.08:enemy.type==="splitter"?1.06:enemy.type==="hexed"?.94:enemy.type==="shardling"?.74:enemy.type==="fast"?.88:1, hpPct=Math.max(0,enemy.hp/enemy.maxHp);
@@ -4649,6 +4661,27 @@ function drawEnemy(enemy){
   ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
   ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
   roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
+  const indicator = getEnemyIndicator(enemy);
+  if(indicator){
+    const badgeWidth = enemy.type==="boss" ? 38 : (indicator.text.length > 4 ? 34 : 28);
+    const badgeHeight = 14;
+    const badgeX = x - badgeWidth / 2;
+    const badgeY = hpY - 18;
+    ctx.fillStyle = indicator.fill;
+    roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 7);
+    ctx.fill();
+    ctx.strokeStyle = indicator.stroke;
+    ctx.lineWidth = 1;
+    roundRect(badgeX, badgeY, badgeWidth, badgeHeight, 7);
+    ctx.stroke();
+    ctx.fillStyle = indicator.textColor;
+    ctx.font = "bold 8px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(indicator.text, x, badgeY + badgeHeight / 2 + 0.5);
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
+  }
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
 

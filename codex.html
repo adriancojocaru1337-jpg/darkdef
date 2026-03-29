@@ -27,8 +27,16 @@
       <p>The Dark Defense codex is built for quick tactical reference. Learn which towers solve which waves, what each spell is best at, and how every boss tries to break your line.</p>
     </section>
 
+    <nav class="codex-jump-nav glass" aria-label="Codex sections">
+      <a href="#tower-codex" class="codex-jump-link">Towers</a>
+      <a href="#spell-codex" class="codex-jump-link">Spells</a>
+      <a href="#enemy-codex" class="codex-jump-link">Enemies</a>
+      <a href="#boss-codex" class="codex-jump-link">Bosses</a>
+      <a href="#crest-codex" class="codex-jump-link">Crests</a>
+    </nav>
+
     <section class="content-grid">
-      <article class="glass content-card">
+      <article class="glass content-card content-card-doctrine">
         <div class="panel-kicker">Battle Doctrine</div>
         <h2>How to use this codex</h2>
         <ul class="guide-list">
@@ -40,20 +48,24 @@
         </ul>
       </article>
 
-      <aside class="glass content-card">
+      <aside class="glass content-card content-card-reference">
         <div class="panel-kicker">At A Glance</div>
         <h2>Quick reference</h2>
         <div class="codex-chip-grid">
           <div class="codex-chip"><strong>4</strong><span>Towers</span></div>
           <div class="codex-chip"><strong>3</strong><span>Spells</span></div>
-          <div class="codex-chip"><strong>4</strong><span>Enemy archetypes</span></div>
+          <div class="codex-chip"><strong>6</strong><span>Enemy archetypes</span></div>
           <div class="codex-chip"><strong>6</strong><span>Bosses</span></div>
         </div>
         <p>The goal is simple: know what threatens your setup before the wave starts, then build specifically for that problem.</p>
+        <div class="codex-focus-list">
+          <div class="codex-focus-row"><strong>Story</strong><span>learn tower jobs, spell timing, and boss answers</span></div>
+          <div class="codex-focus-row"><strong>Endless</strong><span>prepare for Splitter, Hexed, armored spikes, and dual-boss pressure</span></div>
+        </div>
       </aside>
     </section>
 
-    <section class="glass content-card">
+    <section class="glass content-card codex-section towers" id="tower-codex">
       <div class="panel-kicker">Tower Codex</div>
       <h2>Core towers and what they are really for</h2>
       <div class="codex-grid">
@@ -119,7 +131,7 @@
       </div>
     </section>
 
-    <section class="glass content-card">
+    <section class="glass content-card codex-section spells" id="spell-codex">
       <div class="panel-kicker">Spell Codex</div>
       <h2>Three spells, three different jobs</h2>
       <div class="codex-grid codex-grid-tight">
@@ -147,11 +159,11 @@
       </div>
     </section>
 
-    <section class="glass content-card">
+    <section class="glass content-card codex-section enemies" id="enemy-codex">
       <div class="panel-kicker">Enemy Codex</div>
       <h2>Know the wave before it reaches the gate</h2>
       <div class="codex-grid">
-        <article class="codex-entry">
+        <article class="codex-entry endless-threat">
           <div class="codex-entry-top">
             <span class="codex-icon">Normal</span>
             <span class="codex-tag">Baseline</span>
@@ -163,7 +175,7 @@
           </ul>
         </article>
 
-        <article class="codex-entry">
+        <article class="codex-entry endless-threat">
           <div class="codex-entry-top">
             <span class="codex-icon">Fast</span>
             <span class="codex-tag">Leak Risk</span>
@@ -210,10 +222,22 @@
             <li>If shardlings leak, your backline cleanup is too thin.</li>
           </ul>
         </article>
+
+        <article class="codex-entry">
+          <div class="codex-entry-top">
+            <span class="codex-icon">Hexed</span>
+            <span class="codex-tag">Endless Only</span>
+          </div>
+          <p>Appears deeper into Endless and curses towers that hit it. Hexed towers deal less damage and shoot more slowly for a short time.</p>
+          <ul class="guide-list">
+            <li>Do not rely on a single carry tower when Hexed fronts start appearing.</li>
+            <li>Spread damage across multiple towers so one curse does not collapse the lane.</li>
+          </ul>
+        </article>
       </div>
     </section>
 
-    <section class="glass content-card">
+    <section class="glass content-card codex-section bosses" id="boss-codex">
       <div class="panel-kicker">Boss Codex</div>
       <h2>Stage bosses and their signature abilities</h2>
       <div class="codex-grid">
@@ -268,7 +292,7 @@
       </div>
     </section>
 
-    <section class="glass content-card">
+    <section class="glass content-card codex-section crests" id="crest-codex">
       <div class="panel-kicker">Crest Codex</div>
       <h2>Account emblems and their active perks</h2>
       <div class="codex-grid">
