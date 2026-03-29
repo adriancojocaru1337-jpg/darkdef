@@ -782,6 +782,7 @@ let stageQuoteResolveTimer = 0;
 let auraBindFxTimer = 0;
 let auraBindFxUnitId = null;
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
+let autoStartWaves = false;
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 let isMuted = false;
@@ -1184,6 +1185,13 @@ function resolveBossWaveCompletion(){
   }
   isPaused = false;
   updateUI();
+  if(autoStartWaves && !waveActive && lives > 0 && !pendingAuraChoice && !pendingBossResolution){
+    setTimeout(()=>{
+      if(autoStartWaves && !waveActive && lives > 0 && !isPaused && !pendingAuraChoice && !pendingBossResolution){
+        startWave();
+      }
+    }, 260);
+  }
 }
 
 
@@ -2664,6 +2672,8 @@ function updateUI(){
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
 
   startWaveBtn.disabled=waveActive || lives<=0 || isPaused;
+  startWaveBtn?.classList.toggle("auto-start-active", autoStartWaves);
+  startWaveBtn?.setAttribute("title", autoStartWaves ? "Auto-start enabled (double-click to disable)" : "Start Wave (double-click to enable auto-start)");
   if(pauseBtn){
     pauseBtn.innerHTML = isPaused
       ? '<span class="resume-icon">▶</span><span class="btn-label">Resume</span>'
@@ -2766,9 +2776,9 @@ function togglePause(){
 }
 
 function getBossHpBonus(stageNumber){
-  if(stageNumber >= 1 && stageNumber <= 4) return 1.32;
-  if(stageNumber >= 5 && stageNumber <= 6) return 1.26;
-  return 1.20;
+  if(stageNumber >= 1 && stageNumber <= 4) return 1.43;
+  if(stageNumber >= 5 && stageNumber <= 6) return 1.365;
+  return 1.30;
 }
 
 function enemyTemplateForSpawn(indexFromEnd){
@@ -2830,7 +2840,8 @@ function enemyTemplateForSpawn(indexFromEnd){
   return {type:"normal",hpMult:1.0 * stage.difficulty * endlessMobHpScale,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
 }
 function spawnEnemy(){
-  const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
+  const difficultyWave = getDifficultyWaveNumber();
+  const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, difficultyWave)*13+currentStage*9;
   const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
@@ -5528,6 +5539,12 @@ towerSpecializationPanel?.addEventListener("click",(event)=>{
   applySpecializationToSelectedUnit(btn.dataset.specId);
 });
 startWaveBtn.addEventListener("click",startWave);
+startWaveBtn.addEventListener("dblclick",(event)=>{
+  event.preventDefault();
+  autoStartWaves = !autoStartWaves;
+  setMessage(autoStartWaves ? "Auto-start enabled. Upcoming waves will begin automatically." : "Auto-start disabled.");
+  updateUI();
+});
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
 

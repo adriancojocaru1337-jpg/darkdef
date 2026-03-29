@@ -956,6 +956,15 @@ body::after {
     0 10px 24px rgba(0,0,0,.32),
     inset 0 0 0 1px rgba(74,222,128,.08);
 }
+.map-btn-start.auto-start-active{
+  color:#f5d0fe;
+  border-color:rgba(192,132,252,.42);
+  box-shadow:
+    0 12px 30px rgba(168,85,247,.24),
+    0 10px 24px rgba(0,0,0,.32),
+    inset 0 0 0 1px rgba(216,180,254,.14);
+}
+.map-btn-start.auto-start-active::before{ content:"Auto"; }
 
 .map-btn-start::before,
 .map-btn-pause::before,
