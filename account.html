@@ -75,6 +75,8 @@
     .crest-current-main{display:flex;align-items:center;gap:14px}
     .crest-current-text strong{display:block;font-size:16px}
     .crest-current-text span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
+    .crest-perk-note{margin-top:12px;padding:12px 14px;border-radius:16px;background:rgba(14,25,43,.82);border:1px solid rgba(125,211,252,.14);color:#dbeafe;font-size:13px;line-height:1.6}
+    .crest-perk-note strong{color:#f3e8d4}
     .crest-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
     .crest-option{display:grid;justify-items:center;gap:8px;padding:14px 10px;border-radius:18px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.72);color:#f8fafc;cursor:pointer;transition:border-color .14s ease, transform .14s ease, box-shadow .14s ease}
     .crest-option span{font-size:12px;color:var(--muted);text-align:center}
@@ -220,6 +222,7 @@
               </div>
               <button class="btn btn-secondary" id="changeCrestBtn" type="button">Change emblem</button>
             </div>
+            <div class="crest-perk-note hidden" id="crestPerkNote"></div>
             <div class="crest-grid" id="crestGrid"></div>
             <div class="crest-save-row">
               <button class="btn btn-secondary" id="saveCrestBtn" type="button">Save crest</button>
@@ -303,6 +306,7 @@
     const crestCurrent = document.getElementById('crestCurrent');
     const crestCurrentPreview = document.getElementById('crestCurrentPreview');
     const crestCurrentName = document.getElementById('crestCurrentName');
+    const crestPerkNote = document.getElementById('crestPerkNote');
     const changeCrestBtn = document.getElementById('changeCrestBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const forgotPasswordToggle = document.getElementById('forgotPasswordToggle');
@@ -312,6 +316,17 @@
     let selectedCrestId = '';
     let isChangingCrest = false;
     let statusTimer = null;
+
+    const CREST_PERKS = {
+      'ember-shield': { title: 'Inferno Discipline', summary: 'Inferno burn is stronger and Bomb Towers hit slightly harder.' },
+      'moon-sigil': { title: 'Arcane Reach', summary: 'Mages gain range and Frost Nova covers a slightly larger area.' },
+      'forest-warden': { title: 'Rootbound Patience', summary: 'Slow effects last longer and frost control is slightly stronger.' },
+      'storm-mark': { title: 'Tempest Timing', summary: 'Chain Lightning reaches farther and storm chains hit harder.' },
+      'royal-flare': { title: 'Conqueror\'s Ambition', summary: 'Bonus score gains and boss gold rewards are increased.' },
+      'void-bloom': { title: 'Corruption Pulse', summary: 'Meteor Strike and control effects are slightly empowered.' },
+      'iron-oath': { title: 'Warden\'s Oath', summary: 'Archer and Hunter deal more damage to bosses and perform better into armor.' },
+      'sunforged': { title: 'Last Light', summary: 'Start richer and receive stronger stage clear rewards.' }
+    };
 
     function setTab(next) {
       tabs.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === next));
@@ -362,6 +377,18 @@
       return window.DarkDefenseCrest?.presets?.[crestId]?.label || 'Generated Crest';
     }
 
+    function renderCrestPerk(crestId) {
+      if (!crestPerkNote) return;
+      const perk = CREST_PERKS[crestId];
+      if (!perk) {
+        crestPerkNote.textContent = '';
+        crestPerkNote.classList.add('hidden');
+        return;
+      }
+      crestPerkNote.innerHTML = `<strong>Active perk: ${perk.title}</strong><br>${perk.summary}`;
+      crestPerkNote.classList.remove('hidden');
+    }
+
     function renderCrestPicker(username, crestId) {
       if (!crestGrid || !window.DarkDefenseCrest) return;
       const hasSavedCrest = !!crestId;
@@ -384,6 +411,7 @@
       if (crestCurrentName) {
         crestCurrentName.textContent = getCrestLabel(crestId);
       }
+      renderCrestPerk(crestId);
       selectedCrestId = crestId || '';
     }
 

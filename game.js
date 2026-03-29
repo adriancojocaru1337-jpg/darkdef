@@ -7,6 +7,7 @@ const waveBadge = document.getElementById("waveBadge");
 const stageBadge = document.getElementById("stageBadge");
 const panelHeaderUserLink = document.getElementById("panelHeaderUserLink");
 const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
+const panelHeaderCrestPerk = document.getElementById("panelHeaderCrestPerk");
 const panelHeaderLogoutBtn = document.getElementById("panelHeaderLogoutBtn");
 const progressText = document.getElementById("progressText");
 const waveFill = document.getElementById("waveFill");
@@ -111,6 +112,59 @@ const reservePanelEls = {
 const reserveLevelEls = {};
 const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
 
+const CREST_PERKS = {
+  "ember-shield": { title: "Inferno Discipline", summary: "Inferno burn is stronger and Bomb Towers hit slightly harder." },
+  "moon-sigil": { title: "Arcane Reach", summary: "Mages gain range and Frost Nova covers a slightly larger area." },
+  "forest-warden": { title: "Rootbound Patience", summary: "Slow effects last longer and frost control is slightly stronger." },
+  "storm-mark": { title: "Tempest Timing", summary: "Chain Lightning reaches farther and storm chains hit harder." },
+  "royal-flare": { title: "Conqueror's Ambition", summary: "Bonus score gains and boss gold rewards are increased." },
+  "void-bloom": { title: "Corruption Pulse", summary: "Meteor Strike and control effects are slightly empowered." },
+  "iron-oath": { title: "Warden's Oath", summary: "Archer and Hunter deal more damage to bosses and perform better into armor." },
+  "sunforged": { title: "Last Light", summary: "Start richer and receive stronger stage clear rewards." }
+};
+
+let activePlayerProfile = { username: "Guest", crestId: null };
+
+function getActiveCrestId(){
+  return activePlayerProfile?.crestId || null;
+}
+
+function hasActiveCrest(crestId){
+  return getActiveCrestId() === crestId;
+}
+
+function getActiveCrestPerk(){
+  return CREST_PERKS[getActiveCrestId()] || null;
+}
+
+function getRoyalBonusAmount(amount){
+  const value = Number(amount || 0);
+  if(!value) return 0;
+  return hasActiveCrest("royal-flare") ? Math.round(value * 1.05) : value;
+}
+
+function getCrestCombatNote(){
+  const perk = getActiveCrestPerk();
+  if(!perk) return "";
+  return `Active Crest: ${perk.title}. ${perk.summary}`;
+}
+
+function refreshPanelCrestPerk(){
+  if(!panelHeaderCrestPerk) return;
+  const perk = getActiveCrestPerk();
+  if(!perk){
+    panelHeaderCrestPerk.textContent = "";
+    panelHeaderCrestPerk.removeAttribute("title");
+    panelHeaderCrestPerk.removeAttribute("aria-label");
+    panelHeaderCrestPerk.classList.add("hidden");
+    return;
+  }
+  panelHeaderCrestPerk.textContent = perk.title;
+  panelHeaderCrestPerk.setAttribute("title", perk.summary);
+  panelHeaderCrestPerk.setAttribute("aria-label", `${perk.title}. ${perk.summary}`);
+  panelHeaderCrestPerk.classList.remove("hidden");
+}
+
 const UNIT_CARD_META = {
   archer:{emoji:"🏹", role:"Fast", roleClass:"", summary:"Fast single-target damage"},
   hunter:{emoji:"🎯", role:"Power", roleClass:"power", summary:"Heavy precision shots"},
@@ -130,6 +184,8 @@ function setPanelUserLabel(name){
 
 async function loadPanelUserSession(){
   setPanelUserLabel("Guest");
+  activePlayerProfile = { username: "Guest", crestId: null };
+  refreshPanelCrestPerk();
   panelHeaderUserLink?.setAttribute("href", "/account.html");
   panelHeaderLogoutBtn?.classList.add("hidden");
   try{
@@ -141,10 +197,14 @@ async function loadPanelUserSession(){
     const data = await response.json();
     if(!data?.authenticated || !data?.user?.username) return;
     setPanelUserLabel(data.user.username);
+    activePlayerProfile = { username: data.user.username, crestId: data.user.crestId || null };
+    refreshPanelCrestPerk();
     panelHeaderUserLink?.setAttribute("href", "/profile.html");
     panelHeaderLogoutBtn?.classList.remove("hidden");
   }catch(_){
+    activePlayerProfile = { username: "Guest", crestId: null };
     setPanelUserLabel("Guest");
+    refreshPanelCrestPerk();
   }
 }
 
@@ -376,7 +436,7 @@ const STAGE_VEGETATION = {
 
 const UNIT_TYPES = {
   archer:{name:"Archer",cost:90,range:122,fireRate:.72,damage:30,projectileSpeed:450,color:"#34d399",hood:"#065f46",upgradeCost:105,sellFactor:.8,kind:"arrow"},
-  hunter:{name:"Hunter",cost:190,range:186,fireRate:1.24,damage:76,projectileSpeed:520,color:"#f59e0b",hood:"#78350f",upgradeCost:215,sellFactor:.8,kind:"arrow"},
+  hunter:{name:"Hunter",cost:190,range:194,fireRate:1.18,damage:84,projectileSpeed:540,color:"#f59e0b",hood:"#78350f",upgradeCost:215,sellFactor:.8,kind:"arrow"},
   mage:{name:"Mage",cost:235,range:156,fireRate:1.08,damage:54,projectileSpeed:400,color:"#a78bfa",hood:"#5b21b6",upgradeCost:230,sellFactor:.82,kind:"magic",splash:52},
   bomb:{name:"Bomb Tower",cost:305,range:145,fireRate:1.7,damage:104,projectileSpeed:315,color:"#ef4444",hood:"#7f1d1d",upgradeCost:345,sellFactor:.84,kind:"bomb",splash:68}
 };
@@ -418,9 +478,9 @@ const TOWER_SPECIALIZATIONS = {
       costMult:1.35,
       statLabel:"Range↑ / DMG↑",
       apply(unit){
-        unit.range *= 1.20;
-        unit.damage *= 1.25;
-        unit.fireRate *= 1.08;
+        unit.range *= 1.22;
+        unit.damage *= 1.32;
+        unit.fireRate *= 1.04;
       }
     },
     tracker: {
@@ -430,9 +490,10 @@ const TOWER_SPECIALIZATIONS = {
       costMult:1.35,
       statLabel:"Fast bonus / Speed↑",
       apply(unit){
-        unit.damage *= 1.12;
-        unit.projectileSpeed *= 1.20;
-        unit.specBonusVsFast = 1.35;
+        unit.damage *= 1.15;
+        unit.projectileSpeed *= 1.24;
+        unit.specBonusVsFast = 1.45;
+        unit.specBonusVsArmored = 1.18;
       }
     }
   },
@@ -551,7 +612,8 @@ const STAGE_CLEAR_GOLD_REWARD = {
 };
 
 function getStageClearGoldReward(stage){
-  return STAGE_CLEAR_GOLD_REWARD[stage] || 0;
+  const baseReward = STAGE_CLEAR_GOLD_REWARD[stage] || 0;
+  return hasActiveCrest("sunforged") ? Math.round(baseReward * 1.05) : baseReward;
 }
 
 const STAGE_BOSS = {
@@ -687,8 +749,8 @@ let selectedSpell = null;
 const spellCooldown = { slow:0, damage:0, bomb:0 };
 const spellConfig = {
   slow: { cooldown: 18, radius: 92, factor: 0.45, duration: 3.2 },
-  damage: { cooldown: 24, radius: 84, damage: 180 },
-  bomb: { cooldown: 16, range: 120, damage: 90, chains: 4 }
+  damage: { cooldown: 26, radius: 78, damage: 165 },
+  bomb: { cooldown: 18, range: 108, damage: 78, chains: 3 }
 };
 
 let pendingAuraDraft = null;
@@ -781,6 +843,12 @@ function getAuraAdjustedStats(unit){
       stats.projectileSpeed *= 1.20;
     }
   }
+  if(unit.type === "mage" && hasActiveCrest("moon-sigil")){
+    stats.range *= 1.04;
+  }
+  if(unit.type === "bomb" && hasActiveCrest("ember-shield")){
+    stats.damage *= 1.03;
+  }
   return stats;
 }
 
@@ -803,14 +871,17 @@ function applyAuraStatusOnEnemy(enemy, unit, pos, damageDone=0){
   if(!enemy || !unit || !unit.auraType) return;
   if(unit.auraType === "inferno"){
     enemy.burnTimer = Math.max(enemy.burnTimer || 0, 3.0);
-    enemy.burnDps = Math.max(enemy.burnDps || 0, Math.max(16, damageDone * 0.35));
+    const burnMultiplier = hasActiveCrest("ember-shield") ? 1.06 : 1;
+    enemy.burnDps = Math.max(enemy.burnDps || 0, Math.max(16, damageDone * 0.35) * burnMultiplier);
   } else if(unit.auraType === "frost"){
-    enemy.auraSlowTimer = Math.max(enemy.auraSlowTimer || 0, 1.8);
-    enemy.auraSlowFactor = Math.min(enemy.auraSlowFactor || 1, 0.78);
+    const slowDuration = 1.8 * (hasActiveCrest("forest-warden") ? 1.05 : 1);
+    const frostFactor = hasActiveCrest("forest-warden") ? 0.76 : 0.78;
+    enemy.auraSlowTimer = Math.max(enemy.auraSlowTimer || 0, slowDuration);
+    enemy.auraSlowFactor = Math.min(enemy.auraSlowFactor || 1, frostFactor);
     enemy.frostHits = (enemy.frostHits || 0) + 1;
     enemy.freezeLockTimer = Math.max(0, enemy.freezeLockTimer || 0);
     if(enemy.frostHits >= 4 && enemy.freezeLockTimer <= 0){
-      enemy.freezeTimer = Math.max(enemy.freezeTimer || 0, 0.9);
+      enemy.freezeTimer = Math.max(enemy.freezeTimer || 0, 0.9 * (hasActiveCrest("void-bloom") ? 1.04 : 1));
       enemy.freezeLockTimer = 4.0;
       enemy.frostHits = 0;
       if(pos) showPopup(pos.x, pos.y - 14, "Freeze!", "#67e8f9");
@@ -822,13 +893,17 @@ function applyAuraStatusOnEnemy(enemy, unit, pos, damageDone=0){
 function applySpecializationStatusOnEnemy(enemy, unit, pos, damageDone=0){
   if(!enemy || !unit || !unit.specialization) return;
   if(unit.type === "mage" && unit.specialization === "frost") {
-    enemy.specSlowTimer = Math.max(enemy.specSlowTimer || 0, unit.specSlowDuration || 1.2);
-    enemy.specSlowFactor = Math.min(enemy.specSlowFactor || 1, unit.specSlowFactor || 0.80);
+    const durationMultiplier = hasActiveCrest("forest-warden") ? 1.05 : 1;
+    const slowFactor = hasActiveCrest("forest-warden")
+      ? Math.max(0.72, (unit.specSlowFactor || 0.80) - 0.03)
+      : (unit.specSlowFactor || 0.80);
+    enemy.specSlowTimer = Math.max(enemy.specSlowTimer || 0, (unit.specSlowDuration || 1.2) * durationMultiplier);
+    enemy.specSlowFactor = Math.min(enemy.specSlowFactor || 1, slowFactor);
     if(pos) showPopup(pos.x, pos.y - 18, "Slow", "#93c5fd");
   } else if(unit.type === "bomb" && unit.specialization === "shock") {
     const stunChance = unit.specStunChance || 0;
     if(stunChance > 0 && Math.random() < stunChance){
-      enemy.stunTimer = Math.max(enemy.stunTimer || 0, unit.specStunDuration || 0.60);
+      enemy.stunTimer = Math.max(enemy.stunTimer || 0, (unit.specStunDuration || 0.60) * (hasActiveCrest("void-bloom") ? 1.04 : 1));
       if(pos) showPopup(pos.x, pos.y - 18, "Stun!", "#fca5a5");
     }
   }
@@ -861,7 +936,7 @@ function triggerSpecializationChain(sourceEnemy, sourceUnit, sourcePos){
 function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
   if(!sourceUnit || sourceUnit.auraType !== "storm") return;
   const stats = getAuraAdjustedStats(sourceUnit);
-  const chainDamage = stats.damage * 0.65;
+  const chainDamage = stats.damage * 0.65 * (hasActiveCrest("storm-mark") ? 1.05 : 1);
   const chainRange = 95;
   const maxJumps = sourceUnit.level >= 4 ? 3 : 2;
   const visited = new Set([sourceEnemy.id]);
@@ -897,7 +972,8 @@ function triggerInfernoExplosion(deadEnemy){
   const center = getPathPosition(deadEnemy.progress);
   const owner = getUnitById(deadEnemy.lastHitByUnitId);
   const ownerStats = owner ? getAuraAdjustedStats(owner) : null;
-  const dmg = ownerStats ? ownerStats.damage * (owner && (owner.type === "mage" || owner.type === "bomb") ? 0.75 : 0.60) : 65;
+  const infernoBurstMultiplier = hasActiveCrest("ember-shield") ? 1.06 : 1;
+  const dmg = ownerStats ? ownerStats.damage * (owner && (owner.type === "mage" || owner.type === "bomb") ? 0.75 : 0.60) * infernoBurstMultiplier : 65 * infernoBurstMultiplier;
   for(const enemy of enemies){
     if(enemy.id === deadEnemy.id) continue;
     const pos = getPathPosition(enemy.progress);
@@ -1025,7 +1101,7 @@ function resolveBossWaveCompletion(){
     wave += 1;
     if(clearReward > 0){
       money += clearReward;
-      bonusScore += Math.round(clearReward * 0.5);
+      bonusScore += getRoyalBonusAmount(Math.round(clearReward * 0.5));
       pushNotification("gold","Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
     }
     moveUnitsToReserve();
@@ -1039,7 +1115,7 @@ function resolveBossWaveCompletion(){
     submitStoryLeaderboardScore(currentStage);
     if(clearReward > 0){
       money += clearReward;
-      bonusScore += Math.round(clearReward * 0.5);
+      bonusScore += getRoyalBonusAmount(Math.round(clearReward * 0.5));
       pushNotification("gold","Final stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
     }
     endlessUnlocked = true;
@@ -1055,7 +1131,7 @@ function resolveBossWaveCompletion(){
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 50;
-    bonusScore += 80;
+    bonusScore += getRoyalBonusAmount(80);
     maybeSaveBestEndlessRun();
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
@@ -1759,9 +1835,10 @@ function getWaveThreatProfile(){
 function getDamageMultiplierAgainstEnemy(enemy, projectileType){
   if(!enemy) return 1;
   if(enemy.type === "armored"){
-    if(projectileType === "archer" || projectileType === "hunter") return 0.68;
-    if(projectileType === "mage") return 1.18;
-    if(projectileType === "bomb") return 1.28;
+    if(projectileType === "archer") return hasActiveCrest("iron-oath") ? 0.86 : 0.82;
+    if(projectileType === "hunter") return hasActiveCrest("iron-oath") ? 0.92 : 0.88;
+    if(projectileType === "mage") return 1.12;
+    if(projectileType === "bomb") return 1.18;
   }
   return 1;
 }
@@ -1891,11 +1968,13 @@ function burstSpellParticles(x, y, colorA, colorB, count=18){
 function castSlowSpell(x, y){
   if(isPaused || spellCooldown.slow > 0) return false;
   const cfg = spellConfig.slow;
+  const slowRadius = cfg.radius * (hasActiveCrest("moon-sigil") ? 1.03 : 1);
+  const slowDuration = cfg.duration * (hasActiveCrest("forest-warden") ? 1.05 : 1);
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
-    if(distance({x,y}, pos) <= cfg.radius){
-      enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, cfg.duration);
+    if(distance({x,y}, pos) <= slowRadius){
+      enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, slowDuration);
       enemy.spellSlowFactor = Math.min(enemy.spellSlowFactor || 1, cfg.factor);
       affected += 1;
       addHitParticles(pos.x, pos.y, 6, "#93c5fd");
@@ -1915,14 +1994,15 @@ function castSlowSpell(x, y){
 function castDamageSpell(x, y){
   if(isPaused || spellCooldown.damage > 0) return false;
   const cfg = spellConfig.damage;
+  const meteorDamage = Math.round(cfg.damage * (hasActiveCrest("void-bloom") ? 1.04 : 1));
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
     if(distance({x,y}, pos) <= cfg.radius){
-      enemy.hp -= cfg.damage;
+      enemy.hp -= meteorDamage;
       affected += 1;
       addHitParticles(pos.x, pos.y, 10, "#fb923c");
-      showPopup(pos.x, pos.y - 10, `-${cfg.damage}`, "#fb923c");
+      showPopup(pos.x, pos.y - 10, `-${meteorDamage}`, "#fb923c");
     }
   }
   placementEffects.push({x,y,color:"#fb923c",life:.52,maxLife:.52});
@@ -1939,12 +2019,13 @@ function castDamageSpell(x, y){
 function castBombSpell(x, y){
   if(isPaused || spellCooldown.bomb > 0) return false;
   const cfg = spellConfig.bomb;
+  const spellRange = cfg.range * (hasActiveCrest("storm-mark") ? 1.04 : 1);
   const inRange = enemies
     .map(enemy => {
       const pos = getPathPosition(enemy.progress);
       return { enemy, pos, dist: distance({x,y}, pos) };
     })
-    .filter(item => item.dist <= cfg.range)
+    .filter(item => item.dist <= spellRange)
     .sort((a,b)=>a.dist-b.dist)
     .slice(0, cfg.chains);
 
@@ -2123,7 +2204,10 @@ function getBossCountForCurrentWave(){
 }
 
 function getWaveEnemyTotal(){
-  if(currentMode === "endless" && isCurrentWaveBoss()) return getBossCountForCurrentWave();
+  if(currentMode === "endless" && isCurrentWaveBoss()) {
+    const escortCount = Math.max(6, Math.ceil(enemyCountForWave(stageWave) * 0.55));
+    return escortCount + getBossCountForCurrentWave();
+  }
   return enemyCountForWave(stageWave) + getBossCountForCurrentWave();
 }
 
@@ -2207,11 +2291,11 @@ function moveUnitsToReserve(){
 }
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
-  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
+  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specBonusVsArmored:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
 }
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
-  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0;
+  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specBonusVsArmored=1; unit.specStunChance=0; unit.specStunDuration=0;
   return unit;
 }
 function takeReservedUnit(typeKey,c,r){
@@ -2225,6 +2309,7 @@ function takeReservedUnit(typeKey,c,r){
   });
   const unit=reservePool[typeKey].shift();
   unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0;
+  if(unit.specBonusVsArmored == null) unit.specBonusVsArmored = 1;
   return unit;
 }
 
@@ -2273,7 +2358,7 @@ function clearNotifications(){
   notificationEmpty?.classList.remove("hidden");
   notificationBadge?.classList.add("hidden");
 }
-const addScore=(base,bonus=0)=>{ score+=base; bonusScore+=bonus; };
+const addScore=(base,bonus=0)=>{ score+=base; bonusScore+=getRoyalBonusAmount(bonus); };
 const totalScore=()=>score+bonusScore;
 
 function getSavedEndlessWave(){
@@ -2459,7 +2544,7 @@ function applyStage(stageNumber, resetRun=false){
 
   if(resetRun){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
-    money=START_MONEY + (stageNumber-1)*60;
+    money=START_MONEY + (stageNumber-1)*60 + (hasActiveCrest("sunforged") ? 20 : 0);
     lives=START_LIVES; score=0; bonusScore=0; kills=0; wave=1;
     runEndlessBossPairsDefeated = 0;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
@@ -2618,9 +2703,10 @@ function upgradeSelectedUnit(){
   }
   if(money<unit.nextUpgradeCost){ setMessage("You do not have enough gold for the upgrade."); return; }
   money-=unit.nextUpgradeCost; unit.totalSpent+=unit.nextUpgradeCost; unit.level+=1;
-  unit.damage*=unit.type==="bomb"?1.70:1.55; unit.range*=1.10; unit.fireRate*=.92;
+  // Favor upgrades over fresh tower spam by making each level-up a real power spike.
+  unit.damage*=unit.type==="bomb"?2.00:1.85; unit.range*=1.10; unit.fireRate*=.90;
   if(unit.projectileSpeed) unit.projectileSpeed*=1.06;
-  if(unit.splash) unit.splash*=1.10;
+  if(unit.splash) unit.splash*=1.12;
   unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.90);
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
@@ -2852,6 +2938,9 @@ function applySplashDamage(center,radius,damage,projectileType){
 function rewardKill(enemy,pos){
   let reward = enemy.reward;
   let scoreGain = 0;
+  if(enemy.type==="boss" && hasActiveCrest("royal-flare")){
+    reward += Math.max(1, Math.round(enemy.reward * 0.04));
+  }
   money += reward; kills += 1;
   const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="fast"?70:50;
   const scoreBonus=isCurrentWaveBoss()?40:0;
@@ -2860,9 +2949,10 @@ function rewardKill(enemy,pos){
     const owner = getUnitById(enemy.lastHitByUnitId);
     const bonusGold = Math.max(1, Math.round(enemy.reward * 0.40)) + (enemy.type === "boss" ? 120 : 0);
     money += bonusGold;
-    bonusScore += 25;
+    const wealthBonusScore = getRoyalBonusAmount(25);
+    bonusScore += wealthBonusScore;
     reward += bonusGold;
-    scoreGain = 25;
+    scoreGain = wealthBonusScore;
     if(owner){
       owner.wealthKills = (owner.wealthKills || 0) + 1;
       if(owner.wealthKills % 8 === 0){
@@ -3066,7 +3156,17 @@ function update(dt){
       const dx=bestTarget.pos.x-unitPos.x, dy=bestTarget.pos.y-unitPos.y;
       unit.aimAngle=Math.atan2(dy,dx);
       if(unit.cooldown<=0){
-        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * (unit.specialization === "tracker" && bestTarget.enemy.type === "fast" ? (unit.specBonusVsFast || 1.35) : 1), speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
+        const trackerDamageMult =
+          unit.specialization === "tracker"
+            ? (bestTarget.enemy.type === "fast"
+              ? (unit.specBonusVsFast || 1.45)
+              : (bestTarget.enemy.type === "armored" ? (unit.specBonusVsArmored || 1.18) : 1))
+            : 1;
+        const ironBossDamageMult =
+          hasActiveCrest("iron-oath") && (unit.type === "archer" || unit.type === "hunter") && bestTarget.enemy.type === "boss"
+            ? 1.05
+            : 1;
+        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * trackerDamageMult * ironBossDamageMult, speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
         unit.cooldown=stats.fireRate; playShootSound(unit.kind);
       }
     }
@@ -3180,7 +3280,7 @@ function update(dt){
 
     if(isCurrentWaveBoss()){
       addScore(500,lives*25);
-      if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
+      if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += getRoyalBonusAmount(250); }
 
       if(!pendingBossResolution){
         if(currentMode==="campaign" && currentStage < Object.keys(STAGES).length){
@@ -3201,7 +3301,7 @@ function update(dt){
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
-    bonusScore += 20;
+    bonusScore += getRoyalBonusAmount(20);
     setMessage(currentMode === "campaign" ? `Wave complete. Next wave in this stage: ${stageWave}.` : `Endless wave complete. Next wave: ${stageWave}.`);
     updateUI();
   }
@@ -5141,8 +5241,9 @@ startGameBtn.addEventListener("click",()=>{
   startOverlay.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
-  setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
-});
+  const crestNote = getCrestCombatNote();
+  setMessage(crestNote || "Dark Defense started. Place towers, start the wave, and use spells when needed.");
+  });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
   applyStage(currentStage, true);

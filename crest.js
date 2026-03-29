@@ -47,11 +47,23 @@
     return String(value || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
   }
 
+  function getImageHints(className) {
+    const classes = String(className || "");
+    if (classes.includes("dd-crest-lg")) {
+      return { size: 84, loading: "eager", fetchpriority: "high" };
+    }
+    if (classes.includes("dd-crest-sm")) {
+      return { size: 34, loading: "lazy", fetchpriority: "low" };
+    }
+    return { size: 42, loading: "eager", fetchpriority: "auto" };
+  }
+
   function markup(value, className = "", presetId = null) {
     const crest = build(value, presetId);
     const extraClass = className ? ` ${className}` : "";
     if (crest.assetPath) {
-      return `<span class="dd-crest${extraClass} dd-crest-image-wrap" style="${crest.style}" aria-hidden="true"><img class="dd-crest-image" src="${escapeHtml(crest.assetPath)}" alt="" loading="lazy" decoding="async" /></span>`;
+      const hints = getImageHints(className);
+      return `<span class="dd-crest${extraClass} dd-crest-image-wrap" style="${crest.style}" aria-hidden="true"><img class="dd-crest-image" src="${escapeHtml(crest.assetPath)}" alt="" width="${hints.size}" height="${hints.size}" loading="${hints.loading}" decoding="async" fetchpriority="${hints.fetchpriority}" /></span>`;
     }
     return `<span class="dd-crest${extraClass}" style="${crest.style}" aria-hidden="true"><span>${escapeHtml(crest.initials)}</span></span>`;
   }
