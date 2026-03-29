@@ -97,8 +97,10 @@
     .account-settings-actions{display:flex;justify-content:flex-end;margin-top:14px}
     .account-settings-toggle{display:flex;justify-content:flex-start;margin-top:18px}
     .account-danger{margin-top:18px;padding:16px;border-radius:20px;background:rgba(58,14,25,.42);border:1px solid rgba(251,113,133,.16)}
+    .account-danger.hidden{display:none!important}
     .account-danger strong{display:block;font-size:18px;color:#ffe4e6}
     .account-danger p{margin:8px 0 0;color:#fbcfe8;font-size:13px;line-height:1.65}
+    .account-danger-toggle{display:flex;justify-content:flex-start;margin-top:14px}
     .account-danger-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
     .account-danger-actions{display:flex;justify-content:flex-end;margin-top:14px}
     .btn-danger{background:linear-gradient(180deg,#7f1d1d,#4c0519);border-color:rgba(251,113,133,.24);color:#fff1f2}
@@ -270,7 +272,10 @@
             <div class="account-settings-actions">
               <button class="btn btn-secondary" id="saveAccountSettingsBtn" type="submit">Save account</button>
             </div>
-            <div class="account-danger">
+            <div class="account-danger-toggle">
+              <button class="btn btn-secondary" id="toggleDeleteAccountBtn" type="button">Delete account</button>
+            </div>
+            <div class="account-danger hidden" id="accountDangerBox">
               <div class="panel-kicker">Danger Zone</div>
               <strong>Delete account permanently</strong>
               <p>This removes the account, profile, active sessions, and linked leaderboard or run data tied to this identity. This action cannot be undone.</p>
@@ -335,6 +340,8 @@
     const settingsNewPassword = document.getElementById('settingsNewPassword');
     const saveAccountSettingsBtn = document.getElementById('saveAccountSettingsBtn');
     const toggleAccountSettingsBtn = document.getElementById('toggleAccountSettingsBtn');
+    const accountDangerBox = document.getElementById('accountDangerBox');
+    const toggleDeleteAccountBtn = document.getElementById('toggleDeleteAccountBtn');
     const deleteAccountConfirm = document.getElementById('deleteAccountConfirm');
     const deleteAccountPassword = document.getElementById('deleteAccountPassword');
     const deleteAccountBtn = document.getElementById('deleteAccountBtn');
@@ -353,6 +360,7 @@
     let selectedCrestId = '';
     let isChangingCrest = false;
     let isAccountSettingsOpen = false;
+    let isDeleteAccountOpen = false;
     let statusTimer = null;
 
     const CREST_PERKS = {
@@ -401,6 +409,12 @@
       }
       if (toggleAccountSettingsBtn) {
         toggleAccountSettingsBtn.textContent = isAccountSettingsOpen ? 'Hide settings' : 'Modify settings';
+      }
+      if (accountDangerBox) {
+        accountDangerBox.classList.toggle('hidden', !isDeleteAccountOpen);
+      }
+      if (toggleDeleteAccountBtn) {
+        toggleDeleteAccountBtn.textContent = isDeleteAccountOpen ? 'Hide delete account' : 'Delete account';
       }
     }
 
@@ -505,6 +519,7 @@
         if (deleteAccountConfirm) deleteAccountConfirm.value = '';
         if (deleteAccountPassword) deleteAccountPassword.value = '';
         isAccountSettingsOpen = false;
+        isDeleteAccountOpen = false;
         renderAccountSettingsVisibility();
         isChangingCrest = !(data.user.crestId || '');
         renderCrestPicker(data.user.username, data.user.crestId || '');
@@ -625,6 +640,17 @@
     toggleAccountSettingsBtn?.addEventListener('click', () => {
       if (!currentSessionUser) return;
       isAccountSettingsOpen = !isAccountSettingsOpen;
+      if (!isAccountSettingsOpen) isDeleteAccountOpen = false;
+      renderAccountSettingsVisibility();
+    });
+
+    toggleDeleteAccountBtn?.addEventListener('click', () => {
+      if (!currentSessionUser) return;
+      isDeleteAccountOpen = !isDeleteAccountOpen;
+      if (!isDeleteAccountOpen) {
+        if (deleteAccountConfirm) deleteAccountConfirm.value = '';
+        if (deleteAccountPassword) deleteAccountPassword.value = '';
+      }
       renderAccountSettingsVisibility();
     });
 
@@ -702,6 +728,7 @@
         if (deleteAccountConfirm) deleteAccountConfirm.value = '';
         if (deleteAccountPassword) deleteAccountPassword.value = '';
         isAccountSettingsOpen = false;
+        isDeleteAccountOpen = false;
         renderAccountSettingsVisibility();
         showStatus('Account details updated successfully.', 'success');
         saveAccountSettingsBtn.textContent = 'Saved';
@@ -732,6 +759,7 @@
         currentSessionUser = null;
         syncStoredLeaderboardName('');
         isAccountSettingsOpen = false;
+        isDeleteAccountOpen = false;
         renderAccountSettingsVisibility();
         toggleAuthForms(true);
         setTab('login');
@@ -782,6 +810,7 @@
         syncStoredLeaderboardName('');
         sessionCard.classList.add('hidden');
         isAccountSettingsOpen = false;
+        isDeleteAccountOpen = false;
         renderAccountSettingsVisibility();
         toggleAuthForms(true);
         setTab('login');
