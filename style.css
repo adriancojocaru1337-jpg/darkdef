@@ -963,8 +963,30 @@ body::after {
     0 12px 30px rgba(168,85,247,.24),
     0 10px 24px rgba(0,0,0,.32),
     inset 0 0 0 1px rgba(216,180,254,.14);
+  animation:autoStartPulse 1.8s ease-in-out infinite;
 }
 .map-btn-start.auto-start-active::before{ content:"Auto"; }
+
+@keyframes autoStartPulse{
+  0%{
+    box-shadow:
+      0 12px 30px rgba(168,85,247,.18),
+      0 10px 24px rgba(0,0,0,.32),
+      inset 0 0 0 1px rgba(216,180,254,.10);
+  }
+  50%{
+    box-shadow:
+      0 16px 38px rgba(192,132,252,.30),
+      0 10px 24px rgba(0,0,0,.32),
+      inset 0 0 0 1px rgba(233,213,255,.18);
+  }
+  100%{
+    box-shadow:
+      0 12px 30px rgba(168,85,247,.18),
+      0 10px 24px rgba(0,0,0,.32),
+      inset 0 0 0 1px rgba(216,180,254,.10);
+  }
+}
 
 .map-btn-start::before,
 .map-btn-pause::before,

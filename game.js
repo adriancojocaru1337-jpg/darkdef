@@ -2672,7 +2672,7 @@ function updateUI(){
   furthestStageStat.textContent=String(Number(localStorage.getItem("sdcFurthestStage")||1));
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
 
-  startWaveBtn.disabled=waveActive || lives<=0 || isPaused;
+  startWaveBtn.disabled=lives<=0 || isPaused;
   startWaveBtn?.classList.toggle("auto-start-active", autoStartWaves);
   startWaveBtn?.setAttribute("title", autoStartWaves ? "Auto-start enabled (double-click to disable)" : "Start Wave (double-click to enable auto-start)");
   if(pauseBtn){
@@ -3526,6 +3526,13 @@ function update(dt){
     bonusScore += getRoyalBonusAmount(20);
     setMessage(currentMode === "campaign" ? `Wave complete. Next wave in this stage: ${stageWave}.` : `Endless wave complete. Next wave: ${stageWave}.`);
     updateUI();
+    if(autoStartWaves && lives > 0 && !isPaused && !pendingAuraChoice && !pendingBossResolution){
+      setTimeout(()=>{
+        if(autoStartWaves && !waveActive && lives > 0 && !isPaused && !pendingAuraChoice && !pendingBossResolution){
+          startWave();
+        }
+      }, 260);
+    }
   }
 }
 
