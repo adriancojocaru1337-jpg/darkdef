@@ -783,6 +783,7 @@ let auraBindFxTimer = 0;
 let auraBindFxUnitId = null;
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
 let autoStartWaves = false;
+let startWaveClickTimer = null;
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 let isMuted = false;
@@ -5538,12 +5539,19 @@ towerSpecializationPanel?.addEventListener("click",(event)=>{
   event.stopPropagation();
   applySpecializationToSelectedUnit(btn.dataset.specId);
 });
-startWaveBtn.addEventListener("click",startWave);
-startWaveBtn.addEventListener("dblclick",(event)=>{
-  event.preventDefault();
-  autoStartWaves = !autoStartWaves;
-  setMessage(autoStartWaves ? "Auto-start enabled. Upcoming waves will begin automatically." : "Auto-start disabled.");
-  updateUI();
+startWaveBtn.addEventListener("click",()=>{
+  if(startWaveClickTimer){
+    clearTimeout(startWaveClickTimer);
+    startWaveClickTimer = null;
+    autoStartWaves = !autoStartWaves;
+    setMessage(autoStartWaves ? "Auto-start enabled. Upcoming waves will begin automatically." : "Auto-start disabled.");
+    updateUI();
+    return;
+  }
+  startWaveClickTimer = setTimeout(()=>{
+    startWaveClickTimer = null;
+    startWave();
+  }, 220);
 });
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
