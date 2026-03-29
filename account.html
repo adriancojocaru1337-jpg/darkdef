@@ -96,7 +96,15 @@
     .account-settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     .account-settings-actions{display:flex;justify-content:flex-end;margin-top:14px}
     .account-settings-toggle{display:flex;justify-content:flex-start;margin-top:18px}
+    .account-danger{margin-top:18px;padding:16px;border-radius:20px;background:rgba(58,14,25,.42);border:1px solid rgba(251,113,133,.16)}
+    .account-danger strong{display:block;font-size:18px;color:#ffe4e6}
+    .account-danger p{margin:8px 0 0;color:#fbcfe8;font-size:13px;line-height:1.65}
+    .account-danger-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+    .account-danger-actions{display:flex;justify-content:flex-end;margin-top:14px}
+    .btn-danger{background:linear-gradient(180deg,#7f1d1d,#4c0519);border-color:rgba(251,113,133,.24);color:#fff1f2}
+    .btn-danger:hover{filter:brightness(1.06)}
     @media (max-width:640px){.account-settings-grid{grid-template-columns:1fr}}
+    @media (max-width:640px){.account-danger-grid{grid-template-columns:1fr}}
     .session-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
     .hidden{display:none!important}
     @media (max-width:920px){.account-grid{grid-template-columns:1fr}.account-hero,.account-panel{padding:20px;border-radius:24px}}
@@ -262,6 +270,24 @@
             <div class="account-settings-actions">
               <button class="btn btn-secondary" id="saveAccountSettingsBtn" type="submit">Save account</button>
             </div>
+            <div class="account-danger">
+              <div class="panel-kicker">Danger Zone</div>
+              <strong>Delete account permanently</strong>
+              <p>This removes the account, profile, active sessions, and linked leaderboard or run data tied to this identity. This action cannot be undone.</p>
+              <div class="account-danger-grid">
+                <div class="field">
+                  <label for="deleteAccountConfirm">Type DELETE</label>
+                  <input id="deleteAccountConfirm" name="deleteAccountConfirm" type="text" autocomplete="off" placeholder="DELETE" />
+                </div>
+                <div class="field">
+                  <label for="deleteAccountPassword">Current password</label>
+                  <input id="deleteAccountPassword" name="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Current password" />
+                </div>
+              </div>
+              <div class="account-danger-actions">
+                <button class="btn btn-danger" id="deleteAccountBtn" type="button">Delete account</button>
+              </div>
+            </div>
           </form>
           <div class="session-actions">
             <a href="/profile.html" class="btn btn-secondary">View profile</a>
@@ -309,6 +335,9 @@
     const settingsNewPassword = document.getElementById('settingsNewPassword');
     const saveAccountSettingsBtn = document.getElementById('saveAccountSettingsBtn');
     const toggleAccountSettingsBtn = document.getElementById('toggleAccountSettingsBtn');
+    const deleteAccountConfirm = document.getElementById('deleteAccountConfirm');
+    const deleteAccountPassword = document.getElementById('deleteAccountPassword');
+    const deleteAccountBtn = document.getElementById('deleteAccountBtn');
     const crestGrid = document.getElementById('crestGrid');
     const saveCrestBtn = document.getElementById('saveCrestBtn');
     const crestCurrent = document.getElementById('crestCurrent');
@@ -473,6 +502,8 @@
         if (settingsEmail) settingsEmail.value = data.user.email || '';
         if (settingsCurrentPassword) settingsCurrentPassword.value = '';
         if (settingsNewPassword) settingsNewPassword.value = '';
+        if (deleteAccountConfirm) deleteAccountConfirm.value = '';
+        if (deleteAccountPassword) deleteAccountPassword.value = '';
         isAccountSettingsOpen = false;
         renderAccountSettingsVisibility();
         isChangingCrest = !(data.user.crestId || '');
@@ -668,6 +699,8 @@
         renderCrestPicker(data.user.username, currentSessionUser.crestId || '');
         settingsCurrentPassword.value = '';
         settingsNewPassword.value = '';
+        if (deleteAccountConfirm) deleteAccountConfirm.value = '';
+        if (deleteAccountPassword) deleteAccountPassword.value = '';
         isAccountSettingsOpen = false;
         renderAccountSettingsVisibility();
         showStatus('Account details updated successfully.', 'success');
@@ -705,6 +738,63 @@
         showStatus('You have been signed out.', 'success');
       } catch (_) {
         showStatus('Network error while signing out.');
+      }
+    });
+
+    deleteAccountBtn?.addEventListener('click', async () => {
+      if (!currentSessionUser) return;
+      clearStatus();
+      const confirmation = String(deleteAccountConfirm?.value || '').trim();
+      const currentPassword = String(deleteAccountPassword?.value || '');
+
+      if (confirmation !== 'DELETE') {
+        showStatus('Type DELETE to confirm permanent account removal.');
+        return;
+      }
+      if (!currentPassword) {
+        showStatus('Current password is required to delete the account.');
+        return;
+      }
+      if (!window.confirm(`Delete the account ${currentSessionUser.username} permanently? This cannot be undone.`)) {
+        return;
+      }
+
+      deleteAccountBtn.disabled = true;
+      deleteAccountBtn.textContent = 'Deleting...';
+      try {
+        const response = await fetch('/.netlify/functions/delete-account', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            confirmation,
+            currentPassword
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to delete account.');
+          deleteAccountBtn.disabled = false;
+          deleteAccountBtn.textContent = 'Delete account';
+          return;
+        }
+        currentSessionUser = null;
+        syncStoredLeaderboardName('');
+        sessionCard.classList.add('hidden');
+        isAccountSettingsOpen = false;
+        renderAccountSettingsVisibility();
+        toggleAuthForms(true);
+        setTab('login');
+        registerForm.reset();
+        loginForm.reset();
+        accountSettingsForm?.reset();
+        showStatus(data.message || 'Account deleted permanently.', 'success');
+        deleteAccountBtn.disabled = false;
+        deleteAccountBtn.textContent = 'Delete account';
+      } catch (_) {
+        showStatus('Network error while deleting account.');
+        deleteAccountBtn.disabled = false;
+        deleteAccountBtn.textContent = 'Delete account';
       }
     });
 
