@@ -9,6 +9,7 @@ const panelHeaderUserLink = document.getElementById("panelHeaderUserLink");
 const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
 const panelHeaderCrestPerk = document.getElementById("panelHeaderCrestPerk");
 const panelHeaderLogoutBtn = document.getElementById("panelHeaderLogoutBtn");
+const gamePanel = document.querySelector(".game-panel");
 const panelModeStory = document.getElementById("panelModeStory");
 const panelModeEndless = document.getElementById("panelModeEndless");
 const progressText = document.getElementById("progressText");
@@ -176,6 +177,13 @@ function refreshModePills(){
     panelModeEndless.classList.toggle("locked", !endlessUnlocked && currentMode !== "endless");
     panelModeEndless.textContent = endlessUnlocked || currentMode === "endless" ? "Endless" : "Endless Locked";
   }
+}
+
+function refreshEndlessVisualState(){
+  const endlessActive = currentMode === "endless";
+  canvasWrap?.classList.toggle("endless-active", endlessActive);
+  gamePanel?.classList.toggle("endless-active", endlessActive);
+  document.body.classList.toggle("endless-active", endlessActive);
 }
 
 function refreshPanelCrestPerk(){
@@ -1801,6 +1809,11 @@ function playShootSound(kind="arrow"){
 function playHitSound(){ tone("square",220,120,.06,.012); }
 function playDeathSound(){ tone("triangle",320,90,.12,.018); }
 function playWaveSound(){ tone("sine",480,760,.18,.03); }
+function playEndlessBossWaveSound(){
+  tone("sawtooth", 180, 96, .20, .022);
+  setTimeout(()=>tone("triangle", 240, 120, .24, .020), 90);
+  setTimeout(()=>tone("sine", 620, 220, .28, .014), 170);
+}
 function playUpgradeSound(){ ensureAudio(); audioAssets.upgrade.play(); }
 function startBossLoop(){
   ensureAudio();
@@ -1839,7 +1852,7 @@ function getPathPosition(progress){
 }
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const ENDLESS_BASELINE_WAVE = 10;
+const ENDLESS_BASELINE_WAVE = 12;
 function getEndlessBaselineWave(waveNumber){
   return currentMode === "endless" ? waveNumber + (ENDLESS_BASELINE_WAVE - 1) : waveNumber;
 }
@@ -2340,7 +2353,12 @@ function getEndlessCycle(){
 function getEndlessMobHpScale(){
   if(currentMode !== "endless") return 1;
   const cycle = getEndlessCycle();
-  return 1.12 + (cycle - 1) * 0.08;
+  return 1.22 + (cycle - 1) * 0.12;
+}
+
+function getSpawnInterval(){
+  if(currentMode !== "endless") return 0.68;
+  return Math.max(0.48, 0.60 - (getEndlessCycle() - 1) * 0.025);
 }
 
 function getBossAbilityTriggerThreshold(enemy){
@@ -2608,6 +2626,7 @@ function openGameOverOverlay(){
 
 function updateUI(){
   refreshModePills();
+  refreshEndlessVisualState();
   moneyBadge.textContent = `💰 ${money}`;
   livesBadge.textContent = `❤️ ${lives}`;
   waveBadge.textContent = currentMode==="campaign" ? `🌊 Wave ${wave}` : `♾️ Endless Wave ${stageWave}`;
@@ -2710,7 +2729,13 @@ function startWave(){
   spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
   if(isCurrentWaveBoss()) bossBannerTimer = currentMode === "endless" ? 3.2 : 2.2;
-  playWaveSound();
+  if(isCurrentWaveBoss() && currentMode === "endless"){
+    addScreenFlash("#a855f7", 0.36, 0.24);
+    addScreenFlash("#ef4444", 0.22, 0.10);
+    playEndlessBossWaveSound();
+  } else {
+    playWaveSound();
+  }
   hideHintChip();
   hideTowerMenu();
   if(isCurrentWaveBoss()){
@@ -2719,8 +2744,8 @@ function startWave(){
     waveIntroSubtext = "";
   } else {
     waveIntroTimer = 1.8;
-    waveIntroText = `Wave ${stageWave}`;
-    waveIntroSubtext = `${threatProfile.label} - Stage ${currentStage} ${stage.name}`;
+    waveIntroText = currentMode === "endless" ? `Endless Wave ${stageWave}` : `Wave ${stageWave}`;
+    waveIntroSubtext = currentMode === "endless" ? `${threatProfile.label} · The portal grows louder` : `${threatProfile.label} - Stage ${currentStage} ${stage.name}`;
     waveIntroSubtext = `Stage ${currentStage} · ${stage.name}`;
   }
   if(isCurrentWaveBoss()){
@@ -2759,8 +2784,10 @@ function enemyTemplateForSpawn(indexFromEnd){
   if(boss) return {type:"boss",hpMult:4.0*stage.difficulty*getBossHpBonus(currentStage),speed:.05+currentStage*.003,reward:125, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
   if(stageWave % 5 === 0){
     const armoredWindow = enemyCountForWave(stageWave);
-    if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * 0.4))){
-      return {type:"armored", hpMult:1.55 * stage.difficulty * endlessMobHpScale, speed:.082+currentStage*.0025, reward:26};
+    const armoredShare = currentMode === "endless" ? 0.56 : 0.40;
+    const armoredHpScale = currentMode === "endless" ? 1.18 : 1;
+    if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * armoredShare))){
+      return {type:"armored", hpMult:1.55 * stage.difficulty * endlessMobHpScale * armoredHpScale, speed:.082+currentStage*.0025, reward:26};
     }
   }
   const roll=Math.random();
@@ -3241,7 +3268,7 @@ function update(dt){
 
   if(waveActive && spawnLeft>0){
     spawnTimer += dt;
-    if(spawnTimer>=.68){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
+    if(spawnTimer>=getSpawnInterval()){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
   }
 
   for(let i=enemies.length-1;i>=0;i--){
@@ -4064,6 +4091,60 @@ function drawPath(){
   }
   ctx.restore();
 }
+
+function drawEndlessPathCorruption(){
+  if(currentMode !== "endless") return;
+  const t = performance.now() * 0.0012;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  ctx.beginPath();
+  path.forEach((p,i)=>{
+    const pos = cellCenter(p.c, p.r);
+    if(i===0) ctx.moveTo(pos.x, pos.y);
+    else ctx.lineTo(pos.x, pos.y);
+  });
+
+  ctx.strokeStyle = "rgba(168,85,247,.16)";
+  ctx.lineWidth = 26 + Math.sin(t * 3.2) * 2;
+  ctx.stroke();
+
+  ctx.strokeStyle = "rgba(244,114,182,.12)";
+  ctx.lineWidth = 12;
+  ctx.setLineDash([14, 16]);
+  ctx.lineDashOffset = -performance.now() * 0.03;
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  for(let i=0;i<14;i++){
+    const pt = getPathPosition((i + 0.5) / 14);
+    const glow = ctx.createRadialGradient(pt.x, pt.y, 1, pt.x, pt.y, 20 + Math.sin(t * 4 + i) * 3);
+    glow.addColorStop(0, "rgba(216,180,254,.22)");
+    glow.addColorStop(0.45, "rgba(168,85,247,.12)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, 22, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  for(let i=0;i<10;i++){
+    const pt = getPathPosition((i + 0.18) / 10);
+    const drift = Math.sin(t * 5 + i) * 4;
+    ctx.strokeStyle = "rgba(251,113,133,.18)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(pt.x - 9, pt.y + 6 + drift * 0.25);
+    ctx.lineTo(pt.x - 1, pt.y - 6 + drift * 0.1);
+    ctx.lineTo(pt.x + 9, pt.y + 5 - drift * 0.2);
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
 function drawSpawnPortal(){
   const start = path[0], pos = cellCenter(start.c, start.r);
   const t = performance.now() * 0.004;
@@ -4133,6 +4214,25 @@ function drawSpawnPortal(){
     for(let a=0; a<6; a++){
       const ang = t + a * Math.PI/3;
       ctx.beginPath(); ctx.moveTo(Math.cos(ang)*7, Math.sin(ang)*7); ctx.lineTo(Math.cos(ang)*18, Math.sin(ang)*18); ctx.stroke();
+    }
+    if(currentMode === "endless"){
+      const abyss = ctx.createRadialGradient(0, 0, 5, 0, 0, 38);
+      abyss.addColorStop(0, 'rgba(251,113,133,.34)');
+      abyss.addColorStop(.36, 'rgba(217,70,239,.18)');
+      abyss.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = abyss;
+      ctx.beginPath();
+      ctx.arc(0, 0, 38, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251,113,133,.44)';
+      ctx.lineWidth = 1.8;
+      for(let a=0; a<4; a++){
+        const ang = -t * 1.3 + a * Math.PI/2;
+        ctx.beginPath();
+        ctx.moveTo(Math.cos(ang)*12, Math.sin(ang)*12);
+        ctx.lineTo(Math.cos(ang)*28, Math.sin(ang)*28);
+        ctx.stroke();
+      }
     }
   }
 
@@ -5077,23 +5177,24 @@ function drawWaveIntro(){
   const fadeOut = Math.min(1, waveIntroTimer / 0.45);
   const alpha = Math.min(fadeIn, fadeOut);
   const y = 70 - (1 - alpha) * 10;
+  const endlessActive = currentMode === "endless";
 
   ctx.save();
   ctx.globalAlpha = alpha;
 
   const width = Math.max(220, Math.min(420, ctx.measureText ? 320 : 320));
-  ctx.fillStyle = "rgba(8,17,31,.72)";
+  ctx.fillStyle = endlessActive ? "rgba(28,12,42,.76)" : "rgba(8,17,31,.72)";
   roundRect(canvas.width/2 - 160, y - 28, 320, 54, 18);
   ctx.fill();
-  ctx.strokeStyle = "rgba(251,191,36,.18)";
+  ctx.strokeStyle = endlessActive ? "rgba(192,132,252,.28)" : "rgba(251,191,36,.18)";
   ctx.lineWidth = 1;
   ctx.stroke();
 
   ctx.textAlign = "center";
-  ctx.fillStyle = "#f8fafc";
+  ctx.fillStyle = endlessActive ? "#f5d0fe" : "#f8fafc";
   ctx.font = "700 22px Arial";
   ctx.fillText(waveIntroText, canvas.width/2, y - 2);
-  ctx.fillStyle = "rgba(226,232,240,.78)";
+  ctx.fillStyle = endlessActive ? "rgba(233,213,255,.82)" : "rgba(226,232,240,.78)";
   ctx.font = "600 11px Arial";
   ctx.fillText(waveIntroSubtext, canvas.width/2, y + 16);
   ctx.restore();
@@ -5306,6 +5407,7 @@ function draw(){
   drawSpawnPortal();
   drawPathAtmosphere();
   drawPath();
+  drawEndlessPathCorruption();
   drawStageLighting();
   drawGate();
   drawPlacementPreview();
