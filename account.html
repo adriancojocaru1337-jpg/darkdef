@@ -377,6 +377,16 @@
       return window.DarkDefenseCrest?.presets?.[crestId]?.label || 'Generated Crest';
     }
 
+    function syncStoredLeaderboardName(username) {
+      try {
+        if (!username) {
+          localStorage.removeItem('sdcPlayerName');
+          return;
+        }
+        localStorage.setItem('sdcPlayerName', String(username).trim().slice(0, 20));
+      } catch (_) {}
+    }
+
     function renderCrestPerk(crestId) {
       if (!crestPerkNote) return;
       const perk = CREST_PERKS[crestId];
@@ -433,6 +443,7 @@
         toggleAuthForms(false);
         sessionCard.classList.remove('hidden');
         currentSessionUser = data.user;
+        syncStoredLeaderboardName(data.user.username);
         if (sessionCrest) sessionCrest.innerHTML = window.DarkDefenseCrest?.markup(data.user.username, 'dd-crest-lg', data.user.crestId || null) || '';
         sessionUsername.textContent = data.user.username;
         sessionMeta.textContent = `${data.user.email} · account created ${formatDate(data.user.createdAt)}`;
@@ -481,6 +492,7 @@
           return;
         }
         showStatus(`Account created. Welcome, ${data.user.username}.`, 'success');
+        syncStoredLeaderboardName(data.user.username);
         registerForm.reset();
         await loadSession();
       } catch (_) {
@@ -509,6 +521,7 @@
           return;
         }
         showStatus(`Signed in as ${data.user.username}.`, 'success');
+        syncStoredLeaderboardName(data.user.username);
         loginForm.reset();
         await loadSession();
       } catch (_) {
@@ -622,6 +635,7 @@
         }
         currentSessionUser.username = data.user.username;
         currentSessionUser.email = data.user.email;
+        syncStoredLeaderboardName(data.user.username);
         sessionUsername.textContent = data.user.username;
         sessionMeta.textContent = `${data.user.email} · account created ${formatDate(currentSessionUser.createdAt || data.user.createdAt)}`;
         if (sessionCrest) sessionCrest.innerHTML = window.DarkDefenseCrest?.markup(data.user.username, 'dd-crest-lg', currentSessionUser.crestId || null) || '';
@@ -654,6 +668,8 @@
           return;
         }
         sessionCard.classList.add('hidden');
+        currentSessionUser = null;
+        syncStoredLeaderboardName('');
         toggleAuthForms(true);
         setTab('login');
         showStatus('You have been signed out.', 'success');

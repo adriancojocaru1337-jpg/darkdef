@@ -157,6 +157,16 @@ function getCrestCombatNote(){
   return `Active Crest: ${perk.title}. ${perk.summary}`;
 }
 
+function getSessionLeaderboardName(){
+  const username = String(activePlayerProfile?.username || "").trim();
+  if(!username || username.toLowerCase() === "guest") return "";
+  return username.slice(0, 20);
+}
+
+function getPreferredLeaderboardName(){
+  return getSessionLeaderboardName() || getStoredLeaderboardName();
+}
+
 function refreshModePills(){
   if(panelModeStory){
     panelModeStory.classList.toggle("active", currentMode === "campaign");
@@ -845,6 +855,7 @@ function getAuraData(auraType){
 }
 
 function getAuraAdjustedStats(unit){
+  const now = performance.now();
   const stats = {
     damage: unit.damage,
     range: unit.range,
@@ -870,6 +881,10 @@ function getAuraAdjustedStats(unit){
   }
   if(unit.type === "bomb" && hasActiveCrest("ember-shield")){
     stats.damage *= 1.03;
+  }
+  if((unit.hexedUntil || 0) > now){
+    stats.damage *= 0.88;
+    stats.fireRate *= 1.16;
   }
   return stats;
 }
@@ -1081,7 +1096,9 @@ function startAuraBindCinematic(unit){
   auraBindFxUnitId = unit?.id || null;
   auraBindFxTimer = 1.0;
   stageQuoteText = pickStageQuote();
-  stageQuoteSubtext = `Stage ${currentStage} cleared`;
+  stageQuoteSubtext = currentMode === "endless"
+    ? `Endless boss pair defeated`
+    : `Stage ${currentStage} cleared`;
   stageQuoteTimer = 3.6;
   stageQuoteResolveTimer = 3.2;
   setMessage(`${unit.name} received ${unit.auraName}.`);
@@ -1285,7 +1302,7 @@ async function submitStoryLeaderboardScore(finalStage=currentStage){
   if(currentMode !== "campaign") return;
   await finishTrackedRun("campaign", finalStage);
   let playerName = "";
-  playerName = getStoredLeaderboardName();
+  playerName = getPreferredLeaderboardName();
   if(!playerName){
     playerName = await requestLeaderboardName("Story", "Choose the name that will appear for your campaign run.");
   }
@@ -1325,7 +1342,7 @@ async function submitBonusLeaderboardScore(){
   await finishTrackedRun("endless", stageWave);
   if(bonusScore <= 0) return;
   let playerName = "";
-  playerName = getStoredLeaderboardName();
+  playerName = getPreferredLeaderboardName();
   if(!playerName){
     playerName = await requestLeaderboardName("Endless Bonus", "Choose the name that will appear for your endless run.");
   }
@@ -1373,10 +1390,12 @@ function requestLeaderboardName(modeLabel, helperText){
   leaderboardNameTitle.textContent = `${modeLabel} leaderboard`;
   leaderboardNameText.textContent = helperText;
 
-  let initialName = "";
-  try{
-    initialName = localStorage.getItem("sdcPlayerName") || "";
-  }catch(e){}
+  let initialName = getPreferredLeaderboardName();
+  if(!initialName){
+    try{
+      initialName = localStorage.getItem("sdcPlayerName") || "";
+    }catch(e){}
+  }
 
   leaderboardNameInput.value = initialName.trim().slice(0, 20);
   leaderboardNameOverlay.classList.remove("hidden");
@@ -1831,6 +1850,22 @@ function getWaveThreatProfile(){
     };
   }
 
+  if(currentMode === "endless" && stageWave >= 12 && stageWave % 4 === 0){
+    return {
+      key: "splitter",
+      label: "Splitter Surge",
+      detail: "Some enemies split into smaller runners on death. Keep splash and cleanup ready."
+    };
+  }
+
+  if(currentMode === "endless" && stageWave >= 16 && stageWave % 6 === 0){
+    return {
+      key: "hexed",
+      label: "Hexed Front",
+      detail: "Hexed enemies can curse towers that hit them. Keep coverage spread across multiple carries."
+    };
+  }
+
   if(stageWave % 5 === 0){
     return {
       key: "armored",
@@ -1865,6 +1900,63 @@ function getDamageMultiplierAgainstEnemy(enemy, projectileType){
   return 1;
 }
 
+function applyHexedRetaliation(enemy, unit, pos){
+  if(!enemy || enemy.type !== "hexed" || !unit) return;
+  const now = performance.now();
+  const remainingHex = (unit.hexedUntil || 0) - now;
+  if(remainingHex > 700) return;
+  unit.hexedUntil = now + 2600;
+  unit.hexFlashUntil = now + 900;
+  const unitPos = cellCenter(unit.c, unit.r);
+  showPopup(unitPos.x, unitPos.y - 24, "Hexed!", "#e879f9");
+  if(pos){
+    addHitParticles(pos.x, pos.y, 8, "#e879f9", {
+      speed: 120,
+      speedY: 105,
+      lifeMin: .16,
+      lifeMax: .30,
+      sizeMin: 1.3,
+      sizeMax: 2.8,
+      glow: 8,
+      shape: "diamond"
+    });
+  }
+}
+
+function spawnSplitterChildren(enemy, pos){
+  if(!enemy || enemy.type !== "splitter") return;
+  const childCount = 2;
+  const childHp = Math.max(28, enemy.maxHp * 0.34);
+  const childSpeed = Math.min(0.24, enemy.speed * 1.34);
+  for(let i = 0; i < childCount; i++){
+    enemies.push({
+      id: idCounter++,
+      hp: childHp,
+      maxHp: childHp,
+      speed: childSpeed,
+      progress: Math.max(0, Math.min(0.985, enemy.progress - 0.016 * (i + 1))),
+      wobble: Math.random() * Math.PI * 2,
+      type: "shardling",
+      reward: 7,
+      abilityUsed: true,
+      bossTelegraphShown: true,
+      bossStage: null,
+      bossColor: null,
+      bossName: null
+    });
+  }
+  showPopup(pos.x, pos.y - 22, "Split!", "#fca5a5");
+  addHitParticles(pos.x, pos.y, 10, "#fda4af", {
+    speed: 150,
+    speedY: 130,
+    lifeMin: .18,
+    lifeMax: .36,
+    sizeMin: 1.4,
+    sizeMax: 3.3,
+    glow: 8
+  });
+}
+
 function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
   if(!unit || !enemy) return -Infinity;
 
@@ -1876,11 +1968,13 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
 
   if(unit.type === "archer"){
     if(enemy.type === "fast") score += 140;
+    if(enemy.type === "shardling") score += 120;
     if(enemy.type === "armored") score -= 110;
     score += (1 - rangePct) * 18;
   } else if(unit.type === "hunter"){
     if(enemy.type === "boss") score += 180;
     if(enemy.type === "tank" || enemy.type === "armored") score += 90;
+    if(enemy.type === "splitter") score += 55;
     if(enemy.type === "fast") score += 25;
     score += enemy.maxHp * 0.07;
   } else if(unit.type === "mage"){
@@ -1890,6 +1984,7 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 48) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored") score += 90;
+    if(enemy.type === "splitter" || enemy.type === "shardling") score += 50;
     score += nearbyCount * 45;
   } else if(unit.type === "bomb"){
     const clusterScore = enemies.reduce((count, other)=>{
@@ -1897,6 +1992,7 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 64) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored" || enemy.type === "tank") score += 110;
+    if(enemy.type === "splitter" || enemy.type === "shardling") score += 70;
     score += clusterScore * 38;
   }
 
@@ -2237,6 +2333,17 @@ function getEndlessCycle(){
   return Math.max(1, Math.floor(stageWave / 10));
 }
 
+function getEndlessMobHpScale(){
+  if(currentMode !== "endless") return 1;
+  const cycle = getEndlessCycle();
+  return 1.12 + (cycle - 1) * 0.08;
+}
+
+function getBossAbilityTriggerThreshold(enemy){
+  if(enemy?.type !== "boss") return 0.55;
+  return currentMode === "endless" ? 0.62 : 0.55;
+}
+
 function getDifficultyWaveNumber(){
   return currentMode === "endless" ? stageWave : wave;
 }
@@ -2313,11 +2420,11 @@ function moveUnitsToReserve(){
 }
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
-  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specBonusVsArmored:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
+  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, hexedUntil:0, hexFlashUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specBonusVsArmored:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
 }
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
-  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specBonusVsArmored=1; unit.specStunChance=0; unit.specStunDuration=0;
+  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.hexedUntil=0; unit.hexFlashUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specBonusVsArmored=1; unit.specStunChance=0; unit.specStunDuration=0;
   return unit;
 }
 function takeReservedUnit(typeKey,c,r){
@@ -2331,6 +2438,8 @@ function takeReservedUnit(typeKey,c,r){
   });
   const unit=reservePool[typeKey].shift();
   unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0;
+  unit.hexedUntil = 0;
+  unit.hexFlashUntil = 0;
   if(unit.specBonusVsArmored == null) unit.specBonusVsArmored = 1;
   return unit;
 }
@@ -2631,10 +2740,11 @@ function getBossHpBonus(stageNumber){
 
 function enemyTemplateForSpawn(indexFromEnd){
   const stage=STAGES[currentStage];
+  const endlessMobHpScale = getEndlessMobHpScale();
   if(currentMode === "endless" && isCurrentWaveBoss() && indexFromEnd <= pendingEndlessBossPair.length){
     const bossStage = pendingEndlessBossPair[pendingEndlessBossPair.length - indexFromEnd];
     const cycle = getEndlessCycle();
-    const scale = 1 + (cycle - 1) * 0.35;
+    const scale = 1 + (cycle - 1) * 0.42;
     return {type:"boss", hpMult:4.0 * STAGES[bossStage].difficulty * scale * getBossHpBonus(bossStage), speed:.05 + bossStage * .003 + (cycle - 1) * .005, reward:140 + (cycle - 1) * 30, bossStage, bossColor: STAGE_BOSS[bossStage].color, bossName: STAGE_BOSS[bossStage].name};
   }
   const boss=isCurrentWaveBoss() && indexFromEnd===1;
@@ -2642,10 +2752,32 @@ function enemyTemplateForSpawn(indexFromEnd){
   if(stageWave % 5 === 0){
     const armoredWindow = enemyCountForWave(stageWave);
     if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * 0.4))){
-      return {type:"armored", hpMult:1.55*stage.difficulty, speed:.082+currentStage*.0025, reward:26};
+      return {type:"armored", hpMult:1.55 * stage.difficulty * endlessMobHpScale, speed:.082+currentStage*.0025, reward:26};
     }
   }
   const roll=Math.random();
+  if(currentMode === "endless" && stageWave >= 12 && !isCurrentWaveBoss()){
+    const splitterChance = Math.min(0.17, 0.07 + Math.max(0, stageWave - 12) * 0.004);
+    if(roll < splitterChance){
+      return {
+        type:"splitter",
+        hpMult:1.22 * stage.difficulty * endlessMobHpScale,
+        speed:Math.min(0.17, 0.094 + getDifficultyWaveNumber() * 0.003),
+        reward:24
+      };
+    }
+  }
+  if(currentMode === "endless" && stageWave >= 16 && !isCurrentWaveBoss()){
+    const hexedChance = Math.min(0.14, 0.05 + Math.max(0, stageWave - 16) * 0.003);
+    if(roll < hexedChance){
+      return {
+        type:"hexed",
+        hpMult:0.98 * stage.difficulty * endlessMobHpScale,
+        speed:Math.min(0.18, 0.096 + getDifficultyWaveNumber() * 0.0031),
+        reward:23
+      };
+    }
+  }
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
     const difficultyWave = getDifficultyWaveNumber();
@@ -2654,13 +2786,13 @@ function enemyTemplateForSpawn(indexFromEnd){
       : (.135 + difficultyWave * .0035);
     return {
       type:"fast",
-      hpMult:(isLateStageFast ? .52 : .75) * stage.difficulty,
+      hpMult:(isLateStageFast ? .52 : .75) * stage.difficulty * endlessMobHpScale,
       speed:isLateStageFast ? lateStageFastSpeed : (.15 + difficultyWave*.004),
       reward:isLateStageFast ? 18 : 16
     };
   }
-  if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0*stage.difficulty,speed:.07+currentStage*.002,reward:28};
-  return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
+  if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0 * stage.difficulty * endlessMobHpScale,speed:.07+currentStage*.002,reward:28};
+  return {type:"normal",hpMult:1.0 * stage.difficulty * endlessMobHpScale,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
 }
 function spawnEnemy(){
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
@@ -2965,7 +3097,7 @@ function rewardKill(enemy,pos){
     reward += Math.max(1, Math.round(enemy.reward * 0.04));
   }
   money += reward; kills += 1;
-  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="fast"?70:50;
+  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="splitter"?95:enemy.type==="hexed"?88:enemy.type==="shardling"?48:enemy.type==="fast"?70:50;
   const scoreBonus=isCurrentWaveBoss()?40:0;
   addScore(baseScore,scoreBonus);
   if(enemy.lastHitAuraType === "wealth"){
@@ -3134,7 +3266,9 @@ function update(dt){
     enemy.progress += enemy.speed * spellSlowFactor * auraSlowFactor * specSlowFactor * freezeFactor * stunFactor * dt;
     if(enemy.type==="boss" && !enemy.abilityUsed){
       const bossStage = enemy.bossStage || currentStage;
-      if(!enemy.bossTelegraphShown && enemy.hp < enemy.maxHp * 0.68 && enemy.hp >= enemy.maxHp * 0.55){
+      const abilityTriggerThreshold = getBossAbilityTriggerThreshold(enemy);
+      const telegraphThreshold = Math.min(0.72, abilityTriggerThreshold + 0.13);
+      if(!enemy.bossTelegraphShown && enemy.hp < enemy.maxHp * telegraphThreshold && enemy.hp >= enemy.maxHp * abilityTriggerThreshold){
         const meta = getBossAbilityMeta(bossStage);
         enemy.bossTelegraphShown = true;
         bossTelegraphType = STAGES[bossStage].bossAbility;
@@ -3142,7 +3276,7 @@ function update(dt){
         bossTelegraphTimer = 1.15;
         startBossCastBanner(`${meta.short} incoming`, meta.color, 1.15);
       }
-      if(enemy.hp<enemy.maxHp*.55) triggerBossAbility(enemy);
+      if(enemy.hp < enemy.maxHp * abilityTriggerThreshold) triggerBossAbility(enemy);
     }
     if(enemy.progress>=1){
       enemies.splice(i,1);
@@ -3213,6 +3347,7 @@ function update(dt){
             if(owner) markEnemyHit(enemy, owner, projectile.damage);
             applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
             applySpecializationStatusOnEnemy(enemy, owner, pos, projectile.damage);
+            applyHexedRetaliation(enemy, owner, pos);
           }
         }
       }
@@ -3225,6 +3360,7 @@ function update(dt){
             if(owner) markEnemyHit(enemy, owner, projectile.damage);
             applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
             applySpecializationStatusOnEnemy(enemy, owner, pos, projectile.damage);
+            applyHexedRetaliation(enemy, owner, pos);
           }
         }
       }
@@ -3235,6 +3371,7 @@ function update(dt){
         if(owner) markEnemyHit(target, owner, finalDamage);
         applyAuraStatusOnEnemy(target, owner, targetPos, finalDamage);
         applySpecializationStatusOnEnemy(target, owner, targetPos, finalDamage);
+        applyHexedRetaliation(target, owner, targetPos);
         if(damageMult < 0.95) addArmorDeflectEffect(targetPos.x, targetPos.y);
         addHitParticles(targetPos.x,targetPos.y,4,projectile.color,{
           speed: damageMult < 0.95 ? 80 : 110,
@@ -3260,6 +3397,7 @@ function update(dt){
       const defeatedEnemy = enemies[i];
       const pos=getPathPosition(defeatedEnemy.progress);
       rewardKill(defeatedEnemy,pos);
+      if(defeatedEnemy.type === "splitter") spawnSplitterChildren(defeatedEnemy, pos);
       enemies.splice(i,1);
       if(defeatedEnemy.type==="boss") syncBossLoop();
       updateUI();
@@ -4112,6 +4250,7 @@ function drawPlacementPreview(){
 function drawPlacedUnit(unit){
   const pos=cellCenter(unit.c,unit.r), angle=unit.aimAngle||-.2, selected=unit.id===selectedPlacedUnitId;
   const aura = getAuraData(unit.auraType);
+  const isHexed = (unit.hexedUntil || 0) > performance.now();
 
   if(aura){
     const pulse = 22 + Math.sin(performance.now() * 0.005 + unit.id) * 2;
@@ -4153,6 +4292,25 @@ function drawPlacedUnit(unit){
     ctx.beginPath();
     ctx.arc(pos.x,pos.y,28,0,Math.PI*2);
     ctx.fill();
+  }
+
+  if(isHexed){
+    ctx.save();
+    ctx.globalAlpha = 0.20 + Math.sin(performance.now() * 0.01 + unit.id) * 0.05;
+    ctx.strokeStyle = "#e879f9";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y + 2, 22, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(8,17,31,.88)";
+    roundRect(pos.x - 20, pos.y - 56, 40, 16, 8);
+    ctx.fill();
+    ctx.fillStyle = "#f0abfc";
+    ctx.font = "bold 11px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("HEXED", pos.x, pos.y - 44);
+    ctx.textAlign = "start";
+    ctx.restore();
   }
 
 
@@ -4378,7 +4536,7 @@ const drawUnits=()=>units.forEach(drawPlacedUnit);
 
 function drawEnemy(enemy){
   const pos=getPathPosition(enemy.progress), bob=Math.sin(performance.now()*.01+enemy.wobble)*(enemy.type==="boss"?2.8:1.8);
-  const x=pos.x,y=pos.y+bob, scale=enemy.type==="boss"?1.55:enemy.type==="tank"?1.18:enemy.type==="armored"?1.08:enemy.type==="fast"?.88:1, hpPct=Math.max(0,enemy.hp/enemy.maxHp);
+  const x=pos.x,y=pos.y+bob, scale=enemy.type==="boss"?1.55:enemy.type==="tank"?1.18:enemy.type==="armored"?1.08:enemy.type==="splitter"?1.06:enemy.type==="hexed"?.94:enemy.type==="shardling"?.74:enemy.type==="fast"?.88:1, hpPct=Math.max(0,enemy.hp/enemy.maxHp);
   const pulseT = performance.now() * 0.008 + enemy.wobble;
 
   ctx.save(); ctx.translate(x,y); ctx.scale(scale,scale);
@@ -4430,12 +4588,33 @@ function drawEnemy(enemy){
     ctx.stroke();
     ctx.restore();
   }
-  ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
+  ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
   if(currentStage===6 && enemy.type!=="boss") ctx.strokeStyle="#c4b5fd";
   ctx.lineWidth=enemy.type==="boss"?2.3:2;
   ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,12); ctx.moveTo(-7,3); ctx.lineTo(7,3); ctx.moveTo(0,12); ctx.lineTo(-6,20); ctx.moveTo(0,12); ctx.lineTo(6,20); ctx.stroke();
   ctx.fillStyle="#111827"; ctx.beginPath(); ctx.arc(-2.5,-9,1.2,0,Math.PI*2); ctx.arc(2.5,-9,1.2,0,Math.PI*2); ctx.fill();
+  if(enemy.type==="splitter"){
+    ctx.strokeStyle = currentStage===6 ? "#f5d0fe" : "#fda4af";
+    ctx.beginPath();
+    ctx.moveTo(-6,-4); ctx.lineTo(0,1); ctx.lineTo(6,-4);
+    ctx.moveTo(-6,9); ctx.lineTo(0,4); ctx.lineTo(6,9);
+    ctx.stroke();
+  }
+  if(enemy.type==="hexed"){
+    ctx.strokeStyle = currentStage===6 ? "#f0abfc" : "#e879f9";
+    ctx.beginPath();
+    ctx.moveTo(-5,-12); ctx.lineTo(-1,-6); ctx.lineTo(-6,2);
+    ctx.moveTo(5,-12); ctx.lineTo(1,-6); ctx.lineTo(6,2);
+    ctx.moveTo(-6,8); ctx.lineTo(0,3); ctx.lineTo(6,8);
+    ctx.stroke();
+  }
+  if(enemy.type==="shardling"){
+    ctx.strokeStyle = currentStage===6 ? "#f9a8d4" : "#fb7185";
+    ctx.beginPath();
+    ctx.moveTo(0,-13); ctx.lineTo(-4,-4); ctx.lineTo(0,3); ctx.lineTo(4,-4); ctx.closePath();
+    ctx.stroke();
+  }
   if(enemy.type==="armored"){
     ctx.strokeStyle = currentStage===6 ? "#ddd6fe" : "#94a3b8";
     ctx.beginPath();
@@ -4468,7 +4647,7 @@ function drawEnemy(enemy){
 
   const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?38:24);
   ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
-  ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="fast"?"#38bdf8":"#22c55e";
+  ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
   roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
