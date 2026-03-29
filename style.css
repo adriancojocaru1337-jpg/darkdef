@@ -249,34 +249,39 @@ body::after {
 }
 .panel-kicker, .section-label { text-transform:uppercase; letter-spacing:.12em; color:#c09b68; font-size:12px; }
 .panel-header h2, .side-card h3 { margin:0; }
+.panel-title-row{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  flex-wrap:wrap;
+}
 .panel-mode-switch{
   display:inline-flex;
   align-items:center;
-  gap:8px;
-  margin-top:12px;
+  gap:6px;
   flex-wrap:wrap;
 }
 .panel-mode-pill{
   display:inline-flex;
   align-items:center;
-  min-height:32px;
-  padding:6px 12px;
+  min-height:28px;
+  padding:4px 10px;
   border-radius:999px;
   border:1px solid rgba(148,163,184,.14);
   background:rgba(8,17,31,.66);
-  color:#cbd5e1;
-  font-size:11px;
+  color:rgba(203,213,225,.78);
+  font-size:10px;
   font-weight:800;
-  letter-spacing:.12em;
+  letter-spacing:.10em;
   text-transform:uppercase;
 }
 .panel-mode-pill.active{
-  border-color:rgba(205,157,96,.42);
-  background:linear-gradient(180deg, rgba(58,38,22,.92), rgba(18,12,8,.94));
-  color:#f4e7cd;
+  border-color:rgba(205,157,96,.28);
+  background:rgba(43,29,19,.72);
+  color:#eadfc4;
 }
 .panel-mode-pill.locked{
-  opacity:.62;
+  opacity:.56;
 }
 .panel-header-user{
   display:inline-flex;
@@ -312,7 +317,8 @@ body::after {
   display:inline-flex;
   align-items:center;
   min-height:40px;
-  padding:8px 14px;
+  gap:10px;
+  padding:6px 12px;
   border-radius:999px;
   background:linear-gradient(180deg, rgba(26,34,52,.92), rgba(10,16,28,.92));
   border:1px solid rgba(111,137,170,.24);
@@ -327,6 +333,15 @@ body::after {
 .panel-header-crest:hover{
   border-color:rgba(205, 157, 96, 0.38);
   color:#f3e8d4;
+}
+.panel-header-crest .dd-crest{
+  flex:0 0 auto;
+}
+.panel-header-crest-name{
+  color:inherit;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.04em;
 }
 .panel-header-logout{
   min-height:44px;
@@ -1226,8 +1241,12 @@ body::after {
     font-size:16px;
   }
 
+  .panel-title-row{
+    align-items:flex-start;
+    gap:10px;
+  }
+
   .panel-mode-switch{
-    margin-top:10px;
     gap:6px;
   }
 
@@ -1256,6 +1275,7 @@ body::after {
     justify-content:center;
     white-space:normal;
     text-align:center;
+    gap:8px;
   }
 
   .panel-header-user-value{

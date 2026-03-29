@@ -139,6 +139,12 @@ function getActiveCrestPerk(){
   return CREST_PERKS[getActiveCrestId()] || null;
 }
 
+function getActiveCrestLabel(){
+  const crestId = getActiveCrestId();
+  if(!crestId) return "";
+  return window.DarkDefenseCrest?.presets?.[crestId]?.label || crestId;
+}
+
 function getRoyalBonusAmount(amount){
   const value = Number(amount || 0);
   if(!value) return 0;
@@ -165,16 +171,19 @@ function refreshModePills(){
 function refreshPanelCrestPerk(){
   if(!panelHeaderCrestPerk) return;
   const perk = getActiveCrestPerk();
+  const crestLabel = getActiveCrestLabel();
+  const crestId = getActiveCrestId();
   if(!perk){
-    panelHeaderCrestPerk.textContent = "";
+    panelHeaderCrestPerk.innerHTML = "";
     panelHeaderCrestPerk.removeAttribute("title");
     panelHeaderCrestPerk.removeAttribute("aria-label");
     panelHeaderCrestPerk.classList.add("hidden");
     return;
   }
-  panelHeaderCrestPerk.textContent = perk.title;
-  panelHeaderCrestPerk.setAttribute("title", perk.summary);
-  panelHeaderCrestPerk.setAttribute("aria-label", `${perk.title}. ${perk.summary}`);
+  const crestMarkup = window.DarkDefenseCrest?.markup(activePlayerProfile?.username || "Player", "dd-crest-sm", crestId) || "";
+  panelHeaderCrestPerk.innerHTML = `${crestMarkup}<span class="panel-header-crest-name">${crestLabel}</span>`;
+  panelHeaderCrestPerk.setAttribute("title", `${crestLabel}: ${perk.title}. ${perk.summary}`);
+  panelHeaderCrestPerk.setAttribute("aria-label", `${crestLabel}: ${perk.title}. ${perk.summary}`);
   panelHeaderCrestPerk.classList.remove("hidden");
 }
 
