@@ -4924,6 +4924,8 @@ function drawEnemy(enemy){
   const pulseT = performance.now() * 0.008 + enemy.wobble;
   const isHexedEnemy = enemy.type==="hexed";
   const isPhasedEnemy = enemy.type==="phantom" && (enemy.phantomPhaseTimer || 0) > 0;
+  const bossStage = enemy.bossStage || currentStage;
+  const hasBossSprite = enemy.type==="boss" && bossSprites[bossStage]?.complete && bossSprites[bossStage]?.naturalWidth;
 
   ctx.save(); ctx.translate(x,y); ctx.scale(scale,scale);
   if(isPhasedEnemy) ctx.globalAlpha = 0.38 + Math.sin(pulseT * 1.8) * 0.08;
@@ -5026,16 +5028,15 @@ function drawEnemy(enemy){
     ctx.restore();
   }
   if(enemy.type==="boss"){
-    const bossStage = enemy.bossStage || currentStage;
     const bossSprite = bossSprites[bossStage];
-    if(bossSprite?.complete && bossSprite.naturalWidth){
+    if(hasBossSprite){
       ctx.save();
-      ctx.translate(0, 6 + Math.sin(pulseT * 0.55) * 1.6);
+      ctx.translate(0, 7 + Math.sin(pulseT * 0.55) * 1.5);
       const sway = Math.sin(pulseT * 0.42) * 0.035;
       ctx.rotate(sway);
       ctx.shadowColor = enemy.bossColor || (currentStage===6 ? "rgba(196,132,252,.38)" : "rgba(245,158,11,.32)");
-      ctx.shadowBlur = 14;
-      ctx.drawImage(bossSprite, -40, -56, 80, 80);
+      ctx.shadowBlur = 12;
+      ctx.drawImage(bossSprite, -36, -52, 72, 72);
       ctx.restore();
     } else {
       ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
@@ -5128,7 +5129,7 @@ function drawEnemy(enemy){
     ctx.moveTo(-5,4); ctx.lineTo(0,8); ctx.lineTo(5,4);
     ctx.stroke();
   }
-  if(enemy.type==="boss"){
+  if(enemy.type==="boss" && !hasBossSprite){
     ctx.strokeStyle=currentStage===6 ? "#c084fc" : "#f59e0b";
     ctx.beginPath(); ctx.moveTo(-6,-14); ctx.lineTo(-2,-18); ctx.lineTo(0,-13); ctx.lineTo(2,-18); ctx.lineTo(6,-14); ctx.stroke();
   }
@@ -5151,7 +5152,7 @@ function drawEnemy(enemy){
   }
   ctx.restore();
 
-  const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?38:24);
+  const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?44:24);
   ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
   ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="warden"?"#38bdf8":enemy.type==="leech-priest"?"#86efac":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#a78bfa":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
   roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
