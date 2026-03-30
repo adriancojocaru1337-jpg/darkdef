@@ -5034,9 +5034,9 @@ function drawEnemy(enemy){
       ctx.translate(0, 7 + Math.sin(pulseT * 0.55) * 1.5);
       const sway = Math.sin(pulseT * 0.42) * 0.035;
       ctx.rotate(sway);
-      ctx.shadowColor = enemy.bossColor || (currentStage===6 ? "rgba(196,132,252,.38)" : "rgba(245,158,11,.32)");
-      ctx.shadowBlur = 12;
-      ctx.drawImage(bossSprite, -36, -52, 72, 72);
+      ctx.shadowColor = enemy.bossColor || (currentStage===6 ? "rgba(196,132,252,.26)" : "rgba(245,158,11,.22)");
+      ctx.shadowBlur = 9;
+      ctx.drawImage(bossSprite, -33, -48, 66, 66);
       ctx.restore();
     } else {
       ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
@@ -5152,7 +5152,7 @@ function drawEnemy(enemy){
   }
   ctx.restore();
 
-  const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?44:24);
+  const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?48:24);
   ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
   ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="warden"?"#38bdf8":enemy.type==="leech-priest"?"#86efac":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#a78bfa":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
   roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
