@@ -1908,6 +1908,30 @@ function getWaveThreatProfile(){
     };
   }
 
+  if(currentMode === "endless" && stageWave >= 22 && stageWave % 7 === 3){
+    return {
+      key: "blinker",
+      label: "Blinker Rush",
+      detail: "Blinkers lurch forward in short jumps. Save burst for anything that slips past the first kill zone."
+    };
+  }
+
+  if(currentMode === "endless" && stageWave >= 24 && stageWave % 9 === 0){
+    return {
+      key: "phantom",
+      label: "Phantom Veil",
+      detail: "Phantoms phase in and out of reality. They can briefly ignore tower fire if your timing is bad."
+    };
+  }
+
+  if(currentMode === "endless" && stageWave >= 26 && stageWave % 10 === 6){
+    return {
+      key: "abyss-herald",
+      label: "Abyss Herald",
+      detail: "A rare herald enters the lane carrying one random boss technique. Keep the wave under control before it triggers."
+    };
+  }
+
   if(stageWave % 5 === 0){
     return {
       key: "armored",
@@ -2009,17 +2033,24 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
   if(enemy.type === "boss") score += 220;
   if(enemy.type === "warden") score += 150;
   if(enemy.type === "leech-priest") score += 170;
+  if(enemy.type === "blinker") score += 160;
+  if(enemy.type === "phantom") score += 175;
+  if(enemy.type === "abyss-herald") score += 210;
 
   if(unit.type === "archer"){
     if(enemy.type === "fast") score += 140;
     if(enemy.type === "shardling") score += 120;
     if(enemy.type === "leech-priest") score += 105;
+    if(enemy.type === "blinker" || enemy.type === "phantom") score += 115;
+    if(enemy.type === "abyss-herald") score += 145;
     if(enemy.type === "armored") score -= 110;
     score += (1 - rangePct) * 18;
   } else if(unit.type === "hunter"){
     if(enemy.type === "boss") score += 180;
     if(enemy.type === "tank" || enemy.type === "armored") score += 90;
     if(enemy.type === "warden" || enemy.type === "leech-priest") score += 120;
+    if(enemy.type === "blinker" || enemy.type === "phantom") score += 135;
+    if(enemy.type === "abyss-herald") score += 150;
     if(enemy.type === "splitter") score += 55;
     if(enemy.type === "fast") score += 25;
     score += enemy.maxHp * 0.07;
@@ -2031,6 +2062,8 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
     }, 0);
     if(enemy.type === "armored") score += 90;
     if(enemy.type === "warden" || enemy.type === "leech-priest") score += 85;
+    if(enemy.type === "blinker" || enemy.type === "phantom") score += 95;
+    if(enemy.type === "abyss-herald") score += 118;
     if(enemy.type === "splitter" || enemy.type === "shardling") score += 50;
     score += nearbyCount * 45;
   } else if(unit.type === "bomb"){
@@ -2040,6 +2073,8 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
     }, 0);
     if(enemy.type === "armored" || enemy.type === "tank") score += 110;
     if(enemy.type === "warden" || enemy.type === "leech-priest") score += 75;
+    if(enemy.type === "blinker" || enemy.type === "phantom") score += 84;
+    if(enemy.type === "abyss-herald") score += 110;
     if(enemy.type === "splitter" || enemy.type === "shardling") score += 70;
     score += clusterScore * 38;
   }
@@ -2868,6 +2903,39 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
+  if(currentMode === "endless" && stageWave >= 22 && !isCurrentWaveBoss()){
+    const blinkerChance = Math.min(0.12, 0.04 + Math.max(0, stageWave - 22) * 0.0022);
+    if(roll < blinkerChance){
+      return {
+        type:"blinker",
+        hpMult:1.08 * stage.difficulty * endlessMobHpScale,
+        speed:Math.min(0.175, 0.092 + getDifficultyWaveNumber() * 0.0029),
+        reward:30
+      };
+    }
+  }
+  if(currentMode === "endless" && stageWave >= 24 && !isCurrentWaveBoss()){
+    const phantomChance = Math.min(0.11, 0.035 + Math.max(0, stageWave - 24) * 0.002);
+    if(roll < phantomChance){
+      return {
+        type:"phantom",
+        hpMult:0.94 * stage.difficulty * endlessMobHpScale,
+        speed:Math.min(0.166, 0.086 + getDifficultyWaveNumber() * 0.0027),
+        reward:32
+      };
+    }
+  }
+  if(currentMode === "endless" && stageWave >= 26 && !isCurrentWaveBoss()){
+    const heraldChance = Math.min(0.08, 0.022 + Math.max(0, stageWave - 26) * 0.0016);
+    if(roll < heraldChance){
+      return {
+        type:"abyss-herald",
+        hpMult:1.26 * stage.difficulty * endlessMobHpScale,
+        speed:Math.min(0.152, 0.078 + getDifficultyWaveNumber() * 0.0024),
+        reward:38
+      };
+    }
+  }
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
     const difficultyWave = getDifficultyWaveNumber();
@@ -2887,7 +2955,8 @@ function enemyTemplateForSpawn(indexFromEnd){
 function spawnEnemy(){
   const difficultyWave = getDifficultyWaveNumber();
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, difficultyWave)*13+currentStage*9;
-  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null, wardenBuffFactor:1, wardedUntil:0, healPulseCooldown:t.type==="leech-priest"?1.8 + Math.random() * 0.8:0, priestGlowUntil:0 };
+  const heraldAbility = t.type==="abyss-herald" ? ["roots","rage","shield"][Math.floor(Math.random() * 3)] : null;
+  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null, wardenBuffFactor:1, wardedUntil:0, healPulseCooldown:t.type==="leech-priest"?1.8 + Math.random() * 0.8:0, priestGlowUntil:0, blinkCooldown:t.type==="blinker"?1.2 + Math.random() * 0.7:0, phantomPhaseCooldown:t.type==="phantom"?1.3 + Math.random() * 0.8:0, phantomPhaseTimer:0, heraldAbility, heraldCastFxTimer:0 };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -3188,7 +3257,7 @@ function rewardKill(enemy,pos){
     reward += Math.max(1, Math.round(enemy.reward * 0.04));
   }
   money += reward; kills += 1;
-  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="splitter"?95:enemy.type==="hexed"?88:enemy.type==="warden"?102:enemy.type==="leech-priest"?108:enemy.type==="shardling"?48:enemy.type==="fast"?70:50;
+  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="splitter"?95:enemy.type==="hexed"?88:enemy.type==="warden"?102:enemy.type==="leech-priest"?108:enemy.type==="blinker"?98:enemy.type==="phantom"?104:enemy.type==="abyss-herald"?132:enemy.type==="shardling"?48:enemy.type==="fast"?70:50;
   const scoreBonus=isCurrentWaveBoss()?40:0;
   addScore(baseScore,scoreBonus);
   if(enemy.lastHitAuraType === "wealth"){
@@ -3381,6 +3450,34 @@ function update(dt){
     if(enemy.rageFxTimer){
       enemy.rageFxTimer = Math.max(0, enemy.rageFxTimer - dt);
     }
+    if(enemy.heraldCastFxTimer){
+      enemy.heraldCastFxTimer = Math.max(0, enemy.heraldCastFxTimer - dt);
+    }
+    if(enemy.type === "blinker"){
+      enemy.blinkCooldown = Math.max(0, (enemy.blinkCooldown || 0) - dt);
+      if(enemy.blinkCooldown <= 0){
+        enemy.progress = Math.min(0.985, enemy.progress + 0.05);
+        enemy.blinkCooldown = 2.5;
+        const blinkPos = getPathPosition(enemy.progress);
+        addHitParticles(blinkPos.x, blinkPos.y - 2, 8, "#60a5fa", {
+          speed: 86,
+          speedY: 72,
+          lifeMin: .18,
+          lifeMax: .34,
+          sizeMin: 1.2,
+          sizeMax: 2.8,
+          glow: 9
+        });
+      }
+    }
+    if(enemy.type === "phantom"){
+      enemy.phantomPhaseTimer = Math.max(0, (enemy.phantomPhaseTimer || 0) - dt);
+      enemy.phantomPhaseCooldown = Math.max(0, (enemy.phantomPhaseCooldown || 0) - dt);
+      if(enemy.phantomPhaseCooldown <= 0 && enemy.phantomPhaseTimer <= 0){
+        enemy.phantomPhaseTimer = 0.75;
+        enemy.phantomPhaseCooldown = 2.8;
+      }
+    }
     if(enemy.type === "leech-priest"){
       enemy.healPulseCooldown = Math.max(0, (enemy.healPulseCooldown || 0) - dt);
       if(enemy.healPulseCooldown <= 0){
@@ -3427,6 +3524,14 @@ function update(dt){
     const freezeFactor = enemy.freezeTimer > 0 ? 0 : 1;
     const stunFactor = enemy.stunTimer > 0 ? 0 : 1;
     enemy.progress += enemy.speed * (enemy.wardenBuffFactor || 1) * spellSlowFactor * auraSlowFactor * specSlowFactor * freezeFactor * stunFactor * dt;
+    if(enemy.type==="abyss-herald" && !enemy.abilityUsed && enemy.heraldAbility){
+      const heraldThreshold = 0.58;
+      if(enemy.hp < enemy.maxHp * heraldThreshold){
+        castBossAbility(enemy, enemy.heraldAbility, 6);
+        enemy.heraldCastFxTimer = 1.0;
+        enemy.abilityUsed = true;
+      }
+    }
     if(enemy.type==="boss" && !enemy.abilityUsed){
       const bossStage = enemy.bossStage || currentStage;
       const abilityTriggerThreshold = getBossAbilityTriggerThreshold(enemy);
@@ -3496,6 +3601,20 @@ function update(dt){
     const projectile=projectiles[i], target=enemies.find(e=>e.id===projectile.targetId);
     const owner = getUnitById(projectile.ownerUnitId);
     if(!target){ projectiles.splice(i,1); continue; }
+    if(target.type === "phantom" && (target.phantomPhaseTimer || 0) > 0){
+      const phasePos = getPathPosition(target.progress);
+      addHitParticles(phasePos.x, phasePos.y - 4, 3, "#c4b5fd", {
+        speed: 40,
+        speedY: 34,
+        lifeMin: .14,
+        lifeMax: .24,
+        sizeMin: 1,
+        sizeMax: 2.1,
+        glow: 6
+      });
+      projectiles.splice(i,1);
+      continue;
+    }
     const targetPos=getPathPosition(target.progress);
     projectile.px=projectile.x; projectile.py=projectile.y;
     const dx=targetPos.x-projectile.x, dy=targetPos.y-projectile.y, d=Math.hypot(dx,dy), step=projectile.speed*dt;
@@ -4589,12 +4708,12 @@ function drawPlacedUnit(unit){
     const drawSize = isBomb ? 52 : isHunter ? 44 : isMage ? 50 : 46;
     const drawY = isBomb ? -30 : isArcher ? -28 : isHunter ? -27 : isMage ? -29 : -29;
 
-    ctx.shadowColor = isBomb ? "rgba(255,130,40,.22)" : isMage ? "rgba(168,139,250,.18)" : isHunter ? "rgba(56,189,116,.18)" : "rgba(255,184,74,.16)";
-    ctx.shadowBlur = isBomb ? 12 : isArcher ? 8 : isHunter ? 9 : 8;
+    ctx.shadowColor = isBomb ? "rgba(255,130,40,.22)" : isMage ? "rgba(168,139,250,.18)" : isHunter ? "rgba(56,189,116,.12)" : "rgba(255,184,74,.10)";
+    ctx.shadowBlur = isBomb ? 12 : isArcher ? 3 : isHunter ? 4 : 8;
     ctx.shadowOffsetY = 1;
 
-    const lightRadius = isBomb ? 24 : isMage ? 27 : isHunter ? 20 : 18;
-    const lightAlpha = isBomb ? 0.12 : isMage ? 0.13 : isHunter ? 0.10 : 0.09;
+    const lightRadius = isBomb ? 24 : isMage ? 27 : isHunter ? 12 : 10;
+    const lightAlpha = isBomb ? 0.12 : isMage ? 0.13 : isHunter ? 0.05 : 0.04;
     const lightColor = isBomb ? "255,166,92" : isMage ? "168,139,250" : isHunter ? "74,222,128" : "255,214,120";
     const flicker = 1 + Math.sin(t * (isBomb ? 1.8 : 1.25)) * 0.08;
     const glow = ctx.createRadialGradient(0, 7, 0, 0, 7, lightRadius * flicker);
@@ -4632,18 +4751,6 @@ function drawPlacedUnit(unit){
         ctx.rotate(sway);
         ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
         ctx.restore();
-
-        ctx.globalCompositeOperation = "screen";
-        const count = isHunter ? 3 : 2;
-        for(let i=0;i<count;i++){
-          const px = (isHunter ? -10 : 18) + Math.sin(t * (1.2 + i * 0.25) + i) * (isHunter ? 5 : 3);
-          const py = (isHunter ? -18 : -28) - i * (isHunter ? 7 : 10) - ((t * (isHunter ? 7 : 8) + i * 4) % (isHunter ? 5 : 6));
-          ctx.fillStyle = isHunter ? (i === 0 ? "rgba(134,239,172,.42)" : "rgba(74,222,128,.28)") : (i === 0 ? "rgba(255,214,120,.50)" : "rgba(255,138,66,.38)");
-          ctx.beginPath();
-          ctx.arc(px, py + bob * 0.2, isHunter ? (i === 0 ? 1.6 : 1.1) : (i === 0 ? 1.8 : 1.2), 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.globalCompositeOperation = "source-over";
       } else {
         ctx.save();
         ctx.rotate(sway);
@@ -4795,11 +4902,13 @@ const drawUnits=()=>units.forEach(drawPlacedUnit);
 
 function drawEnemy(enemy){
   const pos=getPathPosition(enemy.progress), bob=Math.sin(performance.now()*.01+enemy.wobble)*(enemy.type==="boss"?2.8:1.8);
-  const x=pos.x,y=pos.y+bob, scale=enemy.type==="boss"?1.55:enemy.type==="tank"?1.18:enemy.type==="armored"?1.08:enemy.type==="warden"?1.08:enemy.type==="leech-priest"?1.02:enemy.type==="splitter"?1.06:enemy.type==="hexed"?.94:enemy.type==="shardling"?.74:enemy.type==="fast"?.88:1, hpPct=Math.max(0,enemy.hp/enemy.maxHp);
+  const x=pos.x,y=pos.y+bob, scale=enemy.type==="boss"?1.55:enemy.type==="tank"?1.18:enemy.type==="armored"?1.08:enemy.type==="warden"?1.08:enemy.type==="leech-priest"?1.02:enemy.type==="blinker"?0.96:enemy.type==="phantom"?0.92:enemy.type==="abyss-herald"?1.12:enemy.type==="splitter"?1.06:enemy.type==="hexed"?.94:enemy.type==="shardling"?.74:enemy.type==="fast"?.88:1, hpPct=Math.max(0,enemy.hp/enemy.maxHp);
   const pulseT = performance.now() * 0.008 + enemy.wobble;
   const isHexedEnemy = enemy.type==="hexed";
+  const isPhasedEnemy = enemy.type==="phantom" && (enemy.phantomPhaseTimer || 0) > 0;
 
   ctx.save(); ctx.translate(x,y); ctx.scale(scale,scale);
+  if(isPhasedEnemy) ctx.globalAlpha = 0.38 + Math.sin(pulseT * 1.8) * 0.08;
   if(enemy.burnTimer > 0){
     ctx.save();
     ctx.globalAlpha = 0.24 + Math.sin(pulseT * 1.7) * 0.06;
@@ -4898,7 +5007,7 @@ function drawEnemy(enemy){
     ctx.fill();
     ctx.restore();
   }
-  ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
+  ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
   if(currentStage===6 && !["boss","warden","leech-priest","hexed","splitter","shardling","armored","fast","tank"].includes(enemy.type)) ctx.strokeStyle="#c4b5fd";
   ctx.lineWidth=enemy.type==="boss"?2.3:2;
   ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.stroke();
@@ -4925,6 +5034,32 @@ function drawEnemy(enemy){
     ctx.beginPath();
     ctx.arc(0, -8, 4.2, 0, Math.PI * 2);
     ctx.moveTo(0,-2); ctx.lineTo(-6,6); ctx.lineTo(0,11); ctx.lineTo(6,6); ctx.closePath();
+    ctx.stroke();
+  }
+  if(enemy.type==="blinker"){
+    ctx.strokeStyle = currentStage===6 ? "#bfdbfe" : "#93c5fd";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-6,-10); ctx.lineTo(1,-10); ctx.lineTo(-1,-4); ctx.lineTo(6,-4);
+    ctx.moveTo(-5,8); ctx.lineTo(2,8); ctx.lineTo(0,13); ctx.lineTo(5,13);
+    ctx.stroke();
+  }
+  if(enemy.type==="phantom"){
+    ctx.strokeStyle = currentStage===6 ? "#ddd6fe" : "#c4b5fd";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -8, 5, 0, Math.PI * 2);
+    ctx.moveTo(-6,3); ctx.lineTo(0,-1); ctx.lineTo(6,3);
+    ctx.moveTo(-4,11); ctx.lineTo(0,4); ctx.lineTo(4,11);
+    ctx.stroke();
+  }
+  if(enemy.type==="abyss-herald"){
+    ctx.strokeStyle = currentStage===6 ? "#fde68a" : "#f59e0b";
+    ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(0,-16); ctx.lineTo(-6,-8); ctx.lineTo(0,-2); ctx.lineTo(6,-8); ctx.closePath();
+    ctx.moveTo(-7,6); ctx.lineTo(0,0); ctx.lineTo(7,6);
+    ctx.moveTo(-5,13); ctx.lineTo(0,6); ctx.lineTo(5,13);
     ctx.stroke();
   }
   if(enemy.type==="hexed"){
@@ -4978,7 +5113,7 @@ function drawEnemy(enemy){
 
   const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?38:24);
   ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
-  ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="warden"?"#38bdf8":enemy.type==="leech-priest"?"#86efac":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
+  ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="warden"?"#38bdf8":enemy.type==="leech-priest"?"#86efac":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#a78bfa":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
   roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
