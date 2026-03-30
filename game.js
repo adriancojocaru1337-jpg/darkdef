@@ -396,6 +396,24 @@ function loadBossSplashImages(){
 }
 loadBossSplashImages();
 
+const bossSpriteSources = {
+  1: "assets/boss/boss-stage-1.webp",
+  2: "assets/boss/boss-stage-2.webp",
+  3: "assets/boss/boss-stage-3.webp",
+  4: "assets/boss/boss-stage-4.webp",
+  5: "assets/boss/boss-stage-5.webp",
+  6: "assets/boss/boss-stage-6.webp"
+};
+const bossSprites = {};
+function loadBossSprites(){
+  Object.entries(bossSpriteSources).forEach(([stage, src]) => {
+    const img = new Image();
+    img.src = src;
+    bossSprites[stage] = img;
+  });
+}
+loadBossSprites();
+
 const bossDefeatLogoSources = {
   campaign: "assets/ui/boss-defeat-campaign.jpg",
   endless: "assets/ui/boss-defeat-endless.jpg"
@@ -5007,12 +5025,34 @@ function drawEnemy(enemy){
     ctx.fill();
     ctx.restore();
   }
+  if(enemy.type==="boss"){
+    const bossStage = enemy.bossStage || currentStage;
+    const bossSprite = bossSprites[bossStage];
+    if(bossSprite?.complete && bossSprite.naturalWidth){
+      ctx.save();
+      ctx.translate(0, 6 + Math.sin(pulseT * 0.55) * 1.6);
+      const sway = Math.sin(pulseT * 0.42) * 0.035;
+      ctx.rotate(sway);
+      ctx.shadowColor = enemy.bossColor || (currentStage===6 ? "rgba(196,132,252,.38)" : "rgba(245,158,11,.32)");
+      ctx.shadowBlur = 14;
+      ctx.drawImage(bossSprite, -40, -56, 80, 80);
+      ctx.restore();
+    } else {
+      ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
+      if(currentStage===6 && !["boss","warden","leech-priest","hexed","splitter","shardling","armored","fast","tank"].includes(enemy.type)) ctx.strokeStyle="#c4b5fd";
+      ctx.lineWidth=enemy.type==="boss"?2.3:2;
+      ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,12); ctx.moveTo(-7,3); ctx.lineTo(7,3); ctx.moveTo(0,12); ctx.lineTo(-6,20); ctx.moveTo(0,12); ctx.lineTo(6,20); ctx.stroke();
+      ctx.fillStyle="#111827"; ctx.beginPath(); ctx.arc(-2.5,-9,1.2,0,Math.PI*2); ctx.arc(2.5,-9,1.2,0,Math.PI*2); ctx.fill();
+    }
+  } else {
   ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
   if(currentStage===6 && !["boss","warden","leech-priest","hexed","splitter","shardling","armored","fast","tank"].includes(enemy.type)) ctx.strokeStyle="#c4b5fd";
   ctx.lineWidth=enemy.type==="boss"?2.3:2;
   ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,12); ctx.moveTo(-7,3); ctx.lineTo(7,3); ctx.moveTo(0,12); ctx.lineTo(-6,20); ctx.moveTo(0,12); ctx.lineTo(6,20); ctx.stroke();
   ctx.fillStyle="#111827"; ctx.beginPath(); ctx.arc(-2.5,-9,1.2,0,Math.PI*2); ctx.arc(2.5,-9,1.2,0,Math.PI*2); ctx.fill();
+  }
   if(enemy.type==="splitter"){
     ctx.strokeStyle = currentStage===6 ? "#f5d0fe" : "#fda4af";
     ctx.beginPath();
