@@ -1879,7 +1879,7 @@ function getPathPosition(progress){
 }
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const ENDLESS_BASELINE_WAVE = 12;
+const ENDLESS_BASELINE_WAVE = 15;
 function getEndlessBaselineWave(waveNumber){
   return currentMode === "endless" ? waveNumber + (ENDLESS_BASELINE_WAVE - 1) : waveNumber;
 }
@@ -2424,7 +2424,7 @@ function getBossCountForCurrentWave(){
 
 function getWaveEnemyTotal(){
   if(currentMode === "endless" && isCurrentWaveBoss()) {
-    const escortCount = Math.max(6, Math.ceil(enemyCountForWave(stageWave) * 0.55));
+    const escortCount = Math.max(8, Math.ceil(enemyCountForWave(stageWave) * 0.72));
     return escortCount + getBossCountForCurrentWave();
   }
   return enemyCountForWave(stageWave) + getBossCountForCurrentWave();
@@ -2437,12 +2437,12 @@ function getEndlessCycle(){
 function getEndlessMobHpScale(){
   if(currentMode !== "endless") return 1;
   const cycle = getEndlessCycle();
-  return 1.22 + (cycle - 1) * 0.12;
+  return 1.34 + (cycle - 1) * 0.18;
 }
 
 function getSpawnInterval(){
   if(currentMode !== "endless") return 0.68;
-  return Math.max(0.48, 0.60 - (getEndlessCycle() - 1) * 0.025);
+  return Math.max(0.40, 0.56 - (getEndlessCycle() - 1) * 0.03);
 }
 
 function getBossAbilityTriggerThreshold(enemy){
@@ -2870,15 +2870,15 @@ function enemyTemplateForSpawn(indexFromEnd){
   if(boss) return {type:"boss",hpMult:4.0*stage.difficulty*getBossHpBonus(currentStage),speed:.05+currentStage*.003,reward:125, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
   if(stageWave % 5 === 0){
     const armoredWindow = enemyCountForWave(stageWave);
-    const armoredShare = currentMode === "endless" ? 0.56 : 0.40;
-    const armoredHpScale = currentMode === "endless" ? 1.18 : 1;
+    const armoredShare = currentMode === "endless" ? 0.66 : 0.40;
+    const armoredHpScale = currentMode === "endless" ? 1.28 : 1;
     if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * armoredShare))){
       return {type:"armored", hpMult:1.55 * stage.difficulty * endlessMobHpScale * armoredHpScale, speed:.082+currentStage*.0025, reward:26};
     }
   }
   const roll=Math.random();
-  if(currentMode === "endless" && stageWave >= 12 && !isCurrentWaveBoss()){
-    const splitterChance = Math.min(0.17, 0.07 + Math.max(0, stageWave - 12) * 0.004);
+  if(currentMode === "endless" && stageWave >= 10 && !isCurrentWaveBoss()){
+    const splitterChance = Math.min(0.22, 0.09 + Math.max(0, stageWave - 10) * 0.0045);
     if(roll < splitterChance){
       return {
         type:"splitter",
@@ -2888,8 +2888,8 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
-  if(currentMode === "endless" && stageWave >= 16 && !isCurrentWaveBoss()){
-    const hexedChance = Math.min(0.14, 0.05 + Math.max(0, stageWave - 16) * 0.003);
+  if(currentMode === "endless" && stageWave >= 13 && !isCurrentWaveBoss()){
+    const hexedChance = Math.min(0.18, 0.07 + Math.max(0, stageWave - 13) * 0.0035);
     if(roll < hexedChance){
       return {
         type:"hexed",
@@ -2899,8 +2899,8 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
-  if(currentMode === "endless" && stageWave >= 18 && !isCurrentWaveBoss()){
-    const wardenChance = Math.min(0.12, 0.04 + Math.max(0, stageWave - 18) * 0.002);
+  if(currentMode === "endless" && stageWave >= 15 && !isCurrentWaveBoss()){
+    const wardenChance = Math.min(0.15, 0.055 + Math.max(0, stageWave - 15) * 0.0022);
     if(roll < wardenChance){
       return {
         type:"warden",
@@ -2910,8 +2910,8 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
-  if(currentMode === "endless" && stageWave >= 20 && !isCurrentWaveBoss()){
-    const priestChance = Math.min(0.11, 0.035 + Math.max(0, stageWave - 20) * 0.002);
+  if(currentMode === "endless" && stageWave >= 17 && !isCurrentWaveBoss()){
+    const priestChance = Math.min(0.14, 0.05 + Math.max(0, stageWave - 17) * 0.0022);
     if(roll < priestChance){
       return {
         type:"leech-priest",
@@ -2921,8 +2921,8 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
-  if(currentMode === "endless" && stageWave >= 22 && !isCurrentWaveBoss()){
-    const blinkerChance = Math.min(0.12, 0.04 + Math.max(0, stageWave - 22) * 0.0022);
+  if(currentMode === "endless" && stageWave >= 19 && !isCurrentWaveBoss()){
+    const blinkerChance = Math.min(0.16, 0.055 + Math.max(0, stageWave - 19) * 0.0025);
     if(roll < blinkerChance){
       return {
         type:"blinker",
@@ -2932,8 +2932,8 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
-  if(currentMode === "endless" && stageWave >= 24 && !isCurrentWaveBoss()){
-    const phantomChance = Math.min(0.11, 0.035 + Math.max(0, stageWave - 24) * 0.002);
+  if(currentMode === "endless" && stageWave >= 21 && !isCurrentWaveBoss()){
+    const phantomChance = Math.min(0.14, 0.05 + Math.max(0, stageWave - 21) * 0.0022);
     if(roll < phantomChance){
       return {
         type:"phantom",
@@ -2943,8 +2943,8 @@ function enemyTemplateForSpawn(indexFromEnd){
       };
     }
   }
-  if(currentMode === "endless" && stageWave >= 26 && !isCurrentWaveBoss()){
-    const heraldChance = Math.min(0.08, 0.022 + Math.max(0, stageWave - 26) * 0.0016);
+  if(currentMode === "endless" && stageWave >= 23 && !isCurrentWaveBoss()){
+    const heraldChance = Math.min(0.10, 0.03 + Math.max(0, stageWave - 23) * 0.0018);
     if(roll < heraldChance){
       return {
         type:"abyss-herald",
