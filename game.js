@@ -79,6 +79,7 @@ const gameOverStageStat = document.getElementById("gameOverStageStat");
 const gameOverWaveStat = document.getElementById("gameOverWaveStat");
 const gameOverKillsStat = document.getElementById("gameOverKillsStat");
 const gameOverScoreStat = document.getElementById("gameOverScoreStat");
+const gameOverComboStat = document.getElementById("gameOverComboStat");
 const auraRewardOverlay = document.getElementById("auraRewardOverlay");
 const auraRewardList = document.getElementById("auraRewardList");
 const auraRewardText = document.getElementById("auraRewardText");
@@ -316,23 +317,23 @@ const STAGES = {
     route:[{c:0,r:4},{c:4,r:4},{c:4,r:2},{c:9,r:2},{c:9,r:7},{c:13,r:7},{c:13,r:3},{c:17,r:3}],
     grassPatches:[{x:42,y:26,w:120,h:72},{x:790,y:408,w:124,h:76},{x:368,y:438,w:140,h:52}],
     trees:[{x:98,y:116},{x:918,y:466},{x:956,y:86},{x:710,y:118}]},
-  2: { name:"Ruins", bossWave:6, difficulty:1.25, bossAbility:"rage",
+  2: { name:"Ruins", bossWave:6, difficulty:1.35, bossAbility:"rage",
     route:[{c:0,r:7},{c:5,r:7},{c:5,r:2},{c:9,r:2},{c:9,r:5},{c:14,r:5},{c:14,r:2},{c:17,r:2}],
     grassPatches:[{x:84,y:352,w:166,h:98},{x:704,y:38,w:160,h:78},{x:408,y:212,w:112,h:62}],
     ruins:[{x:108,y:126},{x:846,y:168},{x:770,y:424},{x:524,y:302}]},
-  3: { name:"Graveyard", bossWave:7, difficulty:1.5, bossAbility:"summon",
+  3: { name:"Graveyard", bossWave:7, difficulty:1.7, bossAbility:"summon",
     route:[{c:0,r:5},{c:3,r:5},{c:3,r:7},{c:9,r:7},{c:9,r:2},{c:14,r:2},{c:14,r:6},{c:17,r:6}],
     grassPatches:[{x:102,y:44,w:162,h:62},{x:476,y:376,w:124,h:76},{x:804,y:298,w:110,h:64}],
     ruins:[{x:150,y:178},{x:596,y:132},{x:866,y:380},{x:700,y:466}]},
-  4: { name:"Castle", bossWave:8, difficulty:1.85, bossAbility:"shield",
+  4: { name:"Castle", bossWave:8, difficulty:2.15, bossAbility:"shield",
     route:[{c:0,r:2},{c:6,r:2},{c:6,r:5},{c:10,r:5},{c:10,r:2},{c:15,r:2},{c:15,r:7},{c:17,r:7}],
     grassPatches:[{x:54,y:402,w:144,h:74},{x:744,y:64,w:152,h:66},{x:514,y:434,w:128,h:54}],
     ruins:[{x:184,y:236},{x:790,y:286},{x:918,y:186}]},
-  5: { name:"Catacombs", bossWave:9, difficulty:2.05, bossAbility:"rage",
+  5: { name:"Catacombs", bossWave:9, difficulty:2.55, bossAbility:"rage",
     route:[{c:0,r:6},{c:2,r:6},{c:2,r:2},{c:8,r:2},{c:8,r:7},{c:13,r:7},{c:13,r:3},{c:17,r:3}],
     grassPatches:[{x:78,y:72,w:108,h:48},{x:794,y:434,w:134,h:52},{x:470,y:300,w:116,h:64}],
     ruins:[{x:366,y:258},{x:846,y:154},{x:628,y:456}]},
-  6: { name:"Dark Portal", bossWave:10, difficulty:2.25, bossAbility:"shield",
+  6: { name:"Dark Portal", bossWave:10, difficulty:3.0, bossAbility:"shield",
     route:[{c:0,r:2},{c:5,r:2},{c:5,r:7},{c:8,r:7},{c:8,r:2},{c:13,r:2},{c:13,r:7},{c:17,r:7}],
     grassPatches:[{x:86,y:42,w:120,h:62},{x:752,y:344,w:166,h:84},{x:500,y:458,w:124,h:52}],
     ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]}
@@ -614,6 +615,9 @@ const AURA_REWARDS = {
   }
 };
 
+const FONT_UI = '"Inter", Arial, Helvetica, sans-serif';
+const FONT_DISPLAY = '"Cinzel", Georgia, "Times New Roman", serif';
+
 let currentStage = 1, path = STAGES[currentStage].route, pathCells = buildPathCells(path);
 let units = [], enemies = [], projectiles = [], particles = [], popups = [], placementEffects = [], upgradeEffects = [], impactBursts = [], screenFlashes = [];
 let money = START_MONEY, lives = START_LIVES, score = 0, bonusScore = 0, kills = 0;
@@ -621,6 +625,45 @@ let wave = 1, stageWave = 1, waveActive = false, spawnLeft = 0, selectedUnitType
 let isHudManuallyHidden = false, isPlacementHudAutoHidden = false;
 let spawnTimer = 0, idCounter = 1, lastTime = 0, hoveredCell = null, isPaused = false, hasStarted = false, bossBannerTimer = 0, stageStartLives = START_LIVES;
 let currentMode = "campaign", endlessUnlocked = false;
+let comboCount = 0, comboTimer = 0, comboPop = 0, comboBest = 0;
+let waveCallBonus = 0, waveCallBonusMax = 0;
+const WAVE_CALL_DECAY_SECONDS = 30;
+function armWaveCallBonus(){
+  waveCallBonusMax = 16 + stageWave * 3 + currentStage * 4;
+  waveCallBonus = waveCallBonusMax;
+}
+const COMBO_WINDOW = 2.6;
+function getBestComboRecord(){
+  try { return parseInt(localStorage.getItem("sdcBestCombo") || "0", 10) || 0; } catch(e){ return 0; }
+}
+function getComboMultiplier(){
+  return comboCount >= 20 ? 2 : comboCount >= 10 ? 1.5 : comboCount >= 5 ? 1.25 : 1;
+}
+function registerComboKill(pos){
+  comboCount += 1;
+  comboBest = Math.max(comboBest, comboCount);
+  comboTimer = COMBO_WINDOW;
+  comboPop = 1;
+  if(comboCount === 5 || comboCount === 10 || comboCount === 20){
+    tone("sine", 520 + comboCount * 14, 760 + comboCount * 16, .09, .016);
+    showPopup(pos.x, pos.y - 44, `COMBO x${comboCount}!`, comboCount >= 20 ? "#f472b6" : comboCount >= 10 ? "#fbbf24" : "#5eead4");
+  }
+  if(comboCount >= 10) unlockAchievement("combo_10");
+  if(comboCount >= 25) unlockAchievement("combo_25");
+  if(comboCount > getBestComboRecord()){
+    try { localStorage.setItem("sdcBestCombo", String(comboCount)); } catch(e){}
+    if(comboCount >= 10) showPopup(pos.x, pos.y - 58, "New combo record!", "#f472b6");
+  }
+}
+function breakCombo(rewarded){
+  if(rewarded && comboCount >= 10){
+    const bonus = comboCount * 8;
+    bonusScore += bonus;
+    pushNotification("achievement", "Combo finished", `Combo x${comboCount} — +${bonus} bonus score.`);
+  }
+  comboCount = 0;
+  comboTimer = 0;
+}
 let bossFxTimer = 0;
 let bossFxType = "";
 let bossTelegraphTimer = 0;
@@ -716,7 +759,9 @@ const achievements = {
   stage6_clear:false,
   first_endless_boss_pair:false,
   endless_wave_20:false,
-  endless_wave_30:false
+  endless_wave_30:false,
+  combo_10:false,
+  combo_25:false
 };
 
 const ACHIEVEMENT_CONFIG = {
@@ -731,7 +776,9 @@ const ACHIEVEMENT_CONFIG = {
   stage6_clear:{ title:"Campaign Conqueror", goldReward:100 },
   first_endless_boss_pair:{ title:"Twin Terrors Broken", goldReward:75 },
   endless_wave_20:{ title:"Abyss Walker", goldReward:75 },
-  endless_wave_30:{ title:"Beyond the Threshold", goldReward:100 }
+  endless_wave_30:{ title:"Beyond the Threshold", goldReward:100 },
+  combo_10:{ title:"Chain Reaction", goldReward:25 },
+  combo_25:{ title:"Unbroken Slaughter", goldReward:75 }
 };
 
 function getAchievementRewardClaimKey(key){
@@ -760,6 +807,40 @@ function getAuraData(auraType){
   return auraType ? AURA_REWARDS[auraType] || null : null;
 }
 
+/* ============================================================
+   TOWER SYNERGIES — adjacent towers (8-neighborhood) of a
+   DIFFERENT type grant a bonus. Each distinct neighbor type
+   counts once, so stacking duplicates does nothing.
+   ============================================================ */
+const SYNERGY_CONFIG = {
+  archer: { name:"Volley Drill",   icon:"🏹", color:"#34d399", desc:"+8% attack speed" },
+  hunter: { name:"Marked Targets", icon:"🎯", color:"#f59e0b", desc:"+8% damage" },
+  mage:   { name:"Arcane Insight", icon:"🔮", color:"#a78bfa", desc:"+6% range" },
+  bomb:   { name:"Shrapnel Craft", icon:"💣", color:"#fb7185", desc:"+10% splash radius" }
+};
+function getUnitSynergies(unit, cOverride, rOverride, typeOverride){
+  const c = cOverride ?? unit?.c, r = rOverride ?? unit?.r, myType = typeOverride ?? unit?.type;
+  const found = new Set(), partners = [];
+  for(const other of units){
+    if(unit && other.id === unit.id) continue;
+    if(Math.abs(other.c - c) > 1 || Math.abs(other.r - r) > 1) continue;
+    if(other.type === myType) continue;
+    if(!found.has(other.type)) found.add(other.type);
+    partners.push(other);
+  }
+  return { types: [...found], partners };
+}
+function applySynergiesToStats(stats, unit){
+  const syn = getUnitSynergies(unit);
+  for(const t of syn.types){
+    if(t === "archer") stats.fireRate *= 0.92;
+    else if(t === "hunter") stats.damage *= 1.08;
+    else if(t === "mage") stats.range *= 1.06;
+    else if(t === "bomb" && stats.splash > 0) stats.splash *= 1.10;
+  }
+  return stats;
+}
+
 function getAuraAdjustedStats(unit){
   const stats = {
     damage: unit.damage,
@@ -781,6 +862,7 @@ function getAuraAdjustedStats(unit){
       stats.projectileSpeed *= 1.20;
     }
   }
+  applySynergiesToStats(stats, unit);
   return stats;
 }
 
@@ -1022,6 +1104,11 @@ function resolveBossWaveCompletion(){
   if(resolution.type === "campaign-next-stage") {
     const clearedStage = Math.max(1, resolution.nextStage - 1);
     const clearReward = getStageClearGoldReward(clearedStage);
+    if(lives < START_LIVES){
+      const healed = Math.min(2, START_LIVES - lives);
+      lives += healed;
+      pushNotification("stage","The gate is mended",`+${healed} ${healed === 1 ? "life" : "lives"} restored for the next stage.`);
+    }
     wave += 1;
     if(clearReward > 0){
       money += clearReward;
@@ -1051,6 +1138,10 @@ function resolveBossWaveCompletion(){
     updateUI();
     return;
   } else if(resolution.type === "endless-next") {
+    if(lives < START_LIVES){
+      lives += 1;
+      pushNotification("stage","The gate holds","+1 life restored after the boss pair.");
+    }
     runEndlessBossPairsDefeated += 1;
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
@@ -1060,6 +1151,7 @@ function resolveBossWaveCompletion(){
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
   isPaused = false;
+  armWaveCallBonus();
   updateUI();
 }
 
@@ -1641,7 +1733,41 @@ function playShootSound(kind="arrow"){
   else audioAssets.arrow.play();
 }
 function playHitSound(){ tone("square",220,120,.06,.012); }
-function playDeathSound(){ tone("triangle",320,90,.12,.018); }
+function noiseBurst(duration, volume, filterFreq){
+  if(!audioCtx || isMuted) return;
+  const n = audioCtx.currentTime;
+  const len = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
+  const buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for(let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = filterFreq;
+  const g = audioCtx.createGain();
+  g.gain.setValueAtTime(volume, n);
+  g.gain.exponentialRampToValueAtTime(.0001, n + duration);
+  src.connect(filter); filter.connect(g); g.connect(audioCtx.destination);
+  src.start(n); src.stop(n + duration);
+}
+function playDeathSound(enemyType = "normal"){
+  if(enemyType === "splitter"){
+    tone("sine", 320, 130, .1, .02);
+    noiseBurst(.09, .03, 2400);
+    return;
+  }
+  const big = enemyType === "tank" || enemyType === "armored";
+  tone("sine", big ? 150 : 190, big ? 46 : 60, big ? .17 : .13, big ? .03 : .022);   // low thud
+  tone("square", big ? 300 : 380, 110, .06, .008);                                    // crack
+  noiseBurst(big ? .14 : .1, big ? .045 : .03, big ? 900 : 1400);                     // crunch
+}
+function playBossDeathSound(){
+  tone("sine", 120, 34, .5, .05);
+  tone("sawtooth", 240, 60, .3, .016);
+  noiseBurst(.32, .07, 700);
+  setTimeout(()=>{ tone("sine", 90, 30, .4, .035); noiseBurst(.2, .04, 500); }, 130);
+}
 function playWaveSound(){ tone("sine",480,760,.18,.03); }
 function playUpgradeSound(){ ensureAudio(); audioAssets.upgrade.play(); }
 function startBossLoop(){
@@ -1681,7 +1807,7 @@ function getPathPosition(progress){
 }
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const enemyCountForWave=(n)=>6+(n-1)*2;
+const enemyCountForWave=(n)=>6+(n-1)*2 + Math.max(0, currentStage-1);
 
 function getWaveThreatProfile(){
   if(isCurrentWaveBoss()){
@@ -1736,6 +1862,7 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
 
   if(unit.type === "archer"){
     if(enemy.type === "fast") score += 140;
+    if(enemy.type === "splitter" && enemy.fragment) score += 95;
     if(enemy.type === "armored") score -= 110;
     score += (1 - rangePct) * 18;
   } else if(unit.type === "hunter"){
@@ -1750,6 +1877,7 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 48) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored") score += 90;
+    if(enemy.type === "splitter" && !enemy.fragment) score += 70;
     score += nearbyCount * 45;
   } else if(unit.type === "bomb"){
     const clusterScore = enemies.reduce((count, other)=>{
@@ -1757,6 +1885,7 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 64) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored" || enemy.type === "tank") score += 110;
+    if(enemy.type === "splitter" && !enemy.fragment) score += 80;
     score += clusterScore * 38;
   }
 
@@ -2329,6 +2458,11 @@ function openGameOverOverlay(){
   if(gameOverWaveStat) gameOverWaveStat.textContent = String(currentMode === "campaign" ? wave : stageWave);
   if(gameOverKillsStat) gameOverKillsStat.textContent = String(kills);
   if(gameOverScoreStat) gameOverScoreStat.textContent = String(totalScore());
+  if(gameOverComboStat){
+    const record = getBestComboRecord();
+    gameOverComboStat.textContent = comboBest > 0 && comboBest >= record && comboBest >= 10
+      ? `x${comboBest} ★` : `x${comboBest}`;
+  }
   const spent = getRunSpentGold();
   if(currentMode === "endless") {
     gameOverText.textContent = `You survived ${stageWave} Endless Waves. Boss pairs defeated: ${runEndlessBossPairsDefeated}. Best Endless Wave: ${bestEndlessWave}.`;
@@ -2405,8 +2539,9 @@ function applyStage(stageNumber, resetRun=false){
   pathCells=buildPathCells(path);
 
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[]; impactBursts=[]; screenFlashes=[];
+  comboCount = 0; comboTimer = 0; comboPop = 0; comboBest = 0;
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
-  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; bossTelegraphTimer=0; bossTelegraphType=""; bossTelegraphStage=null; bossCastTimer=0; bossCastText=""; bossCastColor="#f8fafc"; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1;
+  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; bossTelegraphTimer=0; bossTelegraphType=""; bossTelegraphStage=null; bossCastTimer=0; bossCastText=""; bossCastColor="#f8fafc"; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1; waveCallBonus=0; waveCallBonusMax=0;
   pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingEndlessBossPair = []; lastEndlessBossPairKey = ""; hideAuraRewardOverlay(); hideEndlessUnlockOverlay();
   stopBossLoop();
   syncAmbientAudio();
@@ -2440,6 +2575,14 @@ function startWave(){
   const stage=STAGES[currentStage];
   const threatProfile = getWaveThreatProfile();
   if(currentMode === "endless" && isCurrentWaveBoss()) pendingEndlessBossPair = pickRandomEndlessBossPair();
+  if(waveCallBonus >= 1){
+    const callGold = Math.floor(waveCallBonus);
+    money += callGold;
+    bonusScore += Math.round(callGold * 0.5);
+    showPopup(canvas.width / 2 / view.scale - view.offsetX / view.scale, 150 / view.scale - view.offsetY / view.scale, `Early call +${callGold}g`, "#5eead4");
+    pushNotification("gold","Early call",`Wave called early: +${callGold} gold.`);
+  }
+  waveCallBonus = 0;
   spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
   if(isCurrentWaveBoss()) bossBannerTimer = currentMode === "endless" ? 3.2 : 2.2;
@@ -2474,8 +2617,9 @@ function togglePause(){
 }
 
 function getBossHpBonus(stageNumber){
-  if(stageNumber >= 1 && stageNumber <= 4) return 1.10;
-  if(stageNumber >= 5 && stageNumber <= 6) return 1.05;
+  if(stageNumber >= 1 && stageNumber <= 2) return 1.10;
+  if(stageNumber >= 3 && stageNumber <= 4) return 1.20;
+  if(stageNumber >= 5 && stageNumber <= 6) return 1.30;
   return 1.0;
 }
 
@@ -2484,14 +2628,14 @@ function enemyTemplateForSpawn(indexFromEnd){
   if(currentMode === "endless" && isCurrentWaveBoss() && indexFromEnd <= pendingEndlessBossPair.length){
     const bossStage = pendingEndlessBossPair[pendingEndlessBossPair.length - indexFromEnd];
     const cycle = getEndlessCycle();
-    const scale = 1 + (cycle - 1) * 0.35;
+    const scale = 1 + (cycle - 1) * 0.5;
     return {type:"boss", hpMult:4.0 * STAGES[bossStage].difficulty * scale * getBossHpBonus(bossStage), speed:.05 + bossStage * .003 + (cycle - 1) * .005, reward:140 + (cycle - 1) * 30, bossStage, bossColor: STAGE_BOSS[bossStage].color, bossName: STAGE_BOSS[bossStage].name};
   }
   const boss=isCurrentWaveBoss() && indexFromEnd===1;
   if(boss) return {type:"boss",hpMult:4.0*stage.difficulty*getBossHpBonus(currentStage),speed:.05+currentStage*.003,reward:125, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
   if(stageWave % 5 === 0){
     const armoredWindow = enemyCountForWave(stageWave);
-    if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * 0.4))){
+    if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * (currentStage >= 4 ? 0.55 : 0.4)))){
       return {type:"armored", hpMult:1.55*stage.difficulty, speed:.082+currentStage*.0025, reward:26};
     }
   }
@@ -2510,6 +2654,9 @@ function enemyTemplateForSpawn(indexFromEnd){
     };
   }
   if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0*stage.difficulty,speed:.07+currentStage*.002,reward:28};
+  if(currentStage >= 3 && roll < 0.52 + currentStage*0.02){
+    return {type:"splitter", hpMult:1.3*stage.difficulty, speed:.075+currentStage*.002, reward:18};
+  }
   return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
 }
 function spawnEnemy(){
@@ -2546,7 +2693,15 @@ function placeUnit(c,r){
   setPlacementHudAutoHide(false);
   const fxPos = cellCenter(c, r);
   addPlacementEffect(fxPos.x, fxPos.y, type.color || "#7dd3fc");
-  setMessage(usedReserve ? `${type.name} re-placed from reserve.` : `${type.name} purchased and placed.`);
+  const placedSyn = getUnitSynergies(unit);
+  if(placedSyn.types.length){
+    const names = placedSyn.types.map(t => SYNERGY_CONFIG[t]?.name).filter(Boolean).join(", ");
+    showPopup(fxPos.x, fxPos.y - 30, "Synergy!", "#5eead4");
+    tone("sine", 620, 940, .12, .016);
+    setMessage(`${type.name} placed. Synergies: ${names}.`);
+  } else {
+    setMessage(usedReserve ? `${type.name} re-placed from reserve.` : `${type.name} purchased and placed.`);
+  }
   updateUI();
 }
 
@@ -2558,7 +2713,7 @@ function applySpecializationToSelectedUnit(specId){
   if(money < cost){ setMessage("You do not have enough gold for the specialization."); return; }
   money -= cost; unit.totalSpent += cost; unit.level += 1; unit.specialization = specId;
   choice.apply(unit);
-  unit.nextUpgradeCost = Math.round(cost * 1.90);
+  unit.nextUpgradeCost = Math.round(cost * 1.65);
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
   playUpgradeSound();
@@ -2579,7 +2734,7 @@ function upgradeSelectedUnit(){
   unit.damage*=unit.type==="bomb"?1.70:1.55; unit.range*=1.10; unit.fireRate*=.92;
   if(unit.projectileSpeed) unit.projectileSpeed*=1.06;
   if(unit.splash) unit.splash*=1.10;
-  unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.90);
+  unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.65);
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
   playUpgradeSound();
@@ -2645,6 +2800,58 @@ function addImpactBurst(x,y,options={}){
 
 function addScreenFlash(color, life=.24, alpha=.14){
   screenFlashes.push({ color, life, maxLife: life, alpha });
+}
+
+/* --- screenshake (world-space only, HUD stays still) --- */
+let shakeTimer = 0, shakeDuration = 0.001, shakeMag = 0;
+function addScreenShake(mag, dur){
+  shakeMag = Math.max(shakeMag, mag);
+  shakeDuration = Math.max(shakeDuration, dur);
+  shakeTimer = Math.max(shakeTimer, dur);
+}
+function getShakeOffset(){
+  if(shakeTimer <= 0) return { x: 0, y: 0 };
+  const falloff = shakeTimer / shakeDuration;
+  const amp = shakeMag * falloff * falloff;
+  const t = performance.now() * 0.055;
+  return {
+    x: Math.sin(t * 1.9) * amp + (Math.random() - .5) * amp * 0.7,
+    y: Math.cos(t * 2.3) * amp + (Math.random() - .5) * amp * 0.7
+  };
+}
+
+/* --- enemy death burst: palette-matched gibs with gravity + shock ring --- */
+function addDeathBurst(enemy, pos){
+  const pal = enemyPalette(enemy.type, enemy);
+  const isBig = enemy.type === "boss" || enemy.type === "tank";
+  const gibCount = enemy.type === "boss" ? 26 : enemy.type === "tank" ? 16 : enemy.type === "armored" ? 13 : 10;
+  addHitParticles(pos.x, pos.y, gibCount, pal.skin, {
+    speed: isBig ? 230 : 170,
+    speedY: isBig ? 210 : 160,
+    lifeMin: .3, lifeMax: isBig ? .7 : .55,
+    sizeMin: 2, sizeMax: isBig ? 5 : 3.8,
+    gravity: 340, shape: "diamond"
+  });
+  addHitParticles(pos.x, pos.y, Math.ceil(gibCount * 0.5), pal.skinD, {
+    speed: 140, speedY: 130,
+    lifeMin: .26, lifeMax: .5,
+    sizeMin: 1.6, sizeMax: 3,
+    gravity: 300
+  });
+  addHitParticles(pos.x, pos.y - 4, enemy.type === "boss" ? 8 : 4, pal.accent, {
+    speed: 120, speedY: 110,
+    lifeMin: .2, lifeMax: .4,
+    sizeMin: 1.4, sizeMax: 2.6,
+    glow: 8
+  });
+  addImpactBurst(pos.x, pos.y, {
+    radius: enemy.type === "boss" ? 40 : isBig ? 26 : 20,
+    innerRadius: 6,
+    color: pal.accent,
+    fillAlpha: 0.08,
+    strokeAlpha: 0.6,
+    life: enemy.type === "boss" ? 0.45 : 0.3
+  });
 }
 
 function addArmorDeflectEffect(x,y){
@@ -2807,16 +3014,23 @@ function applySplashDamage(center,radius,damage,projectileType){
     }
   }
 }
+function getKillRewardMultiplier(){
+  const stageBonus = (currentStage - 1) * 0.15;
+  const endlessBonus = currentMode === "endless" ? (getEndlessCycle() - 1) * 0.10 : 0;
+  return 1 + stageBonus + endlessBonus;
+}
 function rewardKill(enemy,pos){
-  let reward = enemy.reward;
+  const scaledBase = Math.max(1, Math.round(enemy.reward * getKillRewardMultiplier()));
+  let reward = scaledBase;
   let scoreGain = 0;
   money += reward; kills += 1;
-  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="fast"?70:50;
+  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="splitter"?(enemy.fragment?25:60):enemy.type==="fast"?70:50;
   const scoreBonus=isCurrentWaveBoss()?40:0;
-  addScore(baseScore,scoreBonus);
+  registerComboKill(pos);
+  addScore(Math.round(baseScore * getComboMultiplier()), scoreBonus);
   if(enemy.lastHitAuraType === "wealth"){
     const owner = getUnitById(enemy.lastHitByUnitId);
-    const bonusGold = Math.max(1, Math.round(enemy.reward * 0.40)) + (enemy.type === "boss" ? 120 : 0);
+    const bonusGold = Math.max(1, Math.round(scaledBase * 0.40)) + (enemy.type === "boss" ? 120 : 0);
     money += bonusGold;
     bonusScore += 25;
     reward += bonusGold;
@@ -2840,7 +3054,14 @@ function rewardKill(enemy,pos){
     : { speed: 110, speedY: 100, lifeMin: .22, lifeMax: .44, sizeMin: 1.8, sizeMax: 3.4, glow: 4 });
   if(enemy.type==="boss") addBossDeathFinisher(pos.x, pos.y, enemy.bossColor || (currentStage===6 ? "#c084fc" : "#f59e0b"));
   if(enemy.type==="boss") vibrate([45, 50, 65]);
-  playDeathSound();
+  addDeathBurst(enemy, pos);
+  if(enemy.type==="boss"){
+    addScreenShake(9, .55);
+    playBossDeathSound();
+  } else {
+    addScreenShake(enemy.type==="tank" ? 3 : enemy.type==="armored" ? 2.4 : 1.6, enemy.type==="tank" ? .18 : .13);
+    playDeathSound(enemy.type);
+  }
 }
 function triggerBossAbility(enemy){
   const bossStage = enemy?.bossStage || currentStage;
@@ -2905,6 +3126,15 @@ function triggerBossAbility(enemy){
 }
 
 function update(dt){
+  if(shakeTimer > 0){ shakeTimer = Math.max(0, shakeTimer - dt); if(shakeTimer === 0) shakeMag = 0; }
+  if(comboTimer > 0){
+    comboTimer = Math.max(0, comboTimer - dt);
+    if(comboTimer === 0) breakCombo(true);
+  }
+  comboPop = Math.max(0, comboPop - dt * 3.2);
+  if(!waveActive && waveCallBonus > 0 && hasStarted && lives > 0 && !pendingAuraChoice && !pendingBossResolution){
+    waveCallBonus = Math.max(0, waveCallBonus - (waveCallBonusMax / WAVE_CALL_DECAY_SECONDS) * dt);
+  }
   bossBannerTimer=Math.max(0,bossBannerTimer-dt);
   bossFxTimer=Math.max(0,bossFxTimer-dt);
   bossTelegraphTimer=Math.max(0,bossTelegraphTimer-dt);
@@ -2992,6 +3222,7 @@ function update(dt){
     if(enemy.progress>=1){
       enemies.splice(i,1);
       if(enemy.type==="boss") syncBossLoop();
+      breakCombo(false);
       lives=Math.max(0,lives-(enemy.type==="boss"?3:1));
       if(lives<=0){
         waveActive=false;
@@ -3095,6 +3326,20 @@ function update(dt){
       const defeatedEnemy = enemies[i];
       const pos=getPathPosition(defeatedEnemy.progress);
       rewardKill(defeatedEnemy,pos);
+      if(defeatedEnemy.type==="splitter" && !defeatedEnemy.fragment){
+        const fragHp = Math.max(12, defeatedEnemy.maxHp * 0.34);
+        for(let f=0; f<2; f++){
+          enemies.push({
+            id:idCounter++, hp:fragHp, maxHp:fragHp,
+            speed:defeatedEnemy.speed * 1.4,
+            progress:Math.max(0, defeatedEnemy.progress - 0.006 - f * 0.012),
+            wobble:Math.random()*Math.PI*2,
+            type:"splitter", fragment:true, reward:6,
+            abilityUsed:true, bossTelegraphShown:true
+          });
+        }
+        showPopup(pos.x, pos.y - 26, "Split!", "#5eead4");
+      }
       enemies.splice(i,1);
       if(defeatedEnemy.type==="boss") syncBossLoop();
       updateUI();
@@ -3160,6 +3405,7 @@ function update(dt){
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
     bonusScore += 20;
+    armWaveCallBonus();
     setMessage(currentMode === "campaign" ? `Wave complete. Next wave in this stage: ${stageWave}.` : `Endless wave complete. Next wave: ${stageWave}.`);
     updateUI();
   }
@@ -3885,7 +4131,7 @@ function drawPlacementPreview(){
     ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle="#f8fafc";
-    ctx.font="bold 12px Arial";
+    ctx.font=`bold 12px ${FONT_UI}`;
     ctx.textAlign="center";
     ctx.fillText(title, pos.x, pos.y - radius - 10);
     ctx.textAlign="start";
@@ -3937,8 +4183,38 @@ function drawPlacementPreview(){
   ctx.arc(pos.x,pos.y,8,0,Math.PI*2);
   ctx.fill();
 
+  if(!blocked){
+    const preview = getUnitSynergies(null, c, r, selectedUnitType);
+    for(const partner of preview.partners){
+      const pPos = cellCenter(partner.c, partner.r);
+      const linkColor = SYNERGY_CONFIG[partner.type]?.color || "#e2e8f0";
+      ctx.save();
+      ctx.globalAlpha = 0.7;
+      ctx.strokeStyle = linkColor;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 5]);
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.lineTo(pPos.x, pPos.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+    if(preview.types.length){
+      ctx.save();
+      ctx.font = `700 10px ${FONT_UI}`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#5eead4";
+      ctx.shadowColor = "rgba(2,6,23,.9)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(`⚡ ${preview.types.length} synerg${preview.types.length === 1 ? "y" : "ies"}`, pos.x, pos.y + 30);
+      ctx.restore();
+      ctx.textAlign = "start";
+    }
+  }
+
   ctx.fillStyle="#08111f";
-  ctx.font="bold 11px Arial";
+  ctx.font=`bold 11px ${FONT_UI}`;
   ctx.textAlign="center";
   ctx.fillText(type.name, pos.x, pos.y - 16);
   ctx.textAlign="start";
@@ -3978,6 +4254,28 @@ function drawPlacedUnit(unit){
   }
 
   if(selected){
+    const syn = getUnitSynergies(unit);
+    for(const partner of syn.partners){
+      const pPos = cellCenter(partner.c, partner.r);
+      const linkColor = SYNERGY_CONFIG[partner.type]?.color || "#e2e8f0";
+      ctx.save();
+      ctx.globalAlpha = 0.55 + Math.sin(performance.now() * 0.006 + partner.id) * 0.15;
+      ctx.strokeStyle = linkColor;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 6]);
+      ctx.lineDashOffset = -(performance.now() * 0.02) % 11;
+      ctx.beginPath();
+      ctx.moveTo(pos.x, pos.y);
+      ctx.lineTo(pPos.x, pPos.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = linkColor;
+      ctx.beginPath();
+      ctx.arc(pPos.x, pPos.y, 3, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     ctx.beginPath();
     ctx.arc(pos.x,pos.y,24,0,Math.PI*2);
     ctx.strokeStyle="rgba(103,232,249,.95)";
@@ -4151,7 +4449,7 @@ function drawPlacedUnit(unit){
     roundRect(pos.x - 20, pos.y - 56, 40, 16, 8);
     ctx.fill();
     ctx.fillStyle = "#86efac";
-    ctx.font = "bold 11px Arial";
+    ctx.font = `bold 11px ${FONT_UI}`;
     ctx.textAlign = "center";
     ctx.fillText("ROOTED", pos.x, pos.y - 44);
     ctx.textAlign = "start";
@@ -4167,7 +4465,7 @@ function drawPlacedUnit(unit){
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.fillStyle = "rgba(253,230,138,.96)";
-    ctx.font = "bold 11px Arial";
+    ctx.font = `bold 11px ${FONT_UI}`;
     ctx.textAlign = "center";
     ctx.fillText(`★${unit.level}`, pos.x, pos.y - 27);
     ctx.textAlign = "start";
@@ -4200,7 +4498,7 @@ function drawPlacedUnit(unit){
     ctx.arc(badgeX - 3.2, badgeY - 3.8, 2.2, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = theme.icon;
-    ctx.font = "12px Arial";
+    ctx.font = `12px ${FONT_UI}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(specIcon, badgeX, badgeY + 0.5);
@@ -4225,6 +4523,11 @@ function enemyPalette(type, enemy){
   if(type === "boss"){
     const accent = enemy?.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b");
     return { key:`boss-${accent}`, skin:"#2b2437", skinD:"#191423", cloth:"#3f3454", metal:"#6b5f85", accent, eye:accent };
+  }
+  if(type === "splitter" || type === "splitterling"){
+    return (currentStage === 6)
+      ? { key:"split-dark", skin:"#7c6bc4", skinD:"#52419c", cloth:"#3b2d78", metal:"#9d8fd6", accent:"#c4b5fd", eye:"#f3e8ff" }
+      : { key:"split-std",  skin:"#2fa88f", skinD:"#1d7a68", cloth:"#125246", metal:"#5eead4", accent:"#5eead4", eye:"#ccfbf1" };
   }
   if(type === "fast") return dark
     ? { key:"fast-dark", skin:"#8b7cc2", skinD:"#5f4e9e", cloth:"#43307a", metal:"#b1a4e0", accent:"#c4b5fd", eye:"#f3e8ff" }
@@ -4269,6 +4572,61 @@ function drawEnemyFigure(g, type, phase, pal){
   const liftB = Math.sin(t + Math.PI * 1.5);
   const bounce = Math.abs(Math.cos(t)) * 1.3;
   const GROUND = 20;
+
+  if(type === "splitter" || type === "splitterling"){
+    const frag = type === "splitterling";
+    // squash & stretch hop cycle
+    const hop = Math.max(0, Math.sin(t));            // in the air
+    const squash = Math.max(0, -Math.sin(t)) * 0.5;  // landed, flattened
+    const lift = hop * 5;
+    const rx = 8.6 * (1 + squash * 0.32 - hop * 0.10);
+    const ry = 7.4 * (1 - squash * 0.34 + hop * 0.14);
+    const cy = 12 - ry - lift;
+    // drips at the base
+    g.fillStyle = pal.skinD;
+    g.beginPath();
+    g.ellipse(-4 + sw * 1.2, GROUND - 1.4, 2 + squash * 1.4, 1.1, 0, 0, Math.PI * 2);
+    g.ellipse(4 + sw2 * 1.2, GROUND - 1.1, 1.6 + squash * 1.2, 0.9, 0, 0, Math.PI * 2);
+    g.fill();
+    // gel body
+    const body = g.createRadialGradient(1.5, cy - 3, 1, 0, cy, ry + 3);
+    body.addColorStop(0, pal.metal);
+    body.addColorStop(0.55, pal.skin);
+    body.addColorStop(1, pal.skinD);
+    g.fillStyle = body;
+    g.beginPath(); g.ellipse(0, cy, rx, ry, 0, 0, Math.PI * 2); g.fill();
+    // inner core
+    g.globalAlpha = 0.55;
+    g.fillStyle = pal.cloth;
+    g.beginPath(); g.ellipse(0.5, cy + 1.5, rx * 0.5, ry * 0.5, 0, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1;
+    // split seam down the middle (only on the full-size splitter)
+    if(!frag){
+      g.strokeStyle = pal.cloth;
+      g.lineWidth = 1.3;
+      g.lineCap = "round";
+      g.beginPath();
+      g.moveTo(0.2, cy - ry + 1);
+      g.quadraticCurveTo(-1.6 + sw * 0.6, cy, 0.4, cy + ry - 1.2);
+      g.stroke();
+    }
+    // glossy highlight
+    g.fillStyle = "rgba(255,255,255,.30)";
+    g.beginPath(); g.ellipse(-2.6, cy - ry * 0.45, 2.4, 1.3, -0.5, 0, Math.PI * 2); g.fill();
+    // glowing eyes: two on splitter (one each side of the seam), one on fragment
+    g.save(); g.shadowColor = pal.eye; g.shadowBlur = 5;
+    g.fillStyle = pal.eye;
+    if(frag){
+      g.beginPath(); g.arc(3, cy - 1.5, 1.5, 0, Math.PI * 2); g.fill();
+    } else {
+      g.beginPath();
+      g.arc(3.6, cy - 1.8, 1.3, 0, Math.PI * 2);
+      g.arc(-2.6, cy - 1.8, 1.15, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
+    return;
+  }
 
   if(type === "fast"){
     const by = -bounce * 1.2;
@@ -4544,10 +4902,10 @@ function drawEnemy(enemy){
   if(enemy.animT === undefined){ enemy.animT = enemy.wobble; enemy.animLast = now; }
   const adt = Math.min(0.05, (now - enemy.animLast) / 1000);
   enemy.animLast = now;
-  const stepRate = enemy.type === "fast" ? 3.0 : enemy.type === "tank" ? 1.35 : enemy.type === "armored" ? 1.8 : enemy.type === "boss" ? 1.15 : 2.1;
+  const stepRate = enemy.type === "fast" ? 3.0 : enemy.type === "tank" ? 1.35 : enemy.type === "armored" ? 1.8 : enemy.type === "boss" ? 1.15 : enemy.type === "splitter" ? (enemy.fragment ? 2.5 : 1.7) : 2.1;
   if(!frozen && !isPaused) enemy.animT += adt * stepRate * (slowed ? 0.55 : 1);
 
-  const scale = enemy.type === "boss" ? 1.55 : enemy.type === "tank" ? 1.18 : enemy.type === "armored" ? 1.08 : enemy.type === "fast" ? .88 : 1;
+  const scale = enemy.type === "boss" ? 1.55 : enemy.type === "tank" ? 1.18 : enemy.type === "armored" ? 1.08 : enemy.type === "splitter" ? (enemy.fragment ? .58 : 1.05) : enemy.type === "fast" ? .88 : 1;
   const bob = frozen ? 0 : Math.sin(now * .004 + enemy.wobble) * (enemy.type === "boss" ? 1.2 : 0.7);
   const x = pos.x, y = pos.y + bob;
   const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
@@ -4613,7 +4971,7 @@ function drawEnemy(enemy){
   }
 
   // --- sprite blit (flip horizontally for leftward movement)
-  const sheet = getEnemySpriteSheet(enemy.type, enemy);
+  const sheet = getEnemySpriteSheet(enemy.type === "splitter" && enemy.fragment ? "splitterling" : enemy.type, enemy);
   const frame = Math.floor((enemy.animT % 1) * ENEMY_WALK_FRAMES) % ENEMY_WALK_FRAMES;
   ctx.save();
   if(enemy.facing < 0) ctx.scale(-1, 1);
@@ -4646,7 +5004,7 @@ function drawEnemy(enemy){
 
   const hpWidth = enemy.type === "boss" ? 46 : 36, hpX = x - hpWidth / 2, hpY = y - (enemy.type === "boss" ? 44 : 28);
   ctx.fillStyle = "rgba(15,23,42,.95)"; roundRect(hpX, hpY, hpWidth, 6, 4); ctx.fill();
-  ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b")) : enemy.type === "tank" ? "#fb7185" : enemy.type === "armored" ? "#94a3b8" : enemy.type === "fast" ? "#38bdf8" : "#22c55e";
+  ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b")) : enemy.type === "tank" ? "#fb7185" : enemy.type === "armored" ? "#94a3b8" : enemy.type === "splitter" ? "#2dd4bf" : enemy.type === "fast" ? "#38bdf8" : "#22c55e";
   roundRect(hpX, hpY, hpWidth * hpPct, 6, 4); ctx.fill();
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
@@ -4828,7 +5186,7 @@ function drawUpgradeEffects(){
 
     ctx.globalAlpha = alpha * 0.9;
     ctx.fillStyle = "#fde68a";
-    ctx.font = "bold 14px Arial";
+    ctx.font = `bold 14px ${FONT_UI}`;
     ctx.textAlign = "center";
     ctx.fillText("★", fx.x, fx.y - 20 - t * 8);
     ctx.restore();
@@ -4881,6 +5239,69 @@ function drawParticles(){
   ctx.globalAlpha=1;
 }
 
+function drawWaveCallChip(){
+  if(waveActive || waveCallBonus < 1 || !hasStarted || lives <= 0 || isPaused) return;
+  if(pendingAuraChoice || pendingBossResolution) return;
+  const gold = Math.floor(waveCallBonus);
+  const pct = waveCallBonusMax > 0 ? waveCallBonus / waveCallBonusMax : 0;
+  const text = `✦ Early call bonus: +${gold}g`;
+  const x = canvas.width / 2, y = 84;
+  ctx.save();
+  ctx.font = `700 12px ${FONT_UI}`;
+  const w = ctx.measureText(text).width + 26, h = 24;
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "rgba(8,17,31,.88)";
+  roundRect(x - w/2, y - h/2, w, h, 12);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(94,234,212,.5)";
+  ctx.lineWidth = 1.2;
+  roundRect(x - w/2, y - h/2, w, h, 12);
+  ctx.stroke();
+  ctx.fillStyle = "#5eead4";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y + 0.5);
+  // decay bar under the chip
+  ctx.fillStyle = "rgba(94,234,212,.25)";
+  ctx.fillRect(x - w/2 + 6, y + h/2 - 3.5, w - 12, 2);
+  ctx.fillStyle = "#5eead4";
+  ctx.fillRect(x - w/2 + 6, y + h/2 - 3.5, (w - 12) * pct, 2);
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
+  ctx.restore();
+}
+
+function drawComboMeter(){
+  if(comboCount < 3) return;
+  const mult = getComboMultiplier();
+  const color = comboCount >= 20 ? "#f472b6" : comboCount >= 10 ? "#fbbf24" : "#5eead4";
+  const x = canvas.width / 2, y = 118;
+  const popScale = 1 + comboPop * 0.28;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(popScale, popScale);
+  ctx.textAlign = "center";
+  ctx.font = `700 20px ${FONT_DISPLAY}`;
+  ctx.shadowColor = "rgba(2,6,23,.9)";
+  ctx.shadowBlur = 6;
+  ctx.fillStyle = color;
+  ctx.fillText(`COMBO x${comboCount}`, 0, 0);
+  if(mult > 1){
+    ctx.font = `700 11px ${FONT_UI}`;
+    ctx.fillStyle = "rgba(255,255,255,.85)";
+    ctx.fillText(`score ×${mult}`, 0, 15);
+  }
+  ctx.shadowBlur = 0;
+  // shrinking timer bar
+  const barW = 74, pct = comboTimer / COMBO_WINDOW;
+  ctx.fillStyle = "rgba(15,23,42,.8)";
+  ctx.fillRect(-barW/2, 21, barW, 3.5);
+  ctx.fillStyle = color;
+  ctx.fillRect(-barW/2, 21, barW * pct, 3.5);
+  ctx.restore();
+  ctx.textAlign = "start";
+}
+
 function drawScreenFlashes(){
   for(const flash of screenFlashes){
     const alpha = Math.max(0, flash.life / flash.maxLife) * flash.alpha;
@@ -4891,7 +5312,7 @@ function drawScreenFlashes(){
     ctx.restore();
   }
 }
-function drawPopups(){ ctx.save(); ctx.font="bold 16px Arial"; ctx.textAlign="center"; for(const p of popups){ const alpha=Math.max(0,p.life/p.maxLife); ctx.globalAlpha=alpha; ctx.fillStyle=p.color; ctx.fillText(p.text,p.x,p.y); } ctx.restore(); ctx.globalAlpha=1; }
+function drawPopups(){ ctx.save(); ctx.font=`bold 16px ${FONT_UI}`; ctx.textAlign="center"; for(const p of popups){ const alpha=Math.max(0,p.life/p.maxLife); ctx.globalAlpha=alpha; ctx.fillStyle=p.color; ctx.fillText(p.text,p.x,p.y); } ctx.restore(); ctx.globalAlpha=1; }
 
 function drawHUDInsideCanvas(){}
 
@@ -4913,11 +5334,11 @@ function drawBossHealthBar(){
   ctx.strokeStyle = "rgba(255,255,255,.10)";
   ctx.stroke();
   ctx.fillStyle = "#f8fafc";
-  ctx.font = "bold 12px Arial";
+  ctx.font = `700 12px ${FONT_DISPLAY}`;
   ctx.textAlign = "center";
   ctx.fillText(boss.bossName || "BOSS HP", canvas.width/2, y+15);
   ctx.fillStyle = meta.color;
-  ctx.font = "700 10px Arial";
+  ctx.font = `700 10px ${FONT_UI}`;
   ctx.fillText(`Trait: ${meta.short}`, canvas.width/2, y + h + 18);
   ctx.textAlign = "start";
 }
@@ -4939,7 +5360,7 @@ function drawBossCastBanner(){
   ctx.stroke();
   ctx.textAlign = "center";
   ctx.fillStyle = bossCastColor;
-  ctx.font = "800 12px Arial";
+  ctx.font = `700 12px ${FONT_DISPLAY}`;
   ctx.fillText(bossCastText, canvas.width / 2, y + 18);
   ctx.restore();
 }
@@ -5036,11 +5457,11 @@ function drawBossBanner(){
   ctx.stroke();
   ctx.textAlign="center";
   ctx.fillStyle="#fff7ed";
-  ctx.font= currentMode === "endless" ? "800 24px Arial" : (title.length > 24 ? "bold 16px Arial" : "bold 20px Arial");
+  ctx.font= currentMode === "endless" ? `700 24px ${FONT_DISPLAY}` : (title.length > 24 ? `700 16px ${FONT_DISPLAY}` : `700 20px ${FONT_DISPLAY}`);
   ctx.fillText(title, canvas.width/2, subtitle ? y + 25 : y + 29);
   if(subtitle){
     ctx.fillStyle = currentMode === "endless" ? "rgba(254,226,226,.9)" : "rgba(226,232,240,.82)";
-    ctx.font = currentMode === "endless" ? "700 13px Arial" : "600 11px Arial";
+    ctx.font = currentMode === "endless" ? `700 13px ${FONT_UI}` : `600 11px ${FONT_UI}`;
     ctx.fillText(subtitle, canvas.width/2, y + 44);
   }
   ctx.restore();
@@ -5068,10 +5489,10 @@ function drawWaveIntro(){
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#f8fafc";
-  ctx.font = "700 22px Arial";
+  ctx.font = `700 22px ${FONT_DISPLAY}`;
   ctx.fillText(waveIntroText, canvas.width/2, y - 2);
   ctx.fillStyle = "rgba(226,232,240,.78)";
-  ctx.font = "600 11px Arial";
+  ctx.font = `600 11px ${FONT_UI}`;
   ctx.fillText(waveIntroSubtext, canvas.width/2, y + 16);
   ctx.restore();
 }
@@ -5108,7 +5529,7 @@ function drawBossDefeatIntro(){
 
     ctx.textAlign = "center";
     ctx.fillStyle = "#f8fafc";
-    ctx.font = "800 34px Arial";
+    ctx.font = `700 34px ${FONT_DISPLAY}`;
     ctx.fillText(bossDefeatIntroText || "AN ANCIENT EVIL FALLS", canvas.width/2, y + panelH/2 + 8);
   }
 
@@ -5185,11 +5606,11 @@ function drawStageQuoteCinematic(){
 
   ctx.textAlign = "center";
   ctx.fillStyle = "#f8fafc";
-  ctx.font = "italic 700 24px Georgia";
+  ctx.font = `700 24px ${FONT_DISPLAY}`;
   ctx.fillText(stageQuoteText, canvas.width / 2, y + 44);
 
   ctx.fillStyle = "rgba(226,232,240,0.72)";
-  ctx.font = "600 12px Arial";
+  ctx.font = `600 12px ${FONT_UI}`;
   ctx.fillText(stageQuoteSubtext, canvas.width / 2, y + 72);
 
   ctx.restore();
@@ -5278,7 +5699,8 @@ function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   ctx.save();
-  ctx.setTransform(view.scale, 0, 0, view.scale, view.offsetX, view.offsetY);
+  const shake = getShakeOffset();
+  ctx.setTransform(view.scale, 0, 0, view.scale, view.offsetX + shake.x, view.offsetY + shake.y);
   drawBackground();
   drawSpawnPortal();
   drawPathAtmosphere();
@@ -5297,6 +5719,8 @@ function draw(){
   ctx.restore();
 
   drawScreenFlashes();
+  drawWaveCallChip();
+  drawComboMeter();
   drawHUDInsideCanvas();
   drawBossAbilityFx();
   drawBossHealthBar();
