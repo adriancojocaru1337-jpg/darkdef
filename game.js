@@ -315,26 +315,32 @@ loadBossDefeatLogos();
 const STAGES = {
   1: { name:"Forest", bossWave:5, difficulty:1.0, bossAbility:"roots",
     route:[{c:0,r:4},{c:4,r:4},{c:4,r:2},{c:9,r:2},{c:9,r:7},{c:13,r:7},{c:13,r:3},{c:17,r:3}],
+    blocked:[{c:5,r:3},{c:8,r:3},{c:10,r:6},{c:2,r:7},{c:15,r:1}], ley:[{c:10,r:4,kind:"range"},{c:6,r:1,kind:"damage"}],
     grassPatches:[{x:42,y:26,w:120,h:72},{x:790,y:408,w:124,h:76},{x:368,y:438,w:140,h:52}],
     trees:[{x:98,y:116},{x:918,y:466},{x:956,y:86},{x:710,y:118}]},
   2: { name:"Ruins", bossWave:6, difficulty:1.35, bossAbility:"rage",
     route:[{c:0,r:7},{c:5,r:7},{c:5,r:2},{c:9,r:2},{c:9,r:5},{c:14,r:5},{c:14,r:2},{c:17,r:2}],
+    blocked:[{c:6,r:3},{c:10,r:4},{c:4,r:6},{c:12,r:7},{c:2,r:3}], ley:[{c:11,r:6,kind:"damage"},{c:7,r:1,kind:"range"}],
     grassPatches:[{x:84,y:352,w:166,h:98},{x:704,y:38,w:160,h:78},{x:408,y:212,w:112,h:62}],
     ruins:[{x:108,y:126},{x:846,y:168},{x:770,y:424},{x:524,y:302}]},
   3: { name:"Graveyard", bossWave:7, difficulty:1.7, bossAbility:"summon",
     route:[{c:0,r:5},{c:3,r:5},{c:3,r:7},{c:9,r:7},{c:9,r:2},{c:14,r:2},{c:14,r:6},{c:17,r:6}],
+    blocked:[{c:10,r:3},{c:4,r:6},{c:8,r:6},{c:16,r:1},{c:6,r:4}], ley:[{c:6,r:6,kind:"damage"},{c:16,r:4,kind:"range"}],
     grassPatches:[{x:102,y:44,w:162,h:62},{x:476,y:376,w:124,h:76},{x:804,y:298,w:110,h:64}],
     ruins:[{x:150,y:178},{x:596,y:132},{x:866,y:380},{x:700,y:466}]},
   4: { name:"Castle", bossWave:8, difficulty:2.15, bossAbility:"shield",
     route:[{c:0,r:2},{c:6,r:2},{c:6,r:5},{c:10,r:5},{c:10,r:2},{c:15,r:2},{c:15,r:7},{c:17,r:7}],
+    blocked:[{c:5,r:3},{c:9,r:4},{c:14,r:3},{c:2,r:5},{c:12,r:8}], ley:[{c:16,r:3,kind:"damage"},{c:11,r:1,kind:"range"}],
     grassPatches:[{x:54,y:402,w:144,h:74},{x:744,y:64,w:152,h:66},{x:514,y:434,w:128,h:54}],
     ruins:[{x:184,y:236},{x:790,y:286},{x:918,y:186}]},
   5: { name:"Catacombs", bossWave:9, difficulty:2.55, bossAbility:"rage",
     route:[{c:0,r:6},{c:2,r:6},{c:2,r:2},{c:8,r:2},{c:8,r:7},{c:13,r:7},{c:13,r:3},{c:17,r:3}],
+    blocked:[{c:9,r:6},{c:14,r:4},{c:3,r:3},{c:5,r:4},{c:16,r:7}], ley:[{c:5,r:1,kind:"range"},{c:15,r:2,kind:"damage"}],
     grassPatches:[{x:78,y:72,w:108,h:48},{x:794,y:434,w:134,h:52},{x:470,y:300,w:116,h:64}],
     ruins:[{x:366,y:258},{x:846,y:154},{x:628,y:456}]},
   6: { name:"Dark Portal", bossWave:10, difficulty:3.0, bossAbility:"shield",
     route:[{c:0,r:2},{c:5,r:2},{c:5,r:7},{c:8,r:7},{c:8,r:2},{c:13,r:2},{c:13,r:7},{c:17,r:7}],
+    blocked:[{c:4,r:3},{c:9,r:3},{c:7,r:6},{c:16,r:1},{c:11,r:4}], ley:[{c:6,r:4,kind:"damage"},{c:10,r:1,kind:"range"}],
     grassPatches:[{x:86,y:42,w:120,h:62},{x:752,y:344,w:166,h:84},{x:500,y:458,w:124,h:52}],
     ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]}
 };
@@ -861,6 +867,11 @@ function getAuraAdjustedStats(unit){
       stats.fireRate *= 0.80;
       stats.projectileSpeed *= 1.20;
     }
+  }
+  const ley = getLeyStoneAt(unit.c, unit.r);
+  if(ley){
+    if(ley.kind === "damage") stats.damage *= 1.10;
+    else stats.range *= 1.12;
   }
   applySynergiesToStats(stats, unit);
   return stats;
@@ -1788,6 +1799,12 @@ function syncBossLoop(){
 }
 
 
+function isBlockedCell(c, r){
+  return (STAGES[currentStage].blocked || []).some(b => b.c === c && b.r === r);
+}
+function getLeyStoneAt(c, r){
+  return (STAGES[currentStage].ley || []).find(l => l.c === c && l.r === r) || null;
+}
 function buildPathCells(route){
   const s=new Set();
   for(let i=0;i<route.length-1;i++){
@@ -2670,6 +2687,7 @@ function placeUnit(c,r){
   if(lives<=0) return;
   const key=`${c}-${r}`;
   if(pathCells.has(key)){ setMessage("You cannot place towers on the path."); return; }
+  if(isBlockedCell(c, r)){ setMessage("You cannot build on this terrain."); return; }
 
   const existing=units.find(t=>t.c===c && t.r===r);
   if(existing){ selectedPlacedUnitId=existing.id; setPlacementHudAutoHide(false); setMessage(`You selected ${existing.name}.`); updateUI(); return; }
@@ -2693,6 +2711,11 @@ function placeUnit(c,r){
   setPlacementHudAutoHide(false);
   const fxPos = cellCenter(c, r);
   addPlacementEffect(fxPos.x, fxPos.y, type.color || "#7dd3fc");
+  const placedLey = getLeyStoneAt(c, r);
+  if(placedLey){
+    showPopup(fxPos.x, fxPos.y - 44, "Ley empowered!", placedLey.kind === "damage" ? "#fbbf24" : "#c4b5fd");
+    tone("sine", 480, 720, .16, .018);
+  }
   const placedSyn = getUnitSynergies(unit);
   if(placedSyn.types.length){
     const names = placedSyn.types.map(t => SYNERGY_CONFIG[t]?.name).filter(Boolean).join(", ");
@@ -4113,6 +4136,81 @@ function drawGate(){
 
   ctx.restore();
 }
+function drawTerrainFeatures(){
+  const stage = STAGES[currentStage];
+  const now = performance.now();
+  // blocked cells — themed props
+  for(const b of (stage.blocked || [])){
+    const pos = cellCenter(b.c, b.r);
+    const seed = (b.c * 31 + b.r * 17) % 100 / 100;
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    if(currentStage === 3 || currentStage === 5){
+      // tombstone
+      ctx.fillStyle = "rgba(2,6,23,.35)";
+      ctx.beginPath(); ctx.ellipse(0, 15, 15, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = currentStage === 5 ? "#4b5563" : "#6b7280";
+      roundRect(-9, -14, 18, 28, 8); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.10)";
+      roundRect(-9, -14, 18, 9, 8); ctx.fill();
+      ctx.strokeStyle = "rgba(2,6,23,.55)";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(0, -8); ctx.lineTo(0, 2); ctx.moveTo(-4, -4); ctx.lineTo(4, -4);
+      ctx.stroke();
+      ctx.fillStyle = "#374151";
+      ctx.beginPath(); ctx.ellipse(8 + seed * 4, 13, 5, 3, 0.4, 0, Math.PI * 2); ctx.fill();
+    } else if(currentStage === 6){
+      // obsidian shard
+      ctx.fillStyle = "rgba(2,6,23,.4)";
+      ctx.beginPath(); ctx.ellipse(0, 16, 16, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#1e1b2e";
+      ctx.beginPath();
+      ctx.moveTo(-11, 15); ctx.lineTo(-4 + seed * 3, -17); ctx.lineTo(4, -6); ctx.lineTo(11, 15);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(192,132,252,.55)";
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-4 + seed * 3, -17); ctx.lineTo(-1, 15);
+      ctx.stroke();
+    } else {
+      // boulder cluster
+      ctx.fillStyle = "rgba(2,6,23,.35)";
+      ctx.beginPath(); ctx.ellipse(0, 15, 17, 5, 0, 0, Math.PI * 2); ctx.fill();
+      const rockA = currentStage === 2 ? "#7c7368" : currentStage === 4 ? "#6f6a63" : "#6b7c5e";
+      const rockB = currentStage === 2 ? "#5d564d" : currentStage === 4 ? "#524e48" : "#4f5c46";
+      ctx.fillStyle = rockB;
+      ctx.beginPath(); ctx.ellipse(7, 6, 8, 7, 0.2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rockA;
+      ctx.beginPath(); ctx.ellipse(-4, 1, 11, 10.5, -0.15 + seed * 0.3, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,.12)";
+      ctx.beginPath(); ctx.ellipse(-7, -4, 5, 3, -0.4, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  // ley stones — pulsing rune circles (drawn under towers)
+  for(const l of (stage.ley || [])){
+    const pos = cellCenter(l.c, l.r);
+    const color = l.kind === "damage" ? "#fbbf24" : "#c4b5fd";
+    const pulse = 0.5 + Math.sin(now * 0.0035 + l.c * 2 + l.r) * 0.22;
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.globalAlpha = 0.35 + pulse * 0.3;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath(); ctx.arc(0, 0, 17 + pulse * 2, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 0.5 + pulse * 0.35;
+    ctx.lineWidth = 1.4;
+    ctx.beginPath();
+    ctx.moveTo(0, -9); ctx.lineTo(7, 0); ctx.lineTo(0, 9); ctx.lineTo(-7, 0);
+    ctx.closePath(); ctx.stroke();
+    ctx.globalAlpha = 0.25 + pulse * 0.2;
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(0, 0, 2.4, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+}
+
 function drawPlacementPreview(){
   if(selectedSpell && hoveredCell){
     const pos=cellCenter(hoveredCell.c, hoveredCell.r);
@@ -4159,7 +4257,8 @@ function drawPlacementPreview(){
     return;
   }
 
-  const blocked=pathCells.has(`${c}-${r}`);
+  const blocked=pathCells.has(`${c}-${r}`) || isBlockedCell(c, r);
+  const hoverLey = !blocked ? getLeyStoneAt(c, r) : null;
   const type=UNIT_TYPES[selectedUnitType];
   const pos=cellCenter(c,r);
 
@@ -4208,6 +4307,17 @@ function drawPlacementPreview(){
       ctx.shadowColor = "rgba(2,6,23,.9)";
       ctx.shadowBlur = 4;
       ctx.fillText(`⚡ ${preview.types.length} synerg${preview.types.length === 1 ? "y" : "ies"}`, pos.x, pos.y + 30);
+      ctx.restore();
+      ctx.textAlign = "start";
+    }
+    if(hoverLey){
+      ctx.save();
+      ctx.font = `700 10px ${FONT_UI}`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = hoverLey.kind === "damage" ? "#fbbf24" : "#c4b5fd";
+      ctx.shadowColor = "rgba(2,6,23,.9)";
+      ctx.shadowBlur = 4;
+      ctx.fillText(hoverLey.kind === "damage" ? "◆ Ley Stone: +10% damage" : "◆ Ley Stone: +12% range", pos.x, pos.y + (preview.types.length ? 42 : 30));
       ctx.restore();
       ctx.textAlign = "start";
     }
@@ -5707,6 +5817,7 @@ function draw(){
   drawPath();
   drawStageLighting();
   drawGate();
+  drawTerrainFeatures();
   drawPlacementPreview();
   drawUnits();
   drawEnemies();
