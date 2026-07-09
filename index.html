@@ -72,7 +72,6 @@
         <button class="btn btn-primary" id="startGameBtn">Play</button>
         <a href="/about.html" class="btn btn-secondary">About</a>
         <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
-        <a href="/codex.html" class="btn btn-secondary">Codex</a>
         <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
         <a href="/account.html" class="btn btn-secondary">Account</a>
       </div>
@@ -130,7 +129,7 @@
     <div class="endless-unlocked-artwork" aria-label="Campaign complete. Endless mode unlocked.">
       <img src="assets/ui/endless-unlocked.jpg" alt="Campaign Complete. Endless Mode Unlocked." />
       <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;You thought you’d seen it all. You were wrong.&rdquo;</p>
-      <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Reward: +200 Gold</p>
+      <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Final stage clear reward: +200 gold</p>
       <button class="artwork-hitbox artwork-hitbox-enter" id="enterEndlessBtn" aria-label="Enter Endless">Enter Endless</button>
       <button class="artwork-hitbox artwork-hitbox-menu" id="backToMenuFromEndlessBtn" aria-label="Back to Menu">Back to Menu</button>
     </div>
@@ -148,12 +147,28 @@
           <div class="hero-actions hero-nav-actions">
             <a href="/about.html" class="btn btn-secondary">About</a>
             <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
-            <a href="/codex.html" class="btn btn-secondary">Codex</a>
+            <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Strategy Guide</a>
             <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
             <a href="/account.html" class="btn btn-secondary">Account</a>
           </div>
         </div>
       </div>
+
+        <div class="hero-actions hero-actions-leaderboard">
+    <section class="hero-leaderboard glass">
+      <div class="hero-leaderboard-head">
+        <div>
+          <div class="panel-kicker">Online</div>
+          <h3>Endless Bonus Top 3</h3>
+        </div>
+        <button class="btn btn-secondary hero-refresh-btn" id="refreshLeaderboardBtn" type="button">Refresh</button>
+      </div>
+      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Loading the best bonus scores...</div>
+      <div class="hero-leaderboard-list" id="bonusLeaderboardList">
+        <div class="leaderboard-empty">No entries yet.</div>
+      </div>
+    </section>
+  </div>
 </section>
 
     <section class="layout">
@@ -161,20 +176,13 @@
         <header class="panel-header">
           <div>
             <div class="panel-kicker">Battlefield</div>
-            <div class="panel-title-row">
-              <h2>Defend the road to the gate</h2>
-              <div class="panel-mode-switch" aria-label="Current game mode">
-                <span class="panel-mode-pill active" id="panelModeStory">Story</span>
-                <span class="panel-mode-pill locked" id="panelModeEndless">Endless</span>
-              </div>
-            </div>
+            <h2>Defend the road to the gate</h2>
           </div>
           <div class="panel-header-user-actions">
             <a class="panel-header-user" id="panelHeaderUserLink" aria-live="polite" href="/account.html">
               <span class="panel-header-user-label">Player</span>
               <strong class="panel-header-user-value" id="panelHeaderUserValue">Guest</strong>
             </a>
-            <span class="panel-header-crest hidden" id="panelHeaderCrestPerk" aria-live="polite"></span>
             <button class="btn btn-secondary panel-header-logout hidden" id="panelHeaderLogoutBtn" type="button">Logout</button>
           </div>
 
@@ -416,6 +424,5 @@
 
   <script src="game.js"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
-  <div class="legal-footer-links"><a href="/privacy.html" class="site-footer-link">Privacy</a> <span class="site-footer-sep">•</span> <a href="/terms.html" class="site-footer-link">Terms</a></div>
 </body>
 </html>

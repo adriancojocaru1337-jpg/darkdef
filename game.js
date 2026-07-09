@@ -7,11 +7,7 @@ const waveBadge = document.getElementById("waveBadge");
 const stageBadge = document.getElementById("stageBadge");
 const panelHeaderUserLink = document.getElementById("panelHeaderUserLink");
 const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
-const panelHeaderCrestPerk = document.getElementById("panelHeaderCrestPerk");
 const panelHeaderLogoutBtn = document.getElementById("panelHeaderLogoutBtn");
-const gamePanel = document.querySelector(".game-panel");
-const panelModeStory = document.getElementById("panelModeStory");
-const panelModeEndless = document.getElementById("panelModeEndless");
 const progressText = document.getElementById("progressText");
 const waveFill = document.getElementById("waveFill");
 const messageBox = document.getElementById("messageBox");
@@ -115,96 +111,6 @@ const reservePanelEls = {
 const reserveLevelEls = {};
 const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
 
-const CREST_PERKS = {
-  "ember-shield": { title: "Inferno Discipline", summary: "Inferno burn is stronger and Bomb Towers hit slightly harder." },
-  "moon-sigil": { title: "Arcane Reach", summary: "Mages gain range and Frost Nova covers a slightly larger area." },
-  "forest-warden": { title: "Rootbound Patience", summary: "Slow effects last longer and frost control is slightly stronger." },
-  "storm-mark": { title: "Tempest Timing", summary: "Chain Lightning reaches farther and storm chains hit harder." },
-  "royal-flare": { title: "Conqueror's Ambition", summary: "Bonus score gains and boss gold rewards are increased." },
-  "void-bloom": { title: "Corruption Pulse", summary: "Meteor Strike and control effects are slightly empowered." },
-  "iron-oath": { title: "Warden's Oath", summary: "Archer and Hunter deal more damage to bosses and perform better into armor." },
-  "sunforged": { title: "Last Light", summary: "Start richer and receive stronger stage clear rewards." }
-};
-
-let activePlayerProfile = { username: "Guest", crestId: null };
-
-function getActiveCrestId(){
-  return activePlayerProfile?.crestId || null;
-}
-
-function hasActiveCrest(crestId){
-  return getActiveCrestId() === crestId;
-}
-
-function getActiveCrestPerk(){
-  return CREST_PERKS[getActiveCrestId()] || null;
-}
-
-function getActiveCrestLabel(){
-  const crestId = getActiveCrestId();
-  if(!crestId) return "";
-  return window.DarkDefenseCrest?.presets?.[crestId]?.label || crestId;
-}
-
-function getRoyalBonusAmount(amount){
-  const value = Number(amount || 0);
-  if(!value) return 0;
-  return hasActiveCrest("royal-flare") ? Math.round(value * 1.05) : value;
-}
-
-function getCrestCombatNote(){
-  const perk = getActiveCrestPerk();
-  if(!perk) return "";
-  return `Active Crest: ${perk.title}. ${perk.summary}`;
-}
-
-function getSessionLeaderboardName(){
-  const username = String(activePlayerProfile?.username || "").trim();
-  if(!username || username.toLowerCase() === "guest") return "";
-  return username.slice(0, 20);
-}
-
-function getPreferredLeaderboardName(){
-  return getSessionLeaderboardName() || getStoredLeaderboardName();
-}
-
-function refreshModePills(){
-  if(panelModeStory){
-    panelModeStory.classList.toggle("active", currentMode === "campaign");
-  }
-  if(panelModeEndless){
-    panelModeEndless.classList.toggle("active", currentMode === "endless");
-    panelModeEndless.classList.toggle("locked", !endlessUnlocked && currentMode !== "endless");
-    panelModeEndless.textContent = endlessUnlocked || currentMode === "endless" ? "Endless" : "Endless Locked";
-  }
-}
-
-function refreshEndlessVisualState(){
-  const endlessActive = currentMode === "endless";
-  canvasWrap?.classList.toggle("endless-active", endlessActive);
-  gamePanel?.classList.toggle("endless-active", endlessActive);
-  document.body.classList.toggle("endless-active", endlessActive);
-}
-
-function refreshPanelCrestPerk(){
-  if(!panelHeaderCrestPerk) return;
-  const perk = getActiveCrestPerk();
-  const crestLabel = getActiveCrestLabel();
-  const crestId = getActiveCrestId();
-  if(!perk){
-    panelHeaderCrestPerk.innerHTML = "";
-    panelHeaderCrestPerk.removeAttribute("title");
-    panelHeaderCrestPerk.removeAttribute("aria-label");
-    panelHeaderCrestPerk.classList.add("hidden");
-    return;
-  }
-  const crestMarkup = window.DarkDefenseCrest?.markup(activePlayerProfile?.username || "Player", "dd-crest-sm", crestId) || "";
-  panelHeaderCrestPerk.innerHTML = `${crestMarkup}<span class="panel-header-crest-name">${crestLabel}</span>`;
-  panelHeaderCrestPerk.setAttribute("title", `${crestLabel}: ${perk.title}. ${perk.summary}`);
-  panelHeaderCrestPerk.setAttribute("aria-label", `${crestLabel}: ${perk.title}. ${perk.summary}`);
-  panelHeaderCrestPerk.classList.remove("hidden");
-}
-
 const UNIT_CARD_META = {
   archer:{emoji:"🏹", role:"Fast", roleClass:"", summary:"Fast single-target damage"},
   hunter:{emoji:"🎯", role:"Power", roleClass:"power", summary:"Heavy precision shots"},
@@ -224,8 +130,6 @@ function setPanelUserLabel(name){
 
 async function loadPanelUserSession(){
   setPanelUserLabel("Guest");
-  activePlayerProfile = { username: "Guest", crestId: null };
-  refreshPanelCrestPerk();
   panelHeaderUserLink?.setAttribute("href", "/account.html");
   panelHeaderLogoutBtn?.classList.add("hidden");
   try{
@@ -237,14 +141,10 @@ async function loadPanelUserSession(){
     const data = await response.json();
     if(!data?.authenticated || !data?.user?.username) return;
     setPanelUserLabel(data.user.username);
-    activePlayerProfile = { username: data.user.username, crestId: data.user.crestId || null };
-    refreshPanelCrestPerk();
     panelHeaderUserLink?.setAttribute("href", "/profile.html");
     panelHeaderLogoutBtn?.classList.remove("hidden");
   }catch(_){
-    activePlayerProfile = { username: "Guest", crestId: null };
     setPanelUserLabel("Guest");
-    refreshPanelCrestPerk();
   }
 }
 
@@ -396,24 +296,6 @@ function loadBossSplashImages(){
 }
 loadBossSplashImages();
 
-const bossSpriteSources = {
-  1: "assets/boss/boss-stage-1.webp",
-  2: "assets/boss/boss-stage-2.webp",
-  3: "assets/boss/boss-stage-3.webp",
-  4: "assets/boss/boss-stage-4.webp",
-  5: "assets/boss/boss-stage-5.webp",
-  6: "assets/boss/boss-stage-6.webp"
-};
-const bossSprites = {};
-function loadBossSprites(){
-  Object.entries(bossSpriteSources).forEach(([stage, src]) => {
-    const img = new Image();
-    img.src = src;
-    bossSprites[stage] = img;
-  });
-}
-loadBossSprites();
-
 const bossDefeatLogoSources = {
   campaign: "assets/ui/boss-defeat-campaign.jpg",
   endless: "assets/ui/boss-defeat-endless.jpg"
@@ -494,7 +376,7 @@ const STAGE_VEGETATION = {
 
 const UNIT_TYPES = {
   archer:{name:"Archer",cost:90,range:122,fireRate:.72,damage:30,projectileSpeed:450,color:"#34d399",hood:"#065f46",upgradeCost:105,sellFactor:.8,kind:"arrow"},
-  hunter:{name:"Hunter",cost:190,range:194,fireRate:1.18,damage:84,projectileSpeed:540,color:"#f59e0b",hood:"#78350f",upgradeCost:215,sellFactor:.8,kind:"arrow"},
+  hunter:{name:"Hunter",cost:190,range:186,fireRate:1.24,damage:76,projectileSpeed:520,color:"#f59e0b",hood:"#78350f",upgradeCost:215,sellFactor:.8,kind:"arrow"},
   mage:{name:"Mage",cost:235,range:156,fireRate:1.08,damage:54,projectileSpeed:400,color:"#a78bfa",hood:"#5b21b6",upgradeCost:230,sellFactor:.82,kind:"magic",splash:52},
   bomb:{name:"Bomb Tower",cost:305,range:145,fireRate:1.7,damage:104,projectileSpeed:315,color:"#ef4444",hood:"#7f1d1d",upgradeCost:345,sellFactor:.84,kind:"bomb",splash:68}
 };
@@ -536,9 +418,9 @@ const TOWER_SPECIALIZATIONS = {
       costMult:1.35,
       statLabel:"Range↑ / DMG↑",
       apply(unit){
-        unit.range *= 1.22;
-        unit.damage *= 1.32;
-        unit.fireRate *= 1.04;
+        unit.range *= 1.20;
+        unit.damage *= 1.25;
+        unit.fireRate *= 1.08;
       }
     },
     tracker: {
@@ -548,10 +430,9 @@ const TOWER_SPECIALIZATIONS = {
       costMult:1.35,
       statLabel:"Fast bonus / Speed↑",
       apply(unit){
-        unit.damage *= 1.15;
-        unit.projectileSpeed *= 1.24;
-        unit.specBonusVsFast = 1.45;
-        unit.specBonusVsArmored = 1.18;
+        unit.damage *= 1.12;
+        unit.projectileSpeed *= 1.20;
+        unit.specBonusVsFast = 1.35;
       }
     }
   },
@@ -670,8 +551,7 @@ const STAGE_CLEAR_GOLD_REWARD = {
 };
 
 function getStageClearGoldReward(stage){
-  const baseReward = STAGE_CLEAR_GOLD_REWARD[stage] || 0;
-  return hasActiveCrest("sunforged") ? Math.round(baseReward * 1.05) : baseReward;
+  return STAGE_CLEAR_GOLD_REWARD[stage] || 0;
 }
 
 const STAGE_BOSS = {
@@ -800,8 +680,6 @@ let stageQuoteResolveTimer = 0;
 let auraBindFxTimer = 0;
 let auraBindFxUnitId = null;
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
-let autoStartWaves = false;
-let startWaveClickTimer = null;
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 let isMuted = false;
@@ -809,8 +687,8 @@ let selectedSpell = null;
 const spellCooldown = { slow:0, damage:0, bomb:0 };
 const spellConfig = {
   slow: { cooldown: 18, radius: 92, factor: 0.45, duration: 3.2 },
-  damage: { cooldown: 26, radius: 78, damage: 185 },
-  bomb: { cooldown: 18, range: 108, damage: 92, chains: 3 }
+  damage: { cooldown: 24, radius: 84, damage: 180 },
+  bomb: { cooldown: 16, range: 120, damage: 90, chains: 4 }
 };
 
 let pendingAuraDraft = null;
@@ -883,7 +761,6 @@ function getAuraData(auraType){
 }
 
 function getAuraAdjustedStats(unit){
-  const now = performance.now();
   const stats = {
     damage: unit.damage,
     range: unit.range,
@@ -903,16 +780,6 @@ function getAuraAdjustedStats(unit){
       stats.fireRate *= 0.80;
       stats.projectileSpeed *= 1.20;
     }
-  }
-  if(unit.type === "mage" && hasActiveCrest("moon-sigil")){
-    stats.range *= 1.04;
-  }
-  if(unit.type === "bomb" && hasActiveCrest("ember-shield")){
-    stats.damage *= 1.03;
-  }
-  if((unit.hexedUntil || 0) > now){
-    stats.damage *= 0.88;
-    stats.fireRate *= 1.16;
   }
   return stats;
 }
@@ -936,17 +803,14 @@ function applyAuraStatusOnEnemy(enemy, unit, pos, damageDone=0){
   if(!enemy || !unit || !unit.auraType) return;
   if(unit.auraType === "inferno"){
     enemy.burnTimer = Math.max(enemy.burnTimer || 0, 3.0);
-    const burnMultiplier = hasActiveCrest("ember-shield") ? 1.06 : 1;
-    enemy.burnDps = Math.max(enemy.burnDps || 0, Math.max(16, damageDone * 0.35) * burnMultiplier);
+    enemy.burnDps = Math.max(enemy.burnDps || 0, Math.max(16, damageDone * 0.35));
   } else if(unit.auraType === "frost"){
-    const slowDuration = 1.8 * (hasActiveCrest("forest-warden") ? 1.05 : 1);
-    const frostFactor = hasActiveCrest("forest-warden") ? 0.76 : 0.78;
-    enemy.auraSlowTimer = Math.max(enemy.auraSlowTimer || 0, slowDuration);
-    enemy.auraSlowFactor = Math.min(enemy.auraSlowFactor || 1, frostFactor);
+    enemy.auraSlowTimer = Math.max(enemy.auraSlowTimer || 0, 1.8);
+    enemy.auraSlowFactor = Math.min(enemy.auraSlowFactor || 1, 0.78);
     enemy.frostHits = (enemy.frostHits || 0) + 1;
     enemy.freezeLockTimer = Math.max(0, enemy.freezeLockTimer || 0);
     if(enemy.frostHits >= 4 && enemy.freezeLockTimer <= 0){
-      enemy.freezeTimer = Math.max(enemy.freezeTimer || 0, 0.9 * (hasActiveCrest("void-bloom") ? 1.04 : 1));
+      enemy.freezeTimer = Math.max(enemy.freezeTimer || 0, 0.9);
       enemy.freezeLockTimer = 4.0;
       enemy.frostHits = 0;
       if(pos) showPopup(pos.x, pos.y - 14, "Freeze!", "#67e8f9");
@@ -958,17 +822,13 @@ function applyAuraStatusOnEnemy(enemy, unit, pos, damageDone=0){
 function applySpecializationStatusOnEnemy(enemy, unit, pos, damageDone=0){
   if(!enemy || !unit || !unit.specialization) return;
   if(unit.type === "mage" && unit.specialization === "frost") {
-    const durationMultiplier = hasActiveCrest("forest-warden") ? 1.05 : 1;
-    const slowFactor = hasActiveCrest("forest-warden")
-      ? Math.max(0.72, (unit.specSlowFactor || 0.80) - 0.03)
-      : (unit.specSlowFactor || 0.80);
-    enemy.specSlowTimer = Math.max(enemy.specSlowTimer || 0, (unit.specSlowDuration || 1.2) * durationMultiplier);
-    enemy.specSlowFactor = Math.min(enemy.specSlowFactor || 1, slowFactor);
+    enemy.specSlowTimer = Math.max(enemy.specSlowTimer || 0, unit.specSlowDuration || 1.2);
+    enemy.specSlowFactor = Math.min(enemy.specSlowFactor || 1, unit.specSlowFactor || 0.80);
     if(pos) showPopup(pos.x, pos.y - 18, "Slow", "#93c5fd");
   } else if(unit.type === "bomb" && unit.specialization === "shock") {
     const stunChance = unit.specStunChance || 0;
     if(stunChance > 0 && Math.random() < stunChance){
-      enemy.stunTimer = Math.max(enemy.stunTimer || 0, (unit.specStunDuration || 0.60) * (hasActiveCrest("void-bloom") ? 1.04 : 1));
+      enemy.stunTimer = Math.max(enemy.stunTimer || 0, unit.specStunDuration || 0.60);
       if(pos) showPopup(pos.x, pos.y - 18, "Stun!", "#fca5a5");
     }
   }
@@ -1001,7 +861,7 @@ function triggerSpecializationChain(sourceEnemy, sourceUnit, sourcePos){
 function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
   if(!sourceUnit || sourceUnit.auraType !== "storm") return;
   const stats = getAuraAdjustedStats(sourceUnit);
-  const chainDamage = stats.damage * 0.65 * (hasActiveCrest("storm-mark") ? 1.05 : 1);
+  const chainDamage = stats.damage * 0.65;
   const chainRange = 95;
   const maxJumps = sourceUnit.level >= 4 ? 3 : 2;
   const visited = new Set([sourceEnemy.id]);
@@ -1037,8 +897,7 @@ function triggerInfernoExplosion(deadEnemy){
   const center = getPathPosition(deadEnemy.progress);
   const owner = getUnitById(deadEnemy.lastHitByUnitId);
   const ownerStats = owner ? getAuraAdjustedStats(owner) : null;
-  const infernoBurstMultiplier = hasActiveCrest("ember-shield") ? 1.06 : 1;
-  const dmg = ownerStats ? ownerStats.damage * (owner && (owner.type === "mage" || owner.type === "bomb") ? 0.75 : 0.60) * infernoBurstMultiplier : 65 * infernoBurstMultiplier;
+  const dmg = ownerStats ? ownerStats.damage * (owner && (owner.type === "mage" || owner.type === "bomb") ? 0.75 : 0.60) : 65;
   for(const enemy of enemies){
     if(enemy.id === deadEnemy.id) continue;
     const pos = getPathPosition(enemy.progress);
@@ -1124,9 +983,7 @@ function startAuraBindCinematic(unit){
   auraBindFxUnitId = unit?.id || null;
   auraBindFxTimer = 1.0;
   stageQuoteText = pickStageQuote();
-  stageQuoteSubtext = currentMode === "endless"
-    ? `Endless boss pair defeated`
-    : `Stage ${currentStage} cleared`;
+  stageQuoteSubtext = `Stage ${currentStage} cleared`;
   stageQuoteTimer = 3.6;
   stageQuoteResolveTimer = 3.2;
   setMessage(`${unit.name} received ${unit.auraName}.`);
@@ -1168,7 +1025,7 @@ function resolveBossWaveCompletion(){
     wave += 1;
     if(clearReward > 0){
       money += clearReward;
-      bonusScore += getRoyalBonusAmount(Math.round(clearReward * 0.5));
+      bonusScore += Math.round(clearReward * 0.5);
       pushNotification("gold","Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
     }
     moveUnitsToReserve();
@@ -1182,7 +1039,7 @@ function resolveBossWaveCompletion(){
     submitStoryLeaderboardScore(currentStage);
     if(clearReward > 0){
       money += clearReward;
-      bonusScore += getRoyalBonusAmount(Math.round(clearReward * 0.5));
+      bonusScore += Math.round(clearReward * 0.5);
       pushNotification("gold","Final stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
     }
     endlessUnlocked = true;
@@ -1198,19 +1055,12 @@ function resolveBossWaveCompletion(){
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 50;
-    bonusScore += getRoyalBonusAmount(80);
+    bonusScore += 80;
     maybeSaveBestEndlessRun();
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
   isPaused = false;
   updateUI();
-  if(autoStartWaves && !waveActive && lives > 0 && !pendingAuraChoice && !pendingBossResolution){
-    setTimeout(()=>{
-      if(autoStartWaves && !waveActive && lives > 0 && !isPaused && !pendingAuraChoice && !pendingBossResolution){
-        startWave();
-      }
-    }, 260);
-  }
 }
 
 
@@ -1242,48 +1092,6 @@ async function requestLeaderboardRun(modeHint=currentMode){
 function prewarmLeaderboardRun(modeHint=currentMode){
   leaderboardRunPromise = requestLeaderboardRun(modeHint).catch(()=>null).finally(()=>{ leaderboardRunPromise = null; });
   return leaderboardRunPromise;
-}
-
-function getStoredLeaderboardName(){
-  try{
-    return String(localStorage.getItem("sdcPlayerName") || "").trim().slice(0, 20);
-  }catch(_){
-    return "";
-  }
-}
-
-async function finishTrackedRun(modeHint=currentMode, finalWave=currentMode === "campaign" ? currentStage : stageWave){
-  const mode = modeHint || currentMode;
-  if(!leaderboardRun.runId || !leaderboardRun.runToken || leaderboardRun.mode !== mode) {
-    try{
-      await ensureLeaderboardRun(mode);
-    }catch(_){
-      return false;
-    }
-  }
-
-  if(!leaderboardRun.runId || !leaderboardRun.runToken || leaderboardRun.mode !== mode) return false;
-
-  try{
-    const response = await fetch("/.netlify/functions/finish-run", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        mode,
-        name: getStoredLeaderboardName(),
-        score: totalScore(),
-        bonusScore: bonusScore,
-        wave: finalWave,
-        kills: kills,
-        runId: leaderboardRun.runId,
-        runToken: leaderboardRun.runToken
-      })
-    });
-    return response.ok;
-  }catch(_){
-    return false;
-  }
 }
 
 async function ensureLeaderboardRun(modeHint=currentMode){
@@ -1335,9 +1143,10 @@ async function loadBonusLeaderboard(){
 
 async function submitStoryLeaderboardScore(finalStage=currentStage){
   if(currentMode !== "campaign") return;
-  await finishTrackedRun("campaign", finalStage);
   let playerName = "";
-  playerName = getPreferredLeaderboardName();
+  try{
+    playerName = localStorage.getItem("sdcPlayerName") || "";
+  }catch(e){}
   if(!playerName){
     playerName = await requestLeaderboardName("Story", "Choose the name that will appear for your campaign run.");
   }
@@ -1373,11 +1182,11 @@ async function submitStoryLeaderboardScore(finalStage=currentStage){
 }
 
 async function submitBonusLeaderboardScore(){
-  if(currentMode !== "endless") return;
-  await finishTrackedRun("endless", stageWave);
-  if(bonusScore <= 0) return;
+  if(currentMode !== "endless" || bonusScore <= 0) return;
   let playerName = "";
-  playerName = getPreferredLeaderboardName();
+  try{
+    playerName = localStorage.getItem("sdcPlayerName") || "";
+  }catch(e){}
   if(!playerName){
     playerName = await requestLeaderboardName("Endless Bonus", "Choose the name that will appear for your endless run.");
   }
@@ -1425,12 +1234,10 @@ function requestLeaderboardName(modeLabel, helperText){
   leaderboardNameTitle.textContent = `${modeLabel} leaderboard`;
   leaderboardNameText.textContent = helperText;
 
-  let initialName = getPreferredLeaderboardName();
-  if(!initialName){
-    try{
-      initialName = localStorage.getItem("sdcPlayerName") || "";
-    }catch(e){}
-  }
+  let initialName = "";
+  try{
+    initialName = localStorage.getItem("sdcPlayerName") || "";
+  }catch(e){}
 
   leaderboardNameInput.value = initialName.trim().slice(0, 20);
   leaderboardNameOverlay.classList.remove("hidden");
@@ -1836,11 +1643,6 @@ function playShootSound(kind="arrow"){
 function playHitSound(){ tone("square",220,120,.06,.012); }
 function playDeathSound(){ tone("triangle",320,90,.12,.018); }
 function playWaveSound(){ tone("sine",480,760,.18,.03); }
-function playEndlessBossWaveSound(){
-  tone("sawtooth", 180, 96, .20, .022);
-  setTimeout(()=>tone("triangle", 240, 120, .24, .020), 90);
-  setTimeout(()=>tone("sine", 620, 220, .28, .014), 170);
-}
 function playUpgradeSound(){ ensureAudio(); audioAssets.upgrade.play(); }
 function startBossLoop(){
   ensureAudio();
@@ -1879,11 +1681,7 @@ function getPathPosition(progress){
 }
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const ENDLESS_BASELINE_WAVE = 15;
-function getEndlessBaselineWave(waveNumber){
-  return currentMode === "endless" ? waveNumber + (ENDLESS_BASELINE_WAVE - 1) : waveNumber;
-}
-const enemyCountForWave=(n)=>6+(getEndlessBaselineWave(n)-1)*2;
+const enemyCountForWave=(n)=>6+(n-1)*2;
 
 function getWaveThreatProfile(){
   if(isCurrentWaveBoss()){
@@ -1891,62 +1689,6 @@ function getWaveThreatProfile(){
       key: "boss",
       label: currentMode === "endless" ? "Boss Pair" : "Boss Wave",
       detail: currentMode === "endless" ? "Two bosses arrive together. Save spells for the engage." : "A boss is coming. Keep burst damage and control ready."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 12 && stageWave % 4 === 0){
-    return {
-      key: "splitter",
-      label: "Splitter Surge",
-      detail: "Some enemies split into smaller runners on death. Keep splash and cleanup ready."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 16 && stageWave % 6 === 0){
-    return {
-      key: "hexed",
-      label: "Hexed Front",
-      detail: "Hexed enemies can curse towers that hit them. Keep coverage spread across multiple carries."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 18 && stageWave % 7 === 0){
-    return {
-      key: "warden",
-      label: "Warden Escort",
-      detail: "Wardens empower nearby enemies. Focus them before the frontline gets accelerated."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 20 && stageWave % 8 === 0){
-    return {
-      key: "leech-priest",
-      label: "Leech Rite",
-      detail: "Leech Priests pulse healing into nearby enemies. Burst them down before the lane stabilizes."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 22 && stageWave % 7 === 3){
-    return {
-      key: "blinker",
-      label: "Blinker Rush",
-      detail: "Blinkers lurch forward in short jumps. Save burst for anything that slips past the first kill zone."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 24 && stageWave % 9 === 0){
-    return {
-      key: "phantom",
-      label: "Phantom Veil",
-      detail: "Phantoms phase in and out of reality. They can briefly ignore tower fire if your timing is bad."
-    };
-  }
-
-  if(currentMode === "endless" && stageWave >= 26 && stageWave % 10 === 6){
-    return {
-      key: "abyss-herald",
-      label: "Abyss Herald",
-      detail: "A rare herald enters the lane carrying one random boss technique. Keep the wave under control before it triggers."
     };
   }
 
@@ -1976,69 +1718,11 @@ function getWaveThreatProfile(){
 function getDamageMultiplierAgainstEnemy(enemy, projectileType){
   if(!enemy) return 1;
   if(enemy.type === "armored"){
-    if(projectileType === "archer") return hasActiveCrest("iron-oath") ? 0.86 : 0.82;
-    if(projectileType === "hunter") return hasActiveCrest("iron-oath") ? 0.92 : 0.88;
-    if(projectileType === "mage") return 1.12;
-    if(projectileType === "bomb") return 1.18;
+    if(projectileType === "archer" || projectileType === "hunter") return 0.68;
+    if(projectileType === "mage") return 1.18;
+    if(projectileType === "bomb") return 1.28;
   }
   return 1;
-}
-
-function applyHexedRetaliation(enemy, unit, pos){
-  if(!enemy || enemy.type !== "hexed" || !unit) return;
-  const now = performance.now();
-  const remainingHex = (unit.hexedUntil || 0) - now;
-  if(remainingHex > 700) return;
-  unit.hexedUntil = now + 2600;
-  unit.hexFlashUntil = now + 900;
-  const unitPos = cellCenter(unit.c, unit.r);
-  showPopup(unitPos.x, unitPos.y - 24, "Hexed!", "#e879f9");
-  if(pos){
-    addHitParticles(pos.x, pos.y, 8, "#e879f9", {
-      speed: 120,
-      speedY: 105,
-      lifeMin: .16,
-      lifeMax: .30,
-      sizeMin: 1.3,
-      sizeMax: 2.8,
-      glow: 8,
-      shape: "diamond"
-    });
-  }
-}
-
-function spawnSplitterChildren(enemy, pos){
-  if(!enemy || enemy.type !== "splitter") return;
-  const childCount = 2;
-  const childHp = Math.max(28, enemy.maxHp * 0.34);
-  const childSpeed = Math.min(0.24, enemy.speed * 1.34);
-  for(let i = 0; i < childCount; i++){
-    enemies.push({
-      id: idCounter++,
-      hp: childHp,
-      maxHp: childHp,
-      speed: childSpeed,
-      progress: Math.max(0, Math.min(0.985, enemy.progress - 0.016 * (i + 1))),
-      wobble: Math.random() * Math.PI * 2,
-      type: "shardling",
-      reward: 7,
-      abilityUsed: true,
-      bossTelegraphShown: true,
-      bossStage: null,
-      bossColor: null,
-      bossName: null
-    });
-  }
-  showPopup(pos.x, pos.y - 22, "Split!", "#fca5a5");
-  addHitParticles(pos.x, pos.y, 10, "#fda4af", {
-    speed: 150,
-    speedY: 130,
-    lifeMin: .18,
-    lifeMax: .36,
-    sizeMin: 1.4,
-    sizeMax: 3.3,
-    glow: 8
-  });
 }
 
 function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
@@ -2049,27 +1733,14 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
   const rangePct = stats.range > 0 ? dist / stats.range : 1;
 
   if(enemy.type === "boss") score += 220;
-  if(enemy.type === "warden") score += 150;
-  if(enemy.type === "leech-priest") score += 170;
-  if(enemy.type === "blinker") score += 160;
-  if(enemy.type === "phantom") score += 175;
-  if(enemy.type === "abyss-herald") score += 210;
 
   if(unit.type === "archer"){
     if(enemy.type === "fast") score += 140;
-    if(enemy.type === "shardling") score += 120;
-    if(enemy.type === "leech-priest") score += 105;
-    if(enemy.type === "blinker" || enemy.type === "phantom") score += 115;
-    if(enemy.type === "abyss-herald") score += 145;
     if(enemy.type === "armored") score -= 110;
     score += (1 - rangePct) * 18;
   } else if(unit.type === "hunter"){
     if(enemy.type === "boss") score += 180;
     if(enemy.type === "tank" || enemy.type === "armored") score += 90;
-    if(enemy.type === "warden" || enemy.type === "leech-priest") score += 120;
-    if(enemy.type === "blinker" || enemy.type === "phantom") score += 135;
-    if(enemy.type === "abyss-herald") score += 150;
-    if(enemy.type === "splitter") score += 55;
     if(enemy.type === "fast") score += 25;
     score += enemy.maxHp * 0.07;
   } else if(unit.type === "mage"){
@@ -2079,10 +1750,6 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 48) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored") score += 90;
-    if(enemy.type === "warden" || enemy.type === "leech-priest") score += 85;
-    if(enemy.type === "blinker" || enemy.type === "phantom") score += 95;
-    if(enemy.type === "abyss-herald") score += 118;
-    if(enemy.type === "splitter" || enemy.type === "shardling") score += 50;
     score += nearbyCount * 45;
   } else if(unit.type === "bomb"){
     const clusterScore = enemies.reduce((count, other)=>{
@@ -2090,10 +1757,6 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 64) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored" || enemy.type === "tank") score += 110;
-    if(enemy.type === "warden" || enemy.type === "leech-priest") score += 75;
-    if(enemy.type === "blinker" || enemy.type === "phantom") score += 84;
-    if(enemy.type === "abyss-herald") score += 110;
-    if(enemy.type === "splitter" || enemy.type === "shardling") score += 70;
     score += clusterScore * 38;
   }
 
@@ -2187,13 +1850,11 @@ function burstSpellParticles(x, y, colorA, colorB, count=18){
 function castSlowSpell(x, y){
   if(isPaused || spellCooldown.slow > 0) return false;
   const cfg = spellConfig.slow;
-  const slowRadius = cfg.radius * (hasActiveCrest("moon-sigil") ? 1.03 : 1);
-  const slowDuration = cfg.duration * (hasActiveCrest("forest-warden") ? 1.05 : 1);
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
-    if(distance({x,y}, pos) <= slowRadius){
-      enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, slowDuration);
+    if(distance({x,y}, pos) <= cfg.radius){
+      enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, cfg.duration);
       enemy.spellSlowFactor = Math.min(enemy.spellSlowFactor || 1, cfg.factor);
       affected += 1;
       addHitParticles(pos.x, pos.y, 6, "#93c5fd");
@@ -2213,15 +1874,14 @@ function castSlowSpell(x, y){
 function castDamageSpell(x, y){
   if(isPaused || spellCooldown.damage > 0) return false;
   const cfg = spellConfig.damage;
-  const meteorDamage = Math.round(cfg.damage * (hasActiveCrest("void-bloom") ? 1.04 : 1));
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
     if(distance({x,y}, pos) <= cfg.radius){
-      enemy.hp -= meteorDamage;
+      enemy.hp -= cfg.damage;
       affected += 1;
       addHitParticles(pos.x, pos.y, 10, "#fb923c");
-      showPopup(pos.x, pos.y - 10, `-${meteorDamage}`, "#fb923c");
+      showPopup(pos.x, pos.y - 10, `-${cfg.damage}`, "#fb923c");
     }
   }
   placementEffects.push({x,y,color:"#fb923c",life:.52,maxLife:.52});
@@ -2238,13 +1898,12 @@ function castDamageSpell(x, y){
 function castBombSpell(x, y){
   if(isPaused || spellCooldown.bomb > 0) return false;
   const cfg = spellConfig.bomb;
-  const spellRange = cfg.range * (hasActiveCrest("storm-mark") ? 1.04 : 1);
   const inRange = enemies
     .map(enemy => {
       const pos = getPathPosition(enemy.progress);
       return { enemy, pos, dist: distance({x,y}, pos) };
     })
-    .filter(item => item.dist <= spellRange)
+    .filter(item => item.dist <= cfg.range)
     .sort((a,b)=>a.dist-b.dist)
     .slice(0, cfg.chains);
 
@@ -2423,10 +2082,7 @@ function getBossCountForCurrentWave(){
 }
 
 function getWaveEnemyTotal(){
-  if(currentMode === "endless" && isCurrentWaveBoss()) {
-    const escortCount = Math.max(8, Math.ceil(enemyCountForWave(stageWave) * 0.72));
-    return escortCount + getBossCountForCurrentWave();
-  }
+  if(currentMode === "endless" && isCurrentWaveBoss()) return getBossCountForCurrentWave();
   return enemyCountForWave(stageWave) + getBossCountForCurrentWave();
 }
 
@@ -2434,24 +2090,8 @@ function getEndlessCycle(){
   return Math.max(1, Math.floor(stageWave / 10));
 }
 
-function getEndlessMobHpScale(){
-  if(currentMode !== "endless") return 1;
-  const cycle = getEndlessCycle();
-  return 1.34 + (cycle - 1) * 0.18;
-}
-
-function getSpawnInterval(){
-  if(currentMode !== "endless") return 0.68;
-  return Math.max(0.40, 0.56 - (getEndlessCycle() - 1) * 0.03);
-}
-
-function getBossAbilityTriggerThreshold(enemy){
-  if(enemy?.type !== "boss") return 0.55;
-  return currentMode === "endless" ? 0.62 : 0.55;
-}
-
 function getDifficultyWaveNumber(){
-  return currentMode === "endless" ? getEndlessBaselineWave(stageWave) : wave;
+  return currentMode === "endless" ? stageWave : wave;
 }
 
 function getBossPairKey(pair){
@@ -2484,10 +2124,6 @@ function syncEndlessUnlockArtworkBounds(){
 }
 
 function showEndlessUnlockOverlay(){
-  if(endlessUnlockReward){
-    const finalReward = getStageClearGoldReward(6);
-    endlessUnlockReward.textContent = `Reward: +${finalReward} Gold`;
-  }
   if(endlessUnlockText){
     endlessUnlockText.textContent = ENDLESS_UNLOCK_QUOTES[Math.floor(Math.random() * ENDLESS_UNLOCK_QUOTES.length)];
     endlessUnlockText.classList.remove("quote-fade-in");
@@ -2514,7 +2150,6 @@ function enterEndlessModeFromUnlock(){
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
   saveProgress();
-  prewarmLeaderboardRun("endless");
   setMessage("Endless Mode begins. Your defenses hold the Dark Portal.");
   isPaused = false;
   updateUI();
@@ -2530,11 +2165,11 @@ function moveUnitsToReserve(){
 }
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
-  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, hexedUntil:0, hexFlashUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specBonusVsArmored:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
+  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
 }
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
-  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.hexedUntil=0; unit.hexFlashUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specBonusVsArmored=1; unit.specStunChance=0; unit.specStunDuration=0;
+  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0;
   return unit;
 }
 function takeReservedUnit(typeKey,c,r){
@@ -2548,9 +2183,6 @@ function takeReservedUnit(typeKey,c,r){
   });
   const unit=reservePool[typeKey].shift();
   unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0;
-  unit.hexedUntil = 0;
-  unit.hexFlashUntil = 0;
-  if(unit.specBonusVsArmored == null) unit.specBonusVsArmored = 1;
   return unit;
 }
 
@@ -2599,7 +2231,7 @@ function clearNotifications(){
   notificationEmpty?.classList.remove("hidden");
   notificationBadge?.classList.add("hidden");
 }
-const addScore=(base,bonus=0)=>{ score+=base; bonusScore+=getRoyalBonusAmount(bonus); };
+const addScore=(base,bonus=0)=>{ score+=base; bonusScore+=bonus; };
 const totalScore=()=>score+bonusScore;
 
 function getSavedEndlessWave(){
@@ -2709,8 +2341,6 @@ function openGameOverOverlay(){
 }
 
 function updateUI(){
-  refreshModePills();
-  refreshEndlessVisualState();
   moneyBadge.textContent = `💰 ${money}`;
   livesBadge.textContent = `❤️ ${lives}`;
   waveBadge.textContent = currentMode==="campaign" ? `🌊 Wave ${wave}` : `♾️ Endless Wave ${stageWave}`;
@@ -2747,9 +2377,7 @@ function updateUI(){
   furthestStageStat.textContent=String(Number(localStorage.getItem("sdcFurthestStage")||1));
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
 
-  startWaveBtn.disabled=lives<=0 || isPaused;
-  startWaveBtn?.classList.toggle("auto-start-active", autoStartWaves);
-  startWaveBtn?.setAttribute("title", autoStartWaves ? "Auto-start enabled (double-click to disable)" : "Start Wave (double-click to enable auto-start)");
+  startWaveBtn.disabled=waveActive || lives<=0 || isPaused;
   if(pauseBtn){
     pauseBtn.innerHTML = isPaused
       ? '<span class="resume-icon">▶</span><span class="btn-label">Resume</span>'
@@ -2789,7 +2417,7 @@ function applyStage(stageNumber, resetRun=false){
 
   if(resetRun){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
-    money=START_MONEY + (stageNumber-1)*60 + (hasActiveCrest("sunforged") ? 20 : 0);
+    money=START_MONEY + (stageNumber-1)*60;
     lives=START_LIVES; score=0; bonusScore=0; kills=0; wave=1;
     runEndlessBossPairsDefeated = 0;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
@@ -2815,13 +2443,7 @@ function startWave(){
   spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
   if(isCurrentWaveBoss()) bossBannerTimer = currentMode === "endless" ? 3.2 : 2.2;
-  if(isCurrentWaveBoss() && currentMode === "endless"){
-    addScreenFlash("#a855f7", 0.36, 0.24);
-    addScreenFlash("#ef4444", 0.22, 0.10);
-    playEndlessBossWaveSound();
-  } else {
-    playWaveSound();
-  }
+  playWaveSound();
   hideHintChip();
   hideTowerMenu();
   if(isCurrentWaveBoss()){
@@ -2830,8 +2452,8 @@ function startWave(){
     waveIntroSubtext = "";
   } else {
     waveIntroTimer = 1.8;
-    waveIntroText = currentMode === "endless" ? `Endless Wave ${stageWave}` : `Wave ${stageWave}`;
-    waveIntroSubtext = currentMode === "endless" ? `${threatProfile.label} · The portal grows louder` : `${threatProfile.label} - Stage ${currentStage} ${stage.name}`;
+    waveIntroText = `Wave ${stageWave}`;
+    waveIntroSubtext = `${threatProfile.label} - Stage ${currentStage} ${stage.name}`;
     waveIntroSubtext = `Stage ${currentStage} · ${stage.name}`;
   }
   if(isCurrentWaveBoss()){
@@ -2852,108 +2474,28 @@ function togglePause(){
 }
 
 function getBossHpBonus(stageNumber){
-  if(stageNumber >= 1 && stageNumber <= 4) return 1.43;
-  if(stageNumber >= 5 && stageNumber <= 6) return 1.365;
-  return 1.30;
+  if(stageNumber >= 1 && stageNumber <= 4) return 1.10;
+  if(stageNumber >= 5 && stageNumber <= 6) return 1.05;
+  return 1.0;
 }
 
 function enemyTemplateForSpawn(indexFromEnd){
   const stage=STAGES[currentStage];
-  const endlessMobHpScale = getEndlessMobHpScale();
   if(currentMode === "endless" && isCurrentWaveBoss() && indexFromEnd <= pendingEndlessBossPair.length){
     const bossStage = pendingEndlessBossPair[pendingEndlessBossPair.length - indexFromEnd];
     const cycle = getEndlessCycle();
-    const scale = 1 + (cycle - 1) * 0.42;
+    const scale = 1 + (cycle - 1) * 0.35;
     return {type:"boss", hpMult:4.0 * STAGES[bossStage].difficulty * scale * getBossHpBonus(bossStage), speed:.05 + bossStage * .003 + (cycle - 1) * .005, reward:140 + (cycle - 1) * 30, bossStage, bossColor: STAGE_BOSS[bossStage].color, bossName: STAGE_BOSS[bossStage].name};
   }
   const boss=isCurrentWaveBoss() && indexFromEnd===1;
   if(boss) return {type:"boss",hpMult:4.0*stage.difficulty*getBossHpBonus(currentStage),speed:.05+currentStage*.003,reward:125, bossStage: currentStage, bossColor: STAGE_BOSS[currentStage].color, bossName: STAGE_BOSS[currentStage].name};
   if(stageWave % 5 === 0){
     const armoredWindow = enemyCountForWave(stageWave);
-    const armoredShare = currentMode === "endless" ? 0.66 : 0.40;
-    const armoredHpScale = currentMode === "endless" ? 1.28 : 1;
-    if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * armoredShare))){
-      return {type:"armored", hpMult:1.55 * stage.difficulty * endlessMobHpScale * armoredHpScale, speed:.082+currentStage*.0025, reward:26};
+    if(indexFromEnd <= Math.max(3, Math.ceil(armoredWindow * 0.4))){
+      return {type:"armored", hpMult:1.55*stage.difficulty, speed:.082+currentStage*.0025, reward:26};
     }
   }
   const roll=Math.random();
-  if(currentMode === "endless" && stageWave >= 10 && !isCurrentWaveBoss()){
-    const splitterChance = Math.min(0.22, 0.09 + Math.max(0, stageWave - 10) * 0.0045);
-    if(roll < splitterChance){
-      return {
-        type:"splitter",
-        hpMult:1.22 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.17, 0.094 + getDifficultyWaveNumber() * 0.003),
-        reward:24
-      };
-    }
-  }
-  if(currentMode === "endless" && stageWave >= 13 && !isCurrentWaveBoss()){
-    const hexedChance = Math.min(0.18, 0.07 + Math.max(0, stageWave - 13) * 0.0035);
-    if(roll < hexedChance){
-      return {
-        type:"hexed",
-        hpMult:0.98 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.18, 0.096 + getDifficultyWaveNumber() * 0.0031),
-        reward:23
-      };
-    }
-  }
-  if(currentMode === "endless" && stageWave >= 15 && !isCurrentWaveBoss()){
-    const wardenChance = Math.min(0.15, 0.055 + Math.max(0, stageWave - 15) * 0.0022);
-    if(roll < wardenChance){
-      return {
-        type:"warden",
-        hpMult:1.24 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.15, 0.082 + getDifficultyWaveNumber() * 0.0026),
-        reward:29
-      };
-    }
-  }
-  if(currentMode === "endless" && stageWave >= 17 && !isCurrentWaveBoss()){
-    const priestChance = Math.min(0.14, 0.05 + Math.max(0, stageWave - 17) * 0.0022);
-    if(roll < priestChance){
-      return {
-        type:"leech-priest",
-        hpMult:1.16 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.145, 0.079 + getDifficultyWaveNumber() * 0.0024),
-        reward:31
-      };
-    }
-  }
-  if(currentMode === "endless" && stageWave >= 19 && !isCurrentWaveBoss()){
-    const blinkerChance = Math.min(0.16, 0.055 + Math.max(0, stageWave - 19) * 0.0025);
-    if(roll < blinkerChance){
-      return {
-        type:"blinker",
-        hpMult:1.08 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.175, 0.092 + getDifficultyWaveNumber() * 0.0029),
-        reward:30
-      };
-    }
-  }
-  if(currentMode === "endless" && stageWave >= 21 && !isCurrentWaveBoss()){
-    const phantomChance = Math.min(0.14, 0.05 + Math.max(0, stageWave - 21) * 0.0022);
-    if(roll < phantomChance){
-      return {
-        type:"phantom",
-        hpMult:0.94 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.166, 0.086 + getDifficultyWaveNumber() * 0.0027),
-        reward:32
-      };
-    }
-  }
-  if(currentMode === "endless" && stageWave >= 23 && !isCurrentWaveBoss()){
-    const heraldChance = Math.min(0.10, 0.03 + Math.max(0, stageWave - 23) * 0.0018);
-    if(roll < heraldChance){
-      return {
-        type:"abyss-herald",
-        hpMult:1.26 * stage.difficulty * endlessMobHpScale,
-        speed:Math.min(0.152, 0.078 + getDifficultyWaveNumber() * 0.0024),
-        reward:38
-      };
-    }
-  }
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
     const difficultyWave = getDifficultyWaveNumber();
@@ -2962,19 +2504,17 @@ function enemyTemplateForSpawn(indexFromEnd){
       : (.135 + difficultyWave * .0035);
     return {
       type:"fast",
-      hpMult:(isLateStageFast ? .52 : .75) * stage.difficulty * endlessMobHpScale,
+      hpMult:(isLateStageFast ? .52 : .75) * stage.difficulty,
       speed:isLateStageFast ? lateStageFastSpeed : (.15 + difficultyWave*.004),
       reward:isLateStageFast ? 18 : 16
     };
   }
-  if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0 * stage.difficulty * endlessMobHpScale,speed:.07+currentStage*.002,reward:28};
-  return {type:"normal",hpMult:1.0 * stage.difficulty * endlessMobHpScale,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
+  if(roll < 0.40 + currentStage*0.02) return {type:"tank",hpMult:2.0*stage.difficulty,speed:.07+currentStage*.002,reward:28};
+  return {type:"normal",hpMult:1.0*stage.difficulty,speed:.09+getDifficultyWaveNumber()*.004+currentStage*.002,reward:20};
 }
 function spawnEnemy(){
-  const difficultyWave = getDifficultyWaveNumber();
-  const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, difficultyWave)*13+currentStage*9;
-  const heraldAbility = t.type==="abyss-herald" ? ["roots","rage","shield"][Math.floor(Math.random() * 3)] : null;
-  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null, wardenBuffFactor:1, wardedUntil:0, healPulseCooldown:t.type==="leech-priest"?1.8 + Math.random() * 0.8:0, priestGlowUntil:0, blinkCooldown:t.type==="blinker"?1.2 + Math.random() * 0.7:0, phantomPhaseCooldown:t.type==="phantom"?1.3 + Math.random() * 0.8:0, phantomPhaseTimer:0, heraldAbility, heraldCastFxTimer:0 };
+  const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
+  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -3036,10 +2576,9 @@ function upgradeSelectedUnit(){
   }
   if(money<unit.nextUpgradeCost){ setMessage("You do not have enough gold for the upgrade."); return; }
   money-=unit.nextUpgradeCost; unit.totalSpent+=unit.nextUpgradeCost; unit.level+=1;
-  // Favor upgrades over fresh tower spam by making each level-up a real power spike.
-  unit.damage*=unit.type==="bomb"?2.00:1.85; unit.range*=1.10; unit.fireRate*=.90;
+  unit.damage*=unit.type==="bomb"?1.70:1.55; unit.range*=1.10; unit.fireRate*=.92;
   if(unit.projectileSpeed) unit.projectileSpeed*=1.06;
-  if(unit.splash) unit.splash*=1.12;
+  if(unit.splash) unit.splash*=1.10;
   unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.90);
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
@@ -3271,21 +2810,17 @@ function applySplashDamage(center,radius,damage,projectileType){
 function rewardKill(enemy,pos){
   let reward = enemy.reward;
   let scoreGain = 0;
-  if(enemy.type==="boss" && hasActiveCrest("royal-flare")){
-    reward += Math.max(1, Math.round(enemy.reward * 0.04));
-  }
   money += reward; kills += 1;
-  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="splitter"?95:enemy.type==="hexed"?88:enemy.type==="warden"?102:enemy.type==="leech-priest"?108:enemy.type==="blinker"?98:enemy.type==="phantom"?104:enemy.type==="abyss-herald"?132:enemy.type==="shardling"?48:enemy.type==="fast"?70:50;
+  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="fast"?70:50;
   const scoreBonus=isCurrentWaveBoss()?40:0;
   addScore(baseScore,scoreBonus);
   if(enemy.lastHitAuraType === "wealth"){
     const owner = getUnitById(enemy.lastHitByUnitId);
     const bonusGold = Math.max(1, Math.round(enemy.reward * 0.40)) + (enemy.type === "boss" ? 120 : 0);
     money += bonusGold;
-    const wealthBonusScore = getRoyalBonusAmount(25);
-    bonusScore += wealthBonusScore;
+    bonusScore += 25;
     reward += bonusGold;
-    scoreGain = wealthBonusScore;
+    scoreGain = 25;
     if(owner){
       owner.wealthKills = (owner.wealthKills || 0) + 1;
       if(owner.wealthKills % 8 === 0){
@@ -3307,9 +2842,11 @@ function rewardKill(enemy,pos){
   if(enemy.type==="boss") vibrate([45, 50, 65]);
   playDeathSound();
 }
-function castBossAbility(enemy, abilityId, bossStage){
-  const meta = BOSS_ABILITY_META[abilityId] || getBossAbilityMeta(bossStage);
-  if(abilityId==="summon"){
+function triggerBossAbility(enemy){
+  const bossStage = enemy?.bossStage || currentStage;
+  const ability=STAGES[bossStage].bossAbility;
+  const meta = getBossAbilityMeta(bossStage);
+  if(ability==="summon"){
     const minionHp = bossStage === 3 ? 48 * STAGES[bossStage].difficulty : 40 * STAGES[bossStage].difficulty;
     const minionSpeed = bossStage === 3 ? .125 : .13;
     const summonCount = bossStage === 3 ? 3 : 2;
@@ -3318,9 +2855,8 @@ function castBossAbility(enemy, abilityId, bossStage){
     bossFxTimer = 1.0;
     startBossCastBanner(meta.label, meta.color);
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned minions!`,"#fca5a5");
-    return;
   }
-  if(abilityId==="rage"){
+  if(ability==="rage"){
     const speedMultiplier = bossStage === 5 ? 1.75 : 1.68;
     const bonusHp = bossStage === 5 ? .18 : .15;
     enemy.speed*=speedMultiplier; enemy.hp += enemy.maxHp*bonusHp;
@@ -3329,9 +2865,8 @@ function castBossAbility(enemy, abilityId, bossStage){
     bossFxTimer = 1.0;
     startBossCastBanner(meta.label, meta.color);
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered rage mode!`,"#fca5a5");
-    return;
   }
-  if(abilityId==="shield"){
+  if(ability==="shield"){
     const shieldAmount = bossStage === 6 ? .25 : (bossStage === 4 ? .30 : .25);
     enemy.hp += enemy.maxHp*shieldAmount;
     enemy.shieldFxTimer = 2.8;
@@ -3339,9 +2874,8 @@ function castBossAbility(enemy, abilityId, bossStage){
     bossFxTimer = 1.0;
     startBossCastBanner(meta.label, meta.color);
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained a shield!`,"#93c5fd");
-    return;
   }
-  if(abilityId==="roots"){
+  if(ability==="roots"){
     const activeUnits = units.filter(unit => (unit.snaredUntil || 0) <= performance.now());
     if(activeUnits.length){
       let rootedUnit = null;
@@ -3367,24 +2901,10 @@ function castBossAbility(enemy, abilityId, bossStage){
       }
     }
   }
-}
-
-function triggerBossAbility(enemy){
-  const bossStage = enemy?.bossStage || currentStage;
-  const primaryAbility = STAGES[bossStage].bossAbility;
-  castBossAbility(enemy, primaryAbility, bossStage);
-  if(bossStage === 6){
-    const extraPool = ["roots", "rage", "summon"].filter(abilityId => abilityId !== primaryAbility);
-    const extraAbility = extraPool[Math.floor(Math.random() * extraPool.length)];
-    if(extraAbility){
-      castBossAbility(enemy, extraAbility, bossStage);
-    }
-  }
   enemy.abilityUsed=true;
 }
 
 function update(dt){
-  const now = performance.now();
   bossBannerTimer=Math.max(0,bossBannerTimer-dt);
   bossFxTimer=Math.max(0,bossFxTimer-dt);
   bossTelegraphTimer=Math.max(0,bossTelegraphTimer-dt);
@@ -3412,24 +2932,7 @@ function update(dt){
 
   if(waveActive && spawnLeft>0){
     spawnTimer += dt;
-    if(spawnTimer>=getSpawnInterval()){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
-  }
-
-  for(const enemy of enemies){
-    enemy.wardenBuffFactor = 1;
-    if(enemy.wardedUntil && enemy.wardedUntil < now) enemy.wardedUntil = 0;
-    if(enemy.priestGlowUntil && enemy.priestGlowUntil < now) enemy.priestGlowUntil = 0;
-  }
-  for(const enemy of enemies){
-    if(enemy.type !== "warden") continue;
-    const sourcePos = getPathPosition(enemy.progress);
-    for(const ally of enemies){
-      if(ally.id === enemy.id || ally.type === "boss") continue;
-      const allyPos = getPathPosition(ally.progress);
-      if(distance(sourcePos, allyPos) > 82) continue;
-      ally.wardenBuffFactor = Math.max(ally.wardenBuffFactor || 1, 1.16);
-      ally.wardedUntil = now + 140;
-    }
+    if(spawnTimer>=.68){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
   }
 
   for(let i=enemies.length-1;i>=0;i--){
@@ -3468,93 +2971,15 @@ function update(dt){
     if(enemy.rageFxTimer){
       enemy.rageFxTimer = Math.max(0, enemy.rageFxTimer - dt);
     }
-    if(enemy.heraldCastFxTimer){
-      enemy.heraldCastFxTimer = Math.max(0, enemy.heraldCastFxTimer - dt);
-    }
-    if(enemy.type === "blinker"){
-      enemy.blinkCooldown = Math.max(0, (enemy.blinkCooldown || 0) - dt);
-      if(enemy.blinkCooldown <= 0){
-        enemy.progress = Math.min(0.985, enemy.progress + 0.05);
-        enemy.blinkCooldown = 2.5;
-        const blinkPos = getPathPosition(enemy.progress);
-        addHitParticles(blinkPos.x, blinkPos.y - 2, 8, "#60a5fa", {
-          speed: 86,
-          speedY: 72,
-          lifeMin: .18,
-          lifeMax: .34,
-          sizeMin: 1.2,
-          sizeMax: 2.8,
-          glow: 9
-        });
-      }
-    }
-    if(enemy.type === "phantom"){
-      enemy.phantomPhaseTimer = Math.max(0, (enemy.phantomPhaseTimer || 0) - dt);
-      enemy.phantomPhaseCooldown = Math.max(0, (enemy.phantomPhaseCooldown || 0) - dt);
-      if(enemy.phantomPhaseCooldown <= 0 && enemy.phantomPhaseTimer <= 0){
-        enemy.phantomPhaseTimer = 0.75;
-        enemy.phantomPhaseCooldown = 2.8;
-      }
-    }
-    if(enemy.type === "leech-priest"){
-      enemy.healPulseCooldown = Math.max(0, (enemy.healPulseCooldown || 0) - dt);
-      if(enemy.healPulseCooldown <= 0){
-        const sourcePos = getPathPosition(enemy.progress);
-        let healedTargets = 0;
-        for(const ally of enemies){
-          if(ally.id === enemy.id || ally.type === "boss") continue;
-          if(ally.hp <= 0) continue;
-          if(ally.hp >= ally.maxHp * 0.97) continue;
-          const allyPos = getPathPosition(ally.progress);
-          if(distance(sourcePos, allyPos) > 96) continue;
-          const healAmount = Math.max(22, ally.maxHp * 0.055);
-          ally.hp = Math.min(ally.maxHp, ally.hp + healAmount);
-          ally.priestGlowUntil = now + 420;
-          addHitParticles(allyPos.x, allyPos.y - 4, 4, "#86efac", {
-            speed: 52,
-            speedY: 46,
-            lifeMin: .20,
-            lifeMax: .36,
-            sizeMin: 1.3,
-            sizeMax: 2.6,
-            glow: 7
-          });
-          if(healedTargets < 2) showPopup(allyPos.x, allyPos.y - 16, `+${Math.round(healAmount)}`, "#86efac");
-          healedTargets += 1;
-        }
-        if(healedTargets > 0){
-          addHitParticles(sourcePos.x, sourcePos.y - 8, 7, "#bbf7d0", {
-            speed: 70,
-            speedY: 64,
-            lifeMin: .22,
-            lifeMax: .40,
-            sizeMin: 1.5,
-            sizeMax: 3.1,
-            glow: 8
-          });
-        }
-        enemy.healPulseCooldown = 2.8;
-      }
-    }
     const spellSlowFactor = enemy.spellSlowTimer > 0 ? (enemy.spellSlowFactor || 1) : 1;
     const auraSlowFactor = enemy.auraSlowTimer > 0 ? (enemy.auraSlowFactor || 1) : 1;
     const specSlowFactor = enemy.specSlowTimer > 0 ? (enemy.specSlowFactor || 1) : 1;
     const freezeFactor = enemy.freezeTimer > 0 ? 0 : 1;
     const stunFactor = enemy.stunTimer > 0 ? 0 : 1;
-    enemy.progress += enemy.speed * (enemy.wardenBuffFactor || 1) * spellSlowFactor * auraSlowFactor * specSlowFactor * freezeFactor * stunFactor * dt;
-    if(enemy.type==="abyss-herald" && !enemy.abilityUsed && enemy.heraldAbility){
-      const heraldThreshold = 0.58;
-      if(enemy.hp < enemy.maxHp * heraldThreshold){
-        castBossAbility(enemy, enemy.heraldAbility, 6);
-        enemy.heraldCastFxTimer = 1.0;
-        enemy.abilityUsed = true;
-      }
-    }
+    enemy.progress += enemy.speed * spellSlowFactor * auraSlowFactor * specSlowFactor * freezeFactor * stunFactor * dt;
     if(enemy.type==="boss" && !enemy.abilityUsed){
       const bossStage = enemy.bossStage || currentStage;
-      const abilityTriggerThreshold = getBossAbilityTriggerThreshold(enemy);
-      const telegraphThreshold = Math.min(0.72, abilityTriggerThreshold + 0.13);
-      if(!enemy.bossTelegraphShown && enemy.hp < enemy.maxHp * telegraphThreshold && enemy.hp >= enemy.maxHp * abilityTriggerThreshold){
+      if(!enemy.bossTelegraphShown && enemy.hp < enemy.maxHp * 0.68 && enemy.hp >= enemy.maxHp * 0.55){
         const meta = getBossAbilityMeta(bossStage);
         enemy.bossTelegraphShown = true;
         bossTelegraphType = STAGES[bossStage].bossAbility;
@@ -3562,7 +2987,7 @@ function update(dt){
         bossTelegraphTimer = 1.15;
         startBossCastBanner(`${meta.short} incoming`, meta.color, 1.15);
       }
-      if(enemy.hp < enemy.maxHp * abilityTriggerThreshold) triggerBossAbility(enemy);
+      if(enemy.hp<enemy.maxHp*.55) triggerBossAbility(enemy);
     }
     if(enemy.progress>=1){
       enemies.splice(i,1);
@@ -3599,17 +3024,7 @@ function update(dt){
       const dx=bestTarget.pos.x-unitPos.x, dy=bestTarget.pos.y-unitPos.y;
       unit.aimAngle=Math.atan2(dy,dx);
       if(unit.cooldown<=0){
-        const trackerDamageMult =
-          unit.specialization === "tracker"
-            ? (bestTarget.enemy.type === "fast"
-              ? (unit.specBonusVsFast || 1.45)
-              : (bestTarget.enemy.type === "armored" ? (unit.specBonusVsArmored || 1.18) : 1))
-            : 1;
-        const ironBossDamageMult =
-          hasActiveCrest("iron-oath") && (unit.type === "archer" || unit.type === "hunter") && bestTarget.enemy.type === "boss"
-            ? 1.05
-            : 1;
-        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * trackerDamageMult * ironBossDamageMult, speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
+        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * (unit.specialization === "tracker" && bestTarget.enemy.type === "fast" ? (unit.specBonusVsFast || 1.35) : 1), speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
         unit.cooldown=stats.fireRate; playShootSound(unit.kind);
       }
     }
@@ -3619,20 +3034,6 @@ function update(dt){
     const projectile=projectiles[i], target=enemies.find(e=>e.id===projectile.targetId);
     const owner = getUnitById(projectile.ownerUnitId);
     if(!target){ projectiles.splice(i,1); continue; }
-    if(target.type === "phantom" && (target.phantomPhaseTimer || 0) > 0){
-      const phasePos = getPathPosition(target.progress);
-      addHitParticles(phasePos.x, phasePos.y - 4, 3, "#c4b5fd", {
-        speed: 40,
-        speedY: 34,
-        lifeMin: .14,
-        lifeMax: .24,
-        sizeMin: 1,
-        sizeMax: 2.1,
-        glow: 6
-      });
-      projectiles.splice(i,1);
-      continue;
-    }
     const targetPos=getPathPosition(target.progress);
     projectile.px=projectile.x; projectile.py=projectile.y;
     const dx=targetPos.x-projectile.x, dy=targetPos.y-projectile.y, d=Math.hypot(dx,dy), step=projectile.speed*dt;
@@ -3647,7 +3048,6 @@ function update(dt){
             if(owner) markEnemyHit(enemy, owner, projectile.damage);
             applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
             applySpecializationStatusOnEnemy(enemy, owner, pos, projectile.damage);
-            applyHexedRetaliation(enemy, owner, pos);
           }
         }
       }
@@ -3660,7 +3060,6 @@ function update(dt){
             if(owner) markEnemyHit(enemy, owner, projectile.damage);
             applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
             applySpecializationStatusOnEnemy(enemy, owner, pos, projectile.damage);
-            applyHexedRetaliation(enemy, owner, pos);
           }
         }
       }
@@ -3671,7 +3070,6 @@ function update(dt){
         if(owner) markEnemyHit(target, owner, finalDamage);
         applyAuraStatusOnEnemy(target, owner, targetPos, finalDamage);
         applySpecializationStatusOnEnemy(target, owner, targetPos, finalDamage);
-        applyHexedRetaliation(target, owner, targetPos);
         if(damageMult < 0.95) addArmorDeflectEffect(targetPos.x, targetPos.y);
         addHitParticles(targetPos.x,targetPos.y,4,projectile.color,{
           speed: damageMult < 0.95 ? 80 : 110,
@@ -3697,7 +3095,6 @@ function update(dt){
       const defeatedEnemy = enemies[i];
       const pos=getPathPosition(defeatedEnemy.progress);
       rewardKill(defeatedEnemy,pos);
-      if(defeatedEnemy.type === "splitter") spawnSplitterChildren(defeatedEnemy, pos);
       enemies.splice(i,1);
       if(defeatedEnemy.type==="boss") syncBossLoop();
       updateUI();
@@ -3741,7 +3138,7 @@ function update(dt){
 
     if(isCurrentWaveBoss()){
       addScore(500,lives*25);
-      if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += getRoyalBonusAmount(250); }
+      if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
 
       if(!pendingBossResolution){
         if(currentMode==="campaign" && currentStage < Object.keys(STAGES).length){
@@ -3762,16 +3159,9 @@ function update(dt){
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
-    bonusScore += getRoyalBonusAmount(20);
+    bonusScore += 20;
     setMessage(currentMode === "campaign" ? `Wave complete. Next wave in this stage: ${stageWave}.` : `Endless wave complete. Next wave: ${stageWave}.`);
     updateUI();
-    if(autoStartWaves && lives > 0 && !isPaused && !pendingAuraChoice && !pendingBossResolution){
-      setTimeout(()=>{
-        if(autoStartWaves && !waveActive && lives > 0 && !isPaused && !pendingAuraChoice && !pendingBossResolution){
-          startWave();
-        }
-      }, 260);
-    }
   }
 }
 
@@ -4349,60 +3739,6 @@ function drawPath(){
   }
   ctx.restore();
 }
-
-function drawEndlessPathCorruption(){
-  if(currentMode !== "endless") return;
-  const t = performance.now() * 0.0012;
-
-  ctx.save();
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  ctx.beginPath();
-  path.forEach((p,i)=>{
-    const pos = cellCenter(p.c, p.r);
-    if(i===0) ctx.moveTo(pos.x, pos.y);
-    else ctx.lineTo(pos.x, pos.y);
-  });
-
-  ctx.strokeStyle = "rgba(168,85,247,.16)";
-  ctx.lineWidth = 26 + Math.sin(t * 3.2) * 2;
-  ctx.stroke();
-
-  ctx.strokeStyle = "rgba(244,114,182,.12)";
-  ctx.lineWidth = 12;
-  ctx.setLineDash([14, 16]);
-  ctx.lineDashOffset = -performance.now() * 0.03;
-  ctx.stroke();
-  ctx.setLineDash([]);
-
-  for(let i=0;i<14;i++){
-    const pt = getPathPosition((i + 0.5) / 14);
-    const glow = ctx.createRadialGradient(pt.x, pt.y, 1, pt.x, pt.y, 20 + Math.sin(t * 4 + i) * 3);
-    glow.addColorStop(0, "rgba(216,180,254,.22)");
-    glow.addColorStop(0.45, "rgba(168,85,247,.12)");
-    glow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 22, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  for(let i=0;i<10;i++){
-    const pt = getPathPosition((i + 0.18) / 10);
-    const drift = Math.sin(t * 5 + i) * 4;
-    ctx.strokeStyle = "rgba(251,113,133,.18)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(pt.x - 9, pt.y + 6 + drift * 0.25);
-    ctx.lineTo(pt.x - 1, pt.y - 6 + drift * 0.1);
-    ctx.lineTo(pt.x + 9, pt.y + 5 - drift * 0.2);
-    ctx.stroke();
-  }
-
-  ctx.restore();
-}
-
 function drawSpawnPortal(){
   const start = path[0], pos = cellCenter(start.c, start.r);
   const t = performance.now() * 0.004;
@@ -4472,25 +3808,6 @@ function drawSpawnPortal(){
     for(let a=0; a<6; a++){
       const ang = t + a * Math.PI/3;
       ctx.beginPath(); ctx.moveTo(Math.cos(ang)*7, Math.sin(ang)*7); ctx.lineTo(Math.cos(ang)*18, Math.sin(ang)*18); ctx.stroke();
-    }
-    if(currentMode === "endless"){
-      const abyss = ctx.createRadialGradient(0, 0, 5, 0, 0, 38);
-      abyss.addColorStop(0, 'rgba(251,113,133,.34)');
-      abyss.addColorStop(.36, 'rgba(217,70,239,.18)');
-      abyss.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = abyss;
-      ctx.beginPath();
-      ctx.arc(0, 0, 38, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(251,113,133,.44)';
-      ctx.lineWidth = 1.8;
-      for(let a=0; a<4; a++){
-        const ang = -t * 1.3 + a * Math.PI/2;
-        ctx.beginPath();
-        ctx.moveTo(Math.cos(ang)*12, Math.sin(ang)*12);
-        ctx.lineTo(Math.cos(ang)*28, Math.sin(ang)*28);
-        ctx.stroke();
-      }
     }
   }
 
@@ -4630,7 +3947,6 @@ function drawPlacementPreview(){
 function drawPlacedUnit(unit){
   const pos=cellCenter(unit.c,unit.r), angle=unit.aimAngle||-.2, selected=unit.id===selectedPlacedUnitId;
   const aura = getAuraData(unit.auraType);
-  const isHexed = (unit.hexedUntil || 0) > performance.now();
 
   if(aura){
     const pulse = 22 + Math.sin(performance.now() * 0.005 + unit.id) * 2;
@@ -4674,41 +3990,6 @@ function drawPlacedUnit(unit){
     ctx.fill();
   }
 
-  if(isHexed){
-    ctx.save();
-    const hexPulse = performance.now() * 0.008 + unit.id;
-    ctx.globalAlpha = 0.24 + Math.sin(hexPulse * 1.25) * 0.05;
-    ctx.strokeStyle = "#e879f9";
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y + 2, 22, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.globalAlpha = 0.14 + Math.sin(hexPulse * 1.6) * 0.03;
-    ctx.fillStyle = "#d946ef";
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y + 2, 17, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.globalAlpha = 0.82;
-    ctx.strokeStyle = "#f0abfc";
-    ctx.fillStyle = "#f0abfc";
-    ctx.lineWidth = 1.4;
-    for(let i=0;i<3;i++){
-      const ang = hexPulse + i * ((Math.PI * 2) / 3);
-      const ox = pos.x + Math.cos(ang) * 19;
-      const oy = pos.y - 8 + Math.sin(ang) * 7;
-      ctx.beginPath();
-      ctx.moveTo(ox, oy - 3);
-      ctx.lineTo(ox + 2.3, oy);
-      ctx.lineTo(ox, oy + 3);
-      ctx.lineTo(ox - 2.3, oy);
-      ctx.closePath();
-      ctx.stroke();
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-
 
   const sprite = towerSprites[unit.type];
   if(sprite?.complete && sprite.naturalWidth){
@@ -4726,12 +4007,12 @@ function drawPlacedUnit(unit){
     const drawSize = isBomb ? 52 : isHunter ? 44 : isMage ? 50 : 46;
     const drawY = isBomb ? -30 : isArcher ? -28 : isHunter ? -27 : isMage ? -29 : -29;
 
-    ctx.shadowColor = isBomb ? "rgba(255,130,40,.22)" : isMage ? "rgba(168,139,250,.18)" : isHunter ? "rgba(56,189,116,.12)" : "rgba(255,184,74,.10)";
-    ctx.shadowBlur = isBomb ? 12 : isArcher ? 3 : isHunter ? 4 : 8;
+    ctx.shadowColor = isBomb ? "rgba(255,130,40,.22)" : isMage ? "rgba(168,139,250,.18)" : isHunter ? "rgba(56,189,116,.18)" : "rgba(255,184,74,.16)";
+    ctx.shadowBlur = isBomb ? 12 : isArcher ? 8 : isHunter ? 9 : 8;
     ctx.shadowOffsetY = 1;
 
-    const lightRadius = isBomb ? 24 : isMage ? 27 : isHunter ? 12 : 10;
-    const lightAlpha = isBomb ? 0.12 : isMage ? 0.13 : isHunter ? 0.05 : 0.04;
+    const lightRadius = isBomb ? 24 : isMage ? 27 : isHunter ? 20 : 18;
+    const lightAlpha = isBomb ? 0.12 : isMage ? 0.13 : isHunter ? 0.10 : 0.09;
     const lightColor = isBomb ? "255,166,92" : isMage ? "168,139,250" : isHunter ? "74,222,128" : "255,214,120";
     const flicker = 1 + Math.sin(t * (isBomb ? 1.8 : 1.25)) * 0.08;
     const glow = ctx.createRadialGradient(0, 7, 0, 0, 7, lightRadius * flicker);
@@ -4769,6 +4050,18 @@ function drawPlacedUnit(unit){
         ctx.rotate(sway);
         ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
         ctx.restore();
+
+        ctx.globalCompositeOperation = "screen";
+        const count = isHunter ? 3 : 2;
+        for(let i=0;i<count;i++){
+          const px = (isHunter ? -10 : 18) + Math.sin(t * (1.2 + i * 0.25) + i) * (isHunter ? 5 : 3);
+          const py = (isHunter ? -18 : -28) - i * (isHunter ? 7 : 10) - ((t * (isHunter ? 7 : 8) + i * 4) % (isHunter ? 5 : 6));
+          ctx.fillStyle = isHunter ? (i === 0 ? "rgba(134,239,172,.42)" : "rgba(74,222,128,.28)") : (i === 0 ? "rgba(255,214,120,.50)" : "rgba(255,138,66,.38)");
+          ctx.beginPath();
+          ctx.arc(px, py + bob * 0.2, isHunter ? (i === 0 ? 1.6 : 1.1) : (i === 0 ? 1.8 : 1.2), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalCompositeOperation = "source-over";
       } else {
         ctx.save();
         ctx.rotate(sway);
@@ -4918,17 +4211,358 @@ function drawPlacedUnit(unit){
 }
 const drawUnits=()=>units.forEach(drawPlacedUnit);
 
-function drawEnemy(enemy){
-  const pos=getPathPosition(enemy.progress), bob=Math.sin(performance.now()*.01+enemy.wobble)*(enemy.type==="boss"?2.8:1.8);
-  const x=pos.x,y=pos.y+bob, scale=enemy.type==="boss"?1.55:enemy.type==="tank"?1.18:enemy.type==="armored"?1.08:enemy.type==="warden"?1.08:enemy.type==="leech-priest"?1.02:enemy.type==="blinker"?0.96:enemy.type==="phantom"?0.92:enemy.type==="abyss-herald"?1.12:enemy.type==="splitter"?1.06:enemy.type==="hexed"?.94:enemy.type==="shardling"?.74:enemy.type==="fast"?.88:1, hpPct=Math.max(0,enemy.hp/enemy.maxHp);
-  const pulseT = performance.now() * 0.008 + enemy.wobble;
-  const isHexedEnemy = enemy.type==="hexed";
-  const isPhasedEnemy = enemy.type==="phantom" && (enemy.phantomPhaseTimer || 0) > 0;
-  const bossStage = enemy.bossStage || currentStage;
-  const hasBossSprite = enemy.type==="boss" && bossSprites[bossStage]?.complete && bossSprites[bossStage]?.naturalWidth;
+/* ============================================================
+   ENEMY SPRITES — procedural sprite sheets, pre-rendered once
+   per (type, palette) on offscreen canvases. 8 walk frames,
+   side profile facing right, flipped for leftward movement.
+   ============================================================ */
+const ENEMY_SPRITE_CACHE = new Map();
+const ENEMY_WALK_FRAMES = 8;
+const ENEMY_SPRITE_RES = 3; // render at 3x for crisp downscale
 
-  ctx.save(); ctx.translate(x,y); ctx.scale(scale,scale);
-  if(isPhasedEnemy) ctx.globalAlpha = 0.38 + Math.sin(pulseT * 1.8) * 0.08;
+function enemyPalette(type, enemy){
+  const dark = currentStage === 6 && type !== "boss";
+  if(type === "boss"){
+    const accent = enemy?.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b");
+    return { key:`boss-${accent}`, skin:"#2b2437", skinD:"#191423", cloth:"#3f3454", metal:"#6b5f85", accent, eye:accent };
+  }
+  if(type === "fast") return dark
+    ? { key:"fast-dark", skin:"#8b7cc2", skinD:"#5f4e9e", cloth:"#43307a", metal:"#b1a4e0", accent:"#c4b5fd", eye:"#f3e8ff" }
+    : { key:"fast-std",  skin:"#4c94c9", skinD:"#31699b", cloth:"#1d3f66", metal:"#9bd0f0", accent:"#7dd3fc", eye:"#e0f2fe" };
+  if(type === "tank") return dark
+    ? { key:"tank-dark", skin:"#7d6aa8", skinD:"#544384", cloth:"#3a2b66", metal:"#8d7cc0", accent:"#c4b5fd", eye:"#ede9fe" }
+    : { key:"tank-std",  skin:"#b0563f", skinD:"#7e3a2b", cloth:"#4a2a1e", metal:"#8a7f74", accent:"#fca5a5", eye:"#fee2e2" };
+  if(type === "armored") return dark
+    ? { key:"arm-dark",  skin:"#8f83b8", skinD:"#655a92", cloth:"#4c3f80", metal:"#a99ed6", accent:"#ddd6fe", eye:"#c4b5fd" }
+    : { key:"arm-std",   skin:"#94a3b8", skinD:"#64748b", cloth:"#334155", metal:"#cbd5e1", accent:"#e2e8f0", eye:"#93c5fd" };
+  return dark
+    ? { key:"norm-dark", skin:"#9887c9", skinD:"#6d5aa8", cloth:"#4a3a82", metal:"#8f80c2", accent:"#c4b5fd", eye:"#ede9fe" }
+    : { key:"norm-std",  skin:"#79945c", skinD:"#556b3e", cloth:"#3c4a2c", metal:"#8fa376", accent:"#bef264", eye:"#ecfccb" };
+}
+
+function limbPath(g, x1, y1, x2, y2, x3, y3, width, color){
+  g.strokeStyle = color;
+  g.lineWidth = width;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  g.beginPath();
+  g.moveTo(x1, y1);
+  g.quadraticCurveTo(x2, y2, x3, y3);
+  g.stroke();
+}
+
+// Walk-cycle leg: hip -> foot with knee bend and lift on the forward swing.
+function drawLeg(g, hipX, hipY, ground, swing, lift, stride, width, color){
+  const footX = hipX + swing * stride;
+  const footY = ground - Math.max(0, lift) * 3.4;
+  const kneeX = hipX + swing * stride * 0.45 + 1.6;
+  const kneeY = hipY + (ground - hipY) * 0.52 - Math.max(0, lift) * 1.6;
+  limbPath(g, hipX, hipY, kneeX, kneeY, footX, footY, width, color);
+  return { footX, footY };
+}
+
+function drawEnemyFigure(g, type, phase, pal){
+  const t = phase * Math.PI * 2;
+  const sw = Math.sin(t);            // primary swing  (-1..1)
+  const sw2 = Math.sin(t + Math.PI); // opposite limb
+  const liftA = Math.sin(t + Math.PI * 0.5);
+  const liftB = Math.sin(t + Math.PI * 1.5);
+  const bounce = Math.abs(Math.cos(t)) * 1.3;
+  const GROUND = 20;
+
+  if(type === "fast"){
+    const by = -bounce * 1.2;
+    // trailing scarf
+    g.strokeStyle = pal.accent; g.lineWidth = 2.4; g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(-1, -9 + by);
+    g.quadraticCurveTo(-9, -10 + by + sw * 1.5, -15, -6 + by + sw2 * 2.2);
+    g.stroke();
+    drawLeg(g, -0.5, 6 + by, GROUND, sw, liftA, 7.5, 3.1, pal.skinD);
+    // torso: lean, tilted forward
+    g.save();
+    g.translate(0, by);
+    g.rotate(0.34);
+    const body = g.createLinearGradient(0, -10, 0, 8);
+    body.addColorStop(0, pal.skin); body.addColorStop(1, pal.skinD);
+    g.fillStyle = body;
+    g.beginPath(); g.ellipse(0, -1, 4.6, 9.2, 0, 0, Math.PI * 2); g.fill();
+    // head: sleek, swept-back crest
+    g.beginPath(); g.ellipse(3.4, -11.5, 4.6, 3.8, 0.25, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.cloth;
+    g.beginPath();
+    g.moveTo(0.5, -13.6); g.lineTo(-6.5, -12.2); g.lineTo(-0.5, -10.2);
+    g.closePath(); g.fill();
+    // eye
+    g.save(); g.shadowColor = pal.eye; g.shadowBlur = 5;
+    g.fillStyle = pal.eye;
+    g.beginPath(); g.arc(5.6, -11.8, 1.25, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.restore();
+    // arms pumping
+    limbPath(g, 0.5, -4 + by, 4 + sw2 * 2.5, 0 + by, 5.5 + sw2 * 4.5, 3 + by, 2.6, pal.skin);
+    drawLeg(g, 1, 6 + by, GROUND, sw2, liftB, 7.5, 3.1, pal.skin);
+    return;
+  }
+
+  if(type === "tank"){
+    const by = -bounce * 0.7;
+    drawLeg(g, -3, 9 + by, GROUND, sw * 0.8, liftA * 0.8, 5.5, 4.6, pal.skinD);
+    // club resting over back shoulder
+    g.save();
+    g.translate(-2, -6 + by);
+    g.rotate(-0.85 + sw * 0.05);
+    g.fillStyle = "#5d4636";
+    roundRectOn(g, -1.6, -15, 3.2, 16, 1.6); g.fill();
+    g.fillStyle = "#7a5c44";
+    g.beginPath(); g.ellipse(0, -15.5, 3.6, 4.6, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.metal;
+    g.beginPath(); g.arc(-1.4, -17, 0.8, 0, Math.PI * 2); g.arc(1.5, -14.5, 0.8, 0, Math.PI * 2); g.fill();
+    g.restore();
+    // massive torso
+    g.save(); g.translate(0, by);
+    const body = g.createLinearGradient(0, -12, 0, 10);
+    body.addColorStop(0, pal.skin); body.addColorStop(1, pal.skinD);
+    g.fillStyle = body;
+    g.beginPath(); g.ellipse(0, -2, 9.4, 11, 0, 0, Math.PI * 2); g.fill();
+    // belly plate
+    g.fillStyle = pal.cloth;
+    g.beginPath(); g.ellipse(2.4, 2.2, 5.4, 6, 0.1, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = pal.metal; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(-1.5, -1.5); g.lineTo(6, -0.5); g.moveTo(-1.5, 3); g.lineTo(6, 4); g.stroke();
+    // small head sunk in shoulders
+    g.fillStyle = pal.skin;
+    g.beginPath(); g.ellipse(4.6, -11.6, 4, 3.4, 0.15, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.skinD;
+    g.beginPath(); g.moveTo(6.8, -10.4); g.lineTo(9.4, -9.2); g.lineTo(6.6, -8.8); g.closePath(); g.fill(); // jaw
+    g.save(); g.shadowColor = pal.eye; g.shadowBlur = 4;
+    g.fillStyle = pal.eye;
+    g.beginPath(); g.arc(6.2, -12, 1.05, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.restore();
+    // huge front arm swinging
+    limbPath(g, 3, -6 + by, 8 + sw * 1.5, 0 + by, 8.5 + sw * 3, 6.5 + by, 4.4, pal.skin);
+    drawLeg(g, 3, 9 + by, GROUND, sw2 * 0.8, liftB * 0.8, 5.5, 4.6, pal.skin);
+    return;
+  }
+
+  if(type === "armored"){
+    const by = -bounce;
+    drawLeg(g, -1.5, 7 + by, GROUND, sw, liftA, 6.5, 3.6, pal.skinD);
+    // back arm + sword held low
+    g.save();
+    g.translate(-3.5 + sw2 * 1.2, 0 + by);
+    g.rotate(0.5 + sw2 * 0.12);
+    g.strokeStyle = pal.metal; g.lineWidth = 1.8;
+    g.beginPath(); g.moveTo(0, 2); g.lineTo(0, 13); g.stroke();
+    g.strokeStyle = pal.cloth; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(0, 1); g.lineTo(0, 3.6); g.stroke();
+    g.restore();
+    // torso plate
+    g.save(); g.translate(0, by);
+    const body = g.createLinearGradient(-4, -8, 5, 8);
+    body.addColorStop(0, pal.metal); body.addColorStop(1, pal.skinD);
+    g.fillStyle = body;
+    g.beginPath();
+    g.moveTo(-5, -8); g.lineTo(5, -8); g.lineTo(6, 2); g.lineTo(0, 8); g.lineTo(-6, 2);
+    g.closePath(); g.fill();
+    g.strokeStyle = pal.skinD; g.lineWidth = 0.9;
+    g.beginPath(); g.moveTo(-4.5, -3.5); g.lineTo(5, -3.5); g.moveTo(-4.5, 0.5); g.lineTo(5.3, 0.5); g.stroke();
+    // helmet with visor slit + plume
+    g.fillStyle = pal.metal;
+    g.beginPath(); g.ellipse(1.2, -12.8, 4.6, 4.4, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = pal.skinD;
+    roundRectOn(g, 1.8, -13.8, 4.4, 2.4, 1.1); g.fill();
+    g.save(); g.shadowColor = pal.eye; g.shadowBlur = 4;
+    g.fillStyle = pal.eye;
+    roundRectOn(g, 2.6, -13.3, 2.8, 1.3, 0.6); g.fill();
+    g.restore();
+    g.strokeStyle = pal.accent; g.lineWidth = 2; g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(0, -16.6);
+    g.quadraticCurveTo(-5, -17.5 + sw * 0.6, -8, -14 + sw2 * 1);
+    g.stroke();
+    g.restore();
+    // kite shield on front arm
+    g.save();
+    g.translate(5.6 + sw * 0.6, -1.5 + by);
+    g.rotate(0.08);
+    const sh = g.createLinearGradient(-3, -5, 3, 6);
+    sh.addColorStop(0, pal.metal); sh.addColorStop(1, pal.cloth);
+    g.fillStyle = sh;
+    g.beginPath();
+    g.moveTo(-3.4, -5.5); g.lineTo(3.4, -5.5); g.lineTo(3, 2.5); g.lineTo(0, 6.5); g.lineTo(-3, 2.5);
+    g.closePath(); g.fill();
+    g.strokeStyle = pal.accent; g.lineWidth = 0.9; g.stroke();
+    g.fillStyle = pal.accent;
+    g.beginPath(); g.arc(0, -0.5, 1.3, 0, Math.PI * 2); g.fill();
+    g.restore();
+    drawLeg(g, 1.5, 7 + by, GROUND, sw2, liftB, 6.5, 3.6, pal.metal);
+    return;
+  }
+
+  if(type === "boss"){
+    const by = -bounce * 0.9;
+    // flowing cape
+    g.fillStyle = pal.cloth;
+    g.beginPath();
+    g.moveTo(-2, -14 + by);
+    g.quadraticCurveTo(-13, -8 + sw * 1.8 + by, -14, 6 + sw2 * 2.5 + by);
+    g.quadraticCurveTo(-8, 8 + by, -4, 4 + by);
+    g.closePath(); g.fill();
+    drawLeg(g, -2.5, 9 + by, GROUND + 3, sw * 0.9, liftA, 7, 4.2, pal.skinD);
+    // torso
+    g.save(); g.translate(0, by);
+    const body = g.createLinearGradient(0, -14, 0, 10);
+    body.addColorStop(0, pal.cloth); body.addColorStop(1, pal.skinD);
+    g.fillStyle = body;
+    g.beginPath(); g.ellipse(0, -3, 7.6, 11.5, 0, 0, Math.PI * 2); g.fill();
+    // glowing chest rune
+    g.save(); g.shadowColor = pal.accent; g.shadowBlur = 8;
+    g.strokeStyle = pal.accent; g.lineWidth = 1.4;
+    g.beginPath();
+    g.moveTo(1.5, -6); g.lineTo(4.2, -2.5); g.lineTo(1.5, 1); g.lineTo(-1.2, -2.5);
+    g.closePath(); g.stroke();
+    g.restore();
+    // head + horns
+    g.fillStyle = pal.skin;
+    g.beginPath(); g.ellipse(2.2, -15, 4.6, 4.2, 0.1, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = pal.accent; g.lineWidth = 2.1; g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(-0.6, -18); g.quadraticCurveTo(-3.5, -22, -2, -25.5);
+    g.moveTo(4.6, -18.2); g.quadraticCurveTo(7.8, -22, 6.6, -25.5);
+    g.stroke();
+    g.save(); g.shadowColor = pal.eye; g.shadowBlur = 6;
+    g.fillStyle = pal.eye;
+    g.beginPath(); g.arc(4.4, -15.6, 1.35, 0, Math.PI * 2); g.arc(0.9, -15.9, 1.15, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.restore();
+    // clawed front arm
+    limbPath(g, 3.5, -7 + by, 9 + sw * 2, -2 + by, 10 + sw * 3.5, 3.5 + by, 3.6, pal.skin);
+    g.strokeStyle = pal.skin; g.lineWidth = 1.4; g.lineCap = "round";
+    const cx = 10 + sw * 3.5, cy = 3.5 + by;
+    g.beginPath();
+    g.moveTo(cx, cy); g.lineTo(cx + 2.4, cy + 2.6);
+    g.moveTo(cx, cy); g.lineTo(cx + 0.4, cy + 3.4);
+    g.moveTo(cx, cy); g.lineTo(cx - 1.6, cy + 3);
+    g.stroke();
+    drawLeg(g, 2.5, 9 + by, GROUND + 3, sw2 * 0.9, liftB, 7, 4.2, pal.skin);
+    return;
+  }
+
+  // default: "ghoul" — hunched creature, tattered waist cloth, dangling arms
+  const by = -bounce;
+  drawLeg(g, -1.5, 8 + by, GROUND, sw, liftA, 6, 3.2, pal.skinD);
+  // back arm dangling
+  limbPath(g, -2, -3 + by, -3 + sw2 * 1.5, 4 + by, -2.5 + sw2 * 3, 10 + by, 2.7, pal.skinD);
+  g.save(); g.translate(0, by);
+  // hunched body
+  const body = g.createLinearGradient(0, -12, 0, 8);
+  body.addColorStop(0, pal.skin); body.addColorStop(1, pal.skinD);
+  g.fillStyle = body;
+  g.beginPath();
+  g.moveTo(-4.5, 7);
+  g.quadraticCurveTo(-7.5, -4, -1.5, -9.5);
+  g.quadraticCurveTo(4.5, -13.5, 6.5, -8.5);
+  g.quadraticCurveTo(7.5, -3, 4.5, 7);
+  g.closePath(); g.fill();
+  // tattered waist cloth
+  g.fillStyle = pal.cloth;
+  g.beginPath();
+  g.moveTo(-4.5, 4); g.lineTo(5, 4.5);
+  g.lineTo(4, 9); g.lineTo(2, 6.5); g.lineTo(0, 9.5); g.lineTo(-2, 6.5); g.lineTo(-3.8, 9);
+  g.closePath(); g.fill();
+  // head thrust forward, open jaw
+  g.fillStyle = pal.skin;
+  g.beginPath(); g.ellipse(5, -10.5, 4.2, 3.6, 0.3, 0, Math.PI * 2); g.fill();
+  g.fillStyle = pal.skinD;
+  g.beginPath(); g.moveTo(7.2, -8.6); g.lineTo(10.2, -7.2); g.lineTo(6.8, -6.6); g.closePath(); g.fill();
+  // spine bumps
+  g.fillStyle = pal.metal;
+  g.beginPath();
+  g.arc(-2.5, -8.5, 1, 0, Math.PI * 2);
+  g.arc(-4, -5.5, 0.9, 0, Math.PI * 2);
+  g.arc(-4.8, -2.2, 0.8, 0, Math.PI * 2);
+  g.fill();
+  g.save(); g.shadowColor = pal.eye; g.shadowBlur = 5;
+  g.fillStyle = pal.eye;
+  g.beginPath(); g.arc(6.4, -11.4, 1.2, 0, Math.PI * 2); g.fill();
+  g.restore();
+  g.restore();
+  // front arm reaching
+  limbPath(g, 2, -4 + by, 6 + sw * 1.5, 1 + by, 7.5 + sw * 3, 7 + by, 2.7, pal.skin);
+  drawLeg(g, 1.5, 8 + by, GROUND, sw2, liftB, 6, 3.2, pal.skin);
+}
+
+// roundRect helper that works on any context (offscreen sheets included)
+function roundRectOn(g, x, y, w, h, r){
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+  g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r);
+  g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y);
+  g.closePath();
+}
+
+function getEnemySpriteSheet(type, enemy){
+  const pal = enemyPalette(type, enemy);
+  const key = `${type}|${pal.key}`;
+  let sheet = ENEMY_SPRITE_CACHE.get(key);
+  if(sheet) return sheet;
+  const world = type === "boss" ? 64 : 48;       // world px per frame cell
+  const cell = world * ENEMY_SPRITE_RES;
+  const cv = document.createElement("canvas");
+  cv.width = cell * ENEMY_WALK_FRAMES;
+  cv.height = cell;
+  const g = cv.getContext("2d");
+  for(let f = 0; f < ENEMY_WALK_FRAMES; f++){
+    g.save();
+    g.translate(cell * f + cell / 2, cell / 2 + (type === "boss" ? 2 : 4) * ENEMY_SPRITE_RES);
+    g.scale(ENEMY_SPRITE_RES, ENEMY_SPRITE_RES);
+    drawEnemyFigure(g, type, f / ENEMY_WALK_FRAMES, pal);
+    g.restore();
+  }
+  sheet = { canvas: cv, cell, world };
+  ENEMY_SPRITE_CACHE.set(key, sheet);
+  return sheet;
+}
+
+function drawEnemy(enemy){
+  const pos = getPathPosition(enemy.progress);
+  const now = performance.now();
+
+  // --- facing: sample the path slightly ahead, keep last horizontal facing on vertical segments
+  const ahead = getPathPosition(Math.min(1, enemy.progress + 0.004));
+  const dirX = ahead.x - pos.x, dirY = ahead.y - pos.y;
+  if(enemy.facing === undefined) enemy.facing = 1;
+  if(Math.abs(dirX) > Math.abs(dirY) * 0.6 && Math.abs(dirX) > 0.01) enemy.facing = dirX >= 0 ? 1 : -1;
+
+  // --- walk animation clock (pauses when frozen/stunned, slows when slowed)
+  const frozen = (enemy.freezeTimer > 0) || (enemy.stunTimer > 0);
+  const slowed = (enemy.spellSlowTimer > 0) || (enemy.auraSlowTimer > 0) || (enemy.specSlowTimer > 0);
+  if(enemy.animT === undefined){ enemy.animT = enemy.wobble; enemy.animLast = now; }
+  const adt = Math.min(0.05, (now - enemy.animLast) / 1000);
+  enemy.animLast = now;
+  const stepRate = enemy.type === "fast" ? 3.0 : enemy.type === "tank" ? 1.35 : enemy.type === "armored" ? 1.8 : enemy.type === "boss" ? 1.15 : 2.1;
+  if(!frozen && !isPaused) enemy.animT += adt * stepRate * (slowed ? 0.55 : 1);
+
+  const scale = enemy.type === "boss" ? 1.55 : enemy.type === "tank" ? 1.18 : enemy.type === "armored" ? 1.08 : enemy.type === "fast" ? .88 : 1;
+  const bob = frozen ? 0 : Math.sin(now * .004 + enemy.wobble) * (enemy.type === "boss" ? 1.2 : 0.7);
+  const x = pos.x, y = pos.y + bob;
+  const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
+  const pulseT = now * 0.008 + enemy.wobble;
+
+  // --- ground shadow
+  ctx.save();
+  ctx.globalAlpha = 0.28;
+  ctx.fillStyle = "#020617";
+  ctx.beginPath();
+  ctx.ellipse(x, pos.y + 20 * scale, 11 * scale, 3.6 * scale, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
   if(enemy.burnTimer > 0){
     ctx.save();
     ctx.globalAlpha = 0.24 + Math.sin(pulseT * 1.7) * 0.06;
@@ -4947,7 +4581,7 @@ function drawEnemy(enemy){
     ctx.arc(0, 2, 14 + Math.sin(pulseT) * 1.4, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
-  } else if((enemy.spellSlowTimer > 0) || (enemy.auraSlowTimer > 0) || (enemy.specSlowTimer > 0)){
+  } else if(slowed){
     ctx.save();
     ctx.globalAlpha = 0.24;
     ctx.strokeStyle = "#93c5fd";
@@ -4957,7 +4591,7 @@ function drawEnemy(enemy){
     ctx.stroke();
     ctx.restore();
   }
-  if(enemy.type==="boss" && enemy.shieldFxTimer > 0){
+  if(enemy.type === "boss" && enemy.shieldFxTimer > 0){
     ctx.save();
     ctx.globalAlpha = Math.min(0.7, enemy.shieldFxTimer / 2.8 * 0.7);
     ctx.strokeStyle = "#93c5fd";
@@ -4967,7 +4601,7 @@ function drawEnemy(enemy){
     ctx.stroke();
     ctx.restore();
   }
-  if(enemy.type==="boss" && enemy.rageFxTimer > 0){
+  if(enemy.type === "boss" && enemy.rageFxTimer > 0){
     ctx.save();
     ctx.globalAlpha = Math.min(0.5, enemy.rageFxTimer / 2.4 * 0.5);
     ctx.strokeStyle = "#ef4444";
@@ -4977,167 +4611,25 @@ function drawEnemy(enemy){
     ctx.stroke();
     ctx.restore();
   }
-  if(isHexedEnemy){
-    ctx.save();
-    ctx.globalAlpha = 0.20 + Math.sin(pulseT * 1.9) * 0.06;
-    ctx.fillStyle = currentStage===6 ? "#c084fc" : "#d946ef";
-    ctx.shadowColor = currentStage===6 ? "#c084fc" : "#d946ef";
-    ctx.shadowBlur = 16;
-    ctx.beginPath();
-    ctx.arc(0, 1, 15 + Math.sin(pulseT * 1.35) * 1.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
 
-    ctx.save();
-    ctx.globalAlpha = 0.8;
-    ctx.strokeStyle = currentStage===6 ? "#f5d0fe" : "#f0abfc";
-    ctx.fillStyle = currentStage===6 ? "#f5d0fe" : "#f0abfc";
-    ctx.lineWidth = 1.4;
-    for(let i=0;i<3;i++){
-      const ang = pulseT * 1.35 + i * ((Math.PI * 2) / 3);
-      const ox = Math.cos(ang) * 12;
-      const oy = -2 + Math.sin(ang) * 7;
-      ctx.beginPath();
-      ctx.moveTo(ox, oy - 3.2);
-      ctx.lineTo(ox + 2.4, oy);
-      ctx.lineTo(ox, oy + 3.2);
-      ctx.lineTo(ox - 2.4, oy);
-      ctx.closePath();
-      ctx.stroke();
-      ctx.fill();
-    }
-    ctx.restore();
-  }
-  if(enemy.wardedUntil > performance.now()){
-    ctx.save();
-    ctx.globalAlpha = 0.16 + Math.sin(pulseT * 1.5) * 0.04;
-    ctx.strokeStyle = "#7dd3fc";
-    ctx.lineWidth = 2.1;
-    ctx.beginPath();
-    ctx.arc(0, 2, 16 + Math.sin(pulseT) * 1.3, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-  }
-  if(enemy.priestGlowUntil > performance.now()){
-    ctx.save();
-    ctx.globalAlpha = 0.18 + Math.sin(pulseT * 1.8) * 0.05;
-    ctx.fillStyle = "#86efac";
-    ctx.beginPath();
-    ctx.arc(0, 2, 14, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-  if(enemy.type==="boss"){
-    const bossSprite = bossSprites[bossStage];
-    if(hasBossSprite){
-      ctx.save();
-      ctx.translate(0, 7 + Math.sin(pulseT * 0.55) * 1.5);
-      const sway = Math.sin(pulseT * 0.42) * 0.035;
-      ctx.rotate(sway);
-      ctx.shadowColor = enemy.bossColor || (currentStage===6 ? "rgba(196,132,252,.26)" : "rgba(245,158,11,.22)");
-      ctx.shadowBlur = 8;
-      ctx.drawImage(bossSprite, -30, -44, 60, 60);
-      ctx.restore();
-    } else {
-      ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
-      if(currentStage===6 && !["boss","warden","leech-priest","hexed","splitter","shardling","armored","fast","tank"].includes(enemy.type)) ctx.strokeStyle="#c4b5fd";
-      ctx.lineWidth=enemy.type==="boss"?2.3:2;
-      ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,12); ctx.moveTo(-7,3); ctx.lineTo(7,3); ctx.moveTo(0,12); ctx.lineTo(-6,20); ctx.moveTo(0,12); ctx.lineTo(6,20); ctx.stroke();
-      ctx.fillStyle="#111827"; ctx.beginPath(); ctx.arc(-2.5,-9,1.2,0,Math.PI*2); ctx.arc(2.5,-9,1.2,0,Math.PI*2); ctx.fill();
-    }
-  } else {
-  ctx.strokeStyle=enemy.type==="boss"?"#fcd34d":enemy.type==="tank"?"#fca5a5":enemy.type==="armored"?"#d1d5db":enemy.type==="warden"?"#7dd3fc":enemy.type==="leech-priest"?"#bbf7d0":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#c4b5fd":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#fda4af":enemy.type==="hexed"?"#e879f9":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#93c5fd":"#e5e7eb";
-  if(currentStage===6 && !["boss","warden","leech-priest","hexed","splitter","shardling","armored","fast","tank"].includes(enemy.type)) ctx.strokeStyle="#c4b5fd";
-  ctx.lineWidth=enemy.type==="boss"?2.3:2;
-  ctx.beginPath(); ctx.arc(0,-8,7,0,Math.PI*2); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(0,-1); ctx.lineTo(0,12); ctx.moveTo(-7,3); ctx.lineTo(7,3); ctx.moveTo(0,12); ctx.lineTo(-6,20); ctx.moveTo(0,12); ctx.lineTo(6,20); ctx.stroke();
-  ctx.fillStyle="#111827"; ctx.beginPath(); ctx.arc(-2.5,-9,1.2,0,Math.PI*2); ctx.arc(2.5,-9,1.2,0,Math.PI*2); ctx.fill();
-  }
-  if(enemy.type==="splitter"){
-    ctx.strokeStyle = currentStage===6 ? "#f5d0fe" : "#fda4af";
-    ctx.beginPath();
-    ctx.moveTo(-6,-4); ctx.lineTo(0,1); ctx.lineTo(6,-4);
-    ctx.moveTo(-6,9); ctx.lineTo(0,4); ctx.lineTo(6,9);
-    ctx.stroke();
-  }
-  if(enemy.type==="warden"){
-    ctx.strokeStyle = currentStage===6 ? "#bfdbfe" : "#7dd3fc";
-    ctx.lineWidth = 2.1;
-    ctx.beginPath();
-    ctx.moveTo(0,-14); ctx.lineTo(-5,-6); ctx.lineTo(0,-2); ctx.lineTo(5,-6); ctx.closePath();
-    ctx.moveTo(-7,8); ctx.lineTo(0,2); ctx.lineTo(7,8);
-    ctx.stroke();
-  }
-  if(enemy.type==="leech-priest"){
-    ctx.strokeStyle = currentStage===6 ? "#d9f99d" : "#bbf7d0";
-    ctx.lineWidth = 2.1;
-    ctx.beginPath();
-    ctx.arc(0, -8, 4.2, 0, Math.PI * 2);
-    ctx.moveTo(0,-2); ctx.lineTo(-6,6); ctx.lineTo(0,11); ctx.lineTo(6,6); ctx.closePath();
-    ctx.stroke();
-  }
-  if(enemy.type==="blinker"){
-    ctx.strokeStyle = currentStage===6 ? "#bfdbfe" : "#93c5fd";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-6,-10); ctx.lineTo(1,-10); ctx.lineTo(-1,-4); ctx.lineTo(6,-4);
-    ctx.moveTo(-5,8); ctx.lineTo(2,8); ctx.lineTo(0,13); ctx.lineTo(5,13);
-    ctx.stroke();
-  }
-  if(enemy.type==="phantom"){
-    ctx.strokeStyle = currentStage===6 ? "#ddd6fe" : "#c4b5fd";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, -8, 5, 0, Math.PI * 2);
-    ctx.moveTo(-6,3); ctx.lineTo(0,-1); ctx.lineTo(6,3);
-    ctx.moveTo(-4,11); ctx.lineTo(0,4); ctx.lineTo(4,11);
-    ctx.stroke();
-  }
-  if(enemy.type==="abyss-herald"){
-    ctx.strokeStyle = currentStage===6 ? "#fde68a" : "#f59e0b";
-    ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.moveTo(0,-16); ctx.lineTo(-6,-8); ctx.lineTo(0,-2); ctx.lineTo(6,-8); ctx.closePath();
-    ctx.moveTo(-7,6); ctx.lineTo(0,0); ctx.lineTo(7,6);
-    ctx.moveTo(-5,13); ctx.lineTo(0,6); ctx.lineTo(5,13);
-    ctx.stroke();
-  }
-  if(enemy.type==="hexed"){
-    ctx.strokeStyle = currentStage===6 ? "#f5d0fe" : "#f0abfc";
-    ctx.lineWidth = 2.2;
-    ctx.beginPath();
-    ctx.moveTo(-5,-12); ctx.lineTo(-1,-6); ctx.lineTo(-6,2);
-    ctx.moveTo(5,-12); ctx.lineTo(1,-6); ctx.lineTo(6,2);
-    ctx.moveTo(-6,8); ctx.lineTo(0,3); ctx.lineTo(6,8);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, -8.5, 2.3, 0, Math.PI * 2);
-    ctx.fillStyle = currentStage===6 ? "#f5d0fe" : "#f0abfc";
-    ctx.fill();
-  }
-  if(enemy.type==="shardling"){
-    ctx.strokeStyle = currentStage===6 ? "#f9a8d4" : "#fb7185";
-    ctx.beginPath();
-    ctx.moveTo(0,-13); ctx.lineTo(-4,-4); ctx.lineTo(0,3); ctx.lineTo(4,-4); ctx.closePath();
-    ctx.stroke();
-  }
-  if(enemy.type==="armored"){
-    ctx.strokeStyle = currentStage===6 ? "#ddd6fe" : "#94a3b8";
-    ctx.beginPath();
-    ctx.moveTo(-6,-2); ctx.lineTo(-2,-6); ctx.lineTo(2,-6); ctx.lineTo(6,-2);
-    ctx.moveTo(-5,4); ctx.lineTo(0,8); ctx.lineTo(5,4);
-    ctx.stroke();
-  }
-  if(enemy.type==="boss" && !hasBossSprite){
-    ctx.strokeStyle=currentStage===6 ? "#c084fc" : "#f59e0b";
-    ctx.beginPath(); ctx.moveTo(-6,-14); ctx.lineTo(-2,-18); ctx.lineTo(0,-13); ctx.lineTo(2,-18); ctx.lineTo(6,-14); ctx.stroke();
-  }
+  // --- sprite blit (flip horizontally for leftward movement)
+  const sheet = getEnemySpriteSheet(enemy.type, enemy);
+  const frame = Math.floor((enemy.animT % 1) * ENEMY_WALK_FRAMES) % ENEMY_WALK_FRAMES;
+  ctx.save();
+  if(enemy.facing < 0) ctx.scale(-1, 1);
+  if(enemy.freezeTimer > 0){ ctx.filter = "saturate(0.35) brightness(1.25)"; }
+  ctx.drawImage(
+    sheet.canvas,
+    frame * sheet.cell, 0, sheet.cell, sheet.cell,
+    -sheet.world / 2, -sheet.world / 2, sheet.world, sheet.world
+  );
+  ctx.restore();
+
   if(enemy.stunTimer > 0){
     ctx.save();
     ctx.strokeStyle = "#fde68a";
     ctx.lineWidth = 1.4;
-    for(let i=0;i<3;i++){
+    for(let i = 0; i < 3; i++){
       const ang = pulseT * 1.6 + i * ((Math.PI * 2) / 3);
       const sx = Math.cos(ang) * 8;
       const sy = -18 + Math.sin(ang) * 3;
@@ -5152,10 +4644,10 @@ function drawEnemy(enemy){
   }
   ctx.restore();
 
-  const hpWidth=enemy.type==="boss"?46:36, hpX=x-hpWidth/2, hpY=y-(enemy.type==="boss"?56:24);
-  ctx.fillStyle="rgba(15,23,42,.95)"; roundRect(hpX,hpY,hpWidth,6,4); ctx.fill();
-  ctx.fillStyle=enemy.type==="boss"?(enemy.bossColor || (currentStage===6?"#c084fc":"#f59e0b")):enemy.type==="tank"?"#fb7185":enemy.type==="armored"?"#94a3b8":enemy.type==="warden"?"#38bdf8":enemy.type==="leech-priest"?"#86efac":enemy.type==="blinker"?"#60a5fa":enemy.type==="phantom"?"#a78bfa":enemy.type==="abyss-herald"?"#f59e0b":enemy.type==="splitter"?"#f43f5e":enemy.type==="hexed"?"#d946ef":enemy.type==="shardling"?"#fb7185":enemy.type==="fast"?"#38bdf8":"#22c55e";
-  roundRect(hpX,hpY,hpWidth*hpPct,6,4); ctx.fill();
+  const hpWidth = enemy.type === "boss" ? 46 : 36, hpX = x - hpWidth / 2, hpY = y - (enemy.type === "boss" ? 44 : 28);
+  ctx.fillStyle = "rgba(15,23,42,.95)"; roundRect(hpX, hpY, hpWidth, 6, 4); ctx.fill();
+  ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b")) : enemy.type === "tank" ? "#fb7185" : enemy.type === "armored" ? "#94a3b8" : enemy.type === "fast" ? "#38bdf8" : "#22c55e";
+  roundRect(hpX, hpY, hpWidth * hpPct, 6, 4); ctx.fill();
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
 
@@ -5562,24 +5054,23 @@ function drawWaveIntro(){
   const fadeOut = Math.min(1, waveIntroTimer / 0.45);
   const alpha = Math.min(fadeIn, fadeOut);
   const y = 70 - (1 - alpha) * 10;
-  const endlessActive = currentMode === "endless";
 
   ctx.save();
   ctx.globalAlpha = alpha;
 
   const width = Math.max(220, Math.min(420, ctx.measureText ? 320 : 320));
-  ctx.fillStyle = endlessActive ? "rgba(28,12,42,.76)" : "rgba(8,17,31,.72)";
+  ctx.fillStyle = "rgba(8,17,31,.72)";
   roundRect(canvas.width/2 - 160, y - 28, 320, 54, 18);
   ctx.fill();
-  ctx.strokeStyle = endlessActive ? "rgba(192,132,252,.28)" : "rgba(251,191,36,.18)";
+  ctx.strokeStyle = "rgba(251,191,36,.18)";
   ctx.lineWidth = 1;
   ctx.stroke();
 
   ctx.textAlign = "center";
-  ctx.fillStyle = endlessActive ? "#f5d0fe" : "#f8fafc";
+  ctx.fillStyle = "#f8fafc";
   ctx.font = "700 22px Arial";
   ctx.fillText(waveIntroText, canvas.width/2, y - 2);
-  ctx.fillStyle = endlessActive ? "rgba(233,213,255,.82)" : "rgba(226,232,240,.78)";
+  ctx.fillStyle = "rgba(226,232,240,.78)";
   ctx.font = "600 11px Arial";
   ctx.fillText(waveIntroSubtext, canvas.width/2, y + 16);
   ctx.restore();
@@ -5792,7 +5283,6 @@ function draw(){
   drawSpawnPortal();
   drawPathAtmosphere();
   drawPath();
-  drawEndlessPathCorruption();
   drawStageLighting();
   drawGate();
   drawPlacementPreview();
@@ -5912,20 +5402,7 @@ towerSpecializationPanel?.addEventListener("click",(event)=>{
   event.stopPropagation();
   applySpecializationToSelectedUnit(btn.dataset.specId);
 });
-startWaveBtn.addEventListener("click",()=>{
-  if(startWaveClickTimer){
-    clearTimeout(startWaveClickTimer);
-    startWaveClickTimer = null;
-    autoStartWaves = !autoStartWaves;
-    setMessage(autoStartWaves ? "Auto-start enabled. Upcoming waves will begin automatically." : "Auto-start disabled.");
-    updateUI();
-    return;
-  }
-  startWaveClickTimer = setTimeout(()=>{
-    startWaveClickTimer = null;
-    startWave();
-  }, 220);
-});
+startWaveBtn.addEventListener("click",startWave);
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
 
@@ -5965,9 +5442,8 @@ startGameBtn.addEventListener("click",()=>{
   startOverlay.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
-  const crestNote = getCrestCombatNote();
-  setMessage(crestNote || "Dark Defense started. Place towers, start the wave, and use spells when needed.");
-  });
+  setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
+});
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
   applyStage(currentStage, true);
