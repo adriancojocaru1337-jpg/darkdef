@@ -289,9 +289,48 @@ body::after {
   background:rgba(15,23,42,.9);
 }
 .badge.money{color:#d9b56e}.badge.lives{color:#d18b8b}.badge.wave{color:#c8b8a0}.badge.level{color:#90a26a}
-.canvas-wrap { position:relative; padding:18px; --hud-top-offset: 0px; }
+.canvas-wrap { position:relative; padding:18px; scroll-margin-top:16px; --hud-top-offset: 0px; }
 #gameCanvas {
   width:100%; max-width:100%; display:block; border-radius:22px; border:1px solid rgba(148,163,184,.14); background:#08111f;
+}
+.onboarding-card{
+  position:absolute;
+  top:104px;
+  left:50%;
+  z-index:24;
+  width:min(390px, calc(100% - 190px));
+  padding:14px 16px;
+  transform:translateX(-50%);
+  border:1px solid rgba(251,191,36,.48);
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(15,23,42,.97), rgba(7,12,22,.96));
+  box-shadow:0 18px 45px rgba(0,0,0,.42), 0 0 28px rgba(251,191,36,.12);
+  color:#f8fafc;
+}
+.onboarding-topline,.onboarding-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.onboarding-kicker{color:#fbbf24;font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase}
+.onboarding-progress{color:#cbd5e1;font-size:11px;font-weight:800}
+.onboarding-card h3{margin:5px 0 4px;font-size:20px}
+.onboarding-card p{margin:0;color:#cbd5e1;font-size:12px;line-height:1.45}
+.onboarding-footer{margin-top:10px}
+.onboarding-dots{display:flex;gap:5px}
+.onboarding-dots i{display:block;width:18px;height:4px;border-radius:99px;background:rgba(148,163,184,.22)}
+.onboarding-dots i.active{background:#fbbf24;box-shadow:0 0 8px rgba(251,191,36,.42)}
+.onboarding-skip{padding:5px 7px;border:0;background:transparent;color:#94a3b8;font-size:10px;font-weight:700;cursor:pointer}
+.onboarding-skip:hover{color:#f8fafc}
+.onboarding-highlight{position:relative;z-index:23;animation:onboardingPulse 1s ease-in-out infinite!important}
+#gameCanvas.onboarding-highlight{position:relative;z-index:auto;animation:onboardingPlacementPulse 1s ease-in-out infinite!important}
+@keyframes onboardingPulse{
+  0%,100%{box-shadow:0 0 0 2px rgba(251,191,36,.52),0 0 16px rgba(251,191,36,.16)}
+  50%{box-shadow:0 0 0 5px rgba(251,191,36,.9),0 0 28px rgba(251,191,36,.32)}
+}
+@keyframes onboardingPlacementPulse{
+  0%,100%{box-shadow:0 0 0 2px rgba(74,222,128,.58),0 0 18px rgba(74,222,128,.16)}
+  50%{box-shadow:0 0 0 5px rgba(74,222,128,.9),0 0 30px rgba(74,222,128,.3)}
+}
+@media (max-width:700px){
+  .onboarding-card{top:126px;width:calc(100% - 32px);padding:12px 14px}
+  .onboarding-card h3{font-size:17px}
 }
 .canvas-overlay { position:absolute; top:30px; left:30px; right:30px; display:flex; justify-content:flex-start; pointer-events:none; }
 .overlay-chip {
@@ -307,6 +346,13 @@ body::after {
 }
 .command-card{order:1;}
 .overview-card{order:2;}
+.overview-header-actions{display:flex;align-items:center;gap:8px}
+.sidebar .overview-card.collapsed{height:auto;align-self:start}
+.overview-card.collapsed .spotlight-grid,
+.overview-card.collapsed .compact-stats,
+.overview-card.collapsed .meta-row{display:none}
+.overview-card.collapsed .side-title-row{margin-bottom:0}
+.overview-card:not(.collapsed) #coreStatsToggle{transform:rotate(180deg)}
 .side-title-row { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
 .mini-pill { padding:6px 10px; font-size:12px; color:#d2b07b; border-color:rgba(192,138,74,.22); background:rgba(192,138,74,.12); }
 .mini-pill.neutral { color:#e7dcc7; background:rgba(92,72,50,.18); border-color:rgba(171,131,84,.16); }
@@ -392,11 +438,37 @@ body::after {
 }
 .btn{padding:13px 14px;font-weight:800}
 .btn:disabled{opacity:.58;cursor:not-allowed;transform:none}
+.btn.is-unaffordable,
+.tower-spec-btn.is-unaffordable{opacity:.62;cursor:not-allowed}
 .btn-primary{background:linear-gradient(180deg,#d3a15d,#8c5a2f);color:#140f0b}
 .btn-secondary{background:rgba(30,41,59,.9);color:#e2e8f0}
 .message-box,.selected-empty,.selected-panel{
   margin-top:16px; min-height:88px; padding:14px 16px; border-radius:18px; background:rgba(16,12,9,.62);
   border:1px solid rgba(171,131,84,.10); color:#e6ddd0; line-height:1.55;
+}
+.message-box.feedback-gold{
+  border-color:rgba(251,191,36,.62);
+  color:#fef3c7;
+  animation:feedbackGold .34s ease-out;
+}
+.message-box.feedback-invalid{
+  border-color:rgba(251,113,133,.68);
+  color:#ffe4e6;
+  animation:feedbackInvalid .34s ease-out;
+}
+.message-box.feedback-cooldown{
+  border-color:rgba(125,211,252,.62);
+  color:#e0f2fe;
+  animation:feedbackCooldown .34s ease-out;
+}
+@keyframes feedbackGold{
+  0%,100%{transform:translateX(0)} 30%{transform:translateX(-4px)} 65%{transform:translateX(4px)}
+}
+@keyframes feedbackInvalid{
+  0%{transform:scale(1)} 45%{transform:scale(1.018);box-shadow:0 0 24px rgba(251,113,133,.18)} 100%{transform:scale(1)}
+}
+@keyframes feedbackCooldown{
+  0%{filter:brightness(1)} 50%{filter:brightness(1.35)} 100%{filter:brightness(1)}
 }
 .selected-panel.hidden,.screen-overlay.hidden,.hidden{display:none}
 .top-gap{margin-top:12px}
@@ -2339,6 +2411,11 @@ kbd{
 }
 .spell-btn:hover{ transform:translateY(-1px); }
 .spell-btn:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
+.spell-btn.on-cooldown{opacity:.68;cursor:not-allowed}
+.feedback-denied-pulse{animation:feedbackDeniedPulse .34s ease-out}
+@keyframes feedbackDeniedPulse{
+  0%,100%{transform:translateX(0)} 30%{transform:translateX(-3px)} 65%{transform:translateX(3px)}
+}
 .spell-btn.active{
   box-shadow:
     0 0 0 1px rgba(255,255,255,.12),
@@ -2574,6 +2651,13 @@ kbd{
   font-size:30px;
   line-height:1;
 }
+.spotlight-item small{
+  display:block;
+  margin-top:8px;
+  color:rgba(203,213,225,.72);
+  font-size:10px;
+  line-height:1.35;
+}
 .spotlight-item.bonus strong{color:#fde68a}
 .compact-stats{grid-template-columns:1fr 1fr}
 .compact-stats .stat-item strong{font-size:22px}
@@ -2736,6 +2820,9 @@ kbd{
   font-size:12px;
 }
 .tower-stat-row strong{color:#f8fafc;font-size:13px}
+.tower-stat-current{color:#cbd5e1}
+.tower-stat-arrow{margin:0 5px;color:#64748b}
+.tower-stat-next{color:#86efac}
 .tower-menu-actions{grid-template-columns:1fr 1fr}
 .tower-sell-btn{
   background:rgba(60,18,28,.92);

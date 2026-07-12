@@ -17,6 +17,12 @@ const waveForecastText = document.getElementById("waveForecastText");
 const hintChip = document.getElementById("hintChip");
 const audioToggle = document.getElementById("audioToggle");
 const hudToggleBtn = document.getElementById("hudToggleBtn");
+const onboardingCard = document.getElementById("onboardingCard");
+const onboardingProgress = document.getElementById("onboardingProgress");
+const onboardingTitle = document.getElementById("onboardingTitle");
+const onboardingText = document.getElementById("onboardingText");
+const onboardingDots = document.getElementById("onboardingDots");
+const onboardingSkipBtn = document.getElementById("onboardingSkipBtn");
 
 const enemyCountStat = document.getElementById("enemyCountStat");
 const towerCountStat = document.getElementById("towerCountStat");
@@ -30,6 +36,8 @@ const modeStat = document.getElementById("modeStat");
 const bestScoreStat = document.getElementById("bestScoreStat");
 const furthestStageStat = document.getElementById("furthestStageStat");
 const endlessUnlockedStat = document.getElementById("endlessUnlockedStat");
+const overviewCard = document.getElementById("overviewCard");
+const coreStatsToggle = document.getElementById("coreStatsToggle");
 
 const notificationPanel = document.getElementById("notificationPanel");
 const notificationBadge = document.getElementById("notificationBadge");
@@ -218,6 +226,17 @@ function startBossCastBanner(text, color="#f8fafc", duration=1.35){
   bossCastTimer = duration;
   bossCastText = text;
   bossCastColor = color;
+}
+
+function playBossWaveWarning(){
+  ensureAudio();
+  tone("sawtooth", 110, 62, .42, .026);
+  setTimeout(()=>tone("square", 165, 82, .28, .018), 180);
+  setTimeout(()=>tone("sawtooth", 105, 55, .46, .024), 520);
+  noiseBurst(.22, .026, 850);
+  addScreenShake(currentMode === "endless" ? 8 : 5, .55);
+  screenFlashes.push({ color:"#7f1d1d", life:.55, maxLife:.55, alpha:.24 });
+  vibrate(currentMode === "endless" ? [80, 45, 110] : [70, 45, 70]);
 }
 
 function applyHudVisibility(){
@@ -577,15 +596,15 @@ const STAGE_BOSS = {
 };
 
 const BOSS_ABILITY_META = {
-  roots: { label:"Root Grasp", short:"Roots", color:"#86efac", warning:"A tower is about to be snared." },
-  rage: { label:"Blood Rage", short:"Rage", color:"#fca5a5", warning:"The boss is preparing a power surge." },
-  summon: { label:"Grave Summons", short:"Summon", color:"#c4b5fd", warning:"Minions are about to emerge on the road." },
-  shield: { label:"Void Bulwark", short:"Shield", color:"#93c5fd", warning:"A defensive shell is about to form." }
+  roots: { label:"Root Grasp", short:"Roots", color:"#86efac", warning:"Snares the nearest tower for 3.5 seconds.", tip:"Spread damage across multiple towers." },
+  rage: { label:"Blood Rage", short:"Rage", color:"#fca5a5", warning:"Gains speed and restores part of its health.", tip:"Save burst damage and control for the rage." },
+  summon: { label:"Grave Summons", short:"Summon", color:"#c4b5fd", warning:"Summons fast minions onto the road.", tip:"Keep an area-damage tower near the main path." },
+  shield: { label:"Void Bulwark", short:"Shield", color:"#93c5fd", warning:"Restores health through a defensive shield.", tip:"Hold Meteor or heavy damage for the shield." }
 };
 
 function getBossAbilityMeta(stageNumber=currentStage){
   const abilityId = STAGES[stageNumber]?.bossAbility;
-  return BOSS_ABILITY_META[abilityId] || { label:"Boss Ability", short:"Ability", color:"#f8fafc", warning:"The boss is preparing a special attack." };
+  return BOSS_ABILITY_META[abilityId] || { label:"Boss Ability", short:"Ability", color:"#f8fafc", warning:"The boss is preparing a special attack.", tip:"Keep spells ready." };
 }
 
 const AURA_REWARDS = {
@@ -1597,14 +1616,14 @@ async function ensureLeaderboardRun(modeHint=currentMode){
 
 async function loadBonusLeaderboard(){
   if(!bonusLeaderboardList) return;
-  bonusLeaderboardSubtitle.textContent = "Loading the global Endless bonus scoreboard...";
+  bonusLeaderboardSubtitle.textContent = "Ranks Endless runs by Bonus Score, not Total Score.";
   try{
     const response = await fetch("/.netlify/functions/get-bonus-leaderboard", { cache: "no-store" });
     if(!response.ok) throw new Error("Leaderboard unavailable");
     const rows = await response.json();
     if(!Array.isArray(rows) || rows.length === 0){
       bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">No Endless runs submitted yet.</div>';
-      bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
+      bonusLeaderboardSubtitle.textContent = "No runs yet. Ranking uses Bonus Score, not Total Score.";
       return;
     }
     bonusLeaderboardList.innerHTML = rows.slice(0,3).map((row, index) => {
@@ -1624,7 +1643,7 @@ async function loadBonusLeaderboard(){
       `;
     }).join("");
     const best = rows[0];
-    bonusLeaderboardSubtitle.textContent = `Record: ${best.player_name} cu bonus +${best.bonus_score}.`;
+    bonusLeaderboardSubtitle.textContent = `Record: ${best.player_name} with Bonus Score +${best.bonus_score}.`;
   }catch(error){
     bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Leaderboard is temporarily unavailable.</div>';
     bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global leaderboard.";
@@ -2215,10 +2234,14 @@ const enemyCountForWave=(n)=>6+(n-1)*2 + Math.max(0, currentStage-1);
 
 function getWaveThreatProfile(){
   if(isCurrentWaveBoss()){
+    const boss = STAGE_BOSS[currentStage];
+    const meta = getBossAbilityMeta(currentStage);
     return {
       key: "boss",
       label: currentMode === "endless" ? "Boss Pair" : "Boss Wave",
-      detail: currentMode === "endless" ? "Two bosses arrive together. Save spells for the engage." : "A boss is coming. Keep burst damage and control ready."
+      detail: currentMode === "endless"
+        ? "Two bosses arrive together. Save spells for the engage."
+        : `${boss?.name || "Boss"}: ${meta.label} - ${meta.warning}`
     };
   }
 
@@ -2302,12 +2325,130 @@ function updateWaveForecast(){
   waveForecastTag.textContent = profile.label;
   waveForecastText.textContent = profile.detail;
 }
-const setMessage=(t)=>messageBox.textContent=t;
+const FEEDBACK_CLASSES = ["feedback-gold", "feedback-invalid", "feedback-cooldown"];
+const setMessage=(t)=>{
+  messageBox.textContent=t;
+  messageBox.classList.remove(...FEEDBACK_CLASSES);
+};
+const ONBOARDING_STORAGE_KEY = "sdcFirstBattleTutorialV1";
+let onboardingStep = 0;
+
+function onboardingCompleted(){
+  try{ return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1"; }catch(_){ return false; }
+}
+
+function clearOnboardingHighlights(){
+  document.querySelectorAll(".onboarding-highlight").forEach(el=>el.classList.remove("onboarding-highlight"));
+  canvasWrap?.classList.remove("onboarding-placement-step");
+}
+
+function renderOnboarding(){
+  if(!onboardingCard || onboardingStep < 1 || onboardingStep > 3) return;
+  const steps = {
+    1:{ title:"Select Archer", text:"Choose the Archer from the Unit Shop. It is fast, affordable, and ideal for your first defense." },
+    2:{ title:"Place near the path", text:"Click an empty tile beside the enemy road. Green placement feedback confirms a valid position." },
+    3:{ title:"Start the first wave", text:"Your Archer is ready. Press Start to call Wave 1 and begin the battle." }
+  };
+  const step = steps[onboardingStep];
+  clearOnboardingHighlights();
+  onboardingCard.classList.remove("hidden");
+  onboardingProgress.textContent = `${onboardingStep} / 3`;
+  onboardingTitle.textContent = step.title;
+  onboardingText.textContent = step.text;
+  onboardingDots.innerHTML = [1,2,3].map(index=>`<i class="${index <= onboardingStep ? "active" : ""}"></i>`).join("");
+
+  if(onboardingStep === 1){
+    showUnitInfoPanel();
+    Array.from(unitInfoButtons).find(btn=>btn.dataset.type === "archer")?.classList.add("onboarding-highlight");
+  } else if(onboardingStep === 2){
+    canvasWrap?.classList.add("onboarding-placement-step");
+    canvas?.classList.add("onboarding-highlight");
+  } else {
+    startWaveBtn?.classList.add("onboarding-highlight");
+  }
+}
+
+function beginOnboarding(){
+  if(onboardingCompleted() || units.length > 0 || waveActive) return;
+  onboardingStep = 1;
+  renderOnboarding();
+}
+
+function finishOnboarding(skipped=false){
+  if(onboardingStep === 0) return;
+  onboardingStep = 0;
+  clearOnboardingHighlights();
+  onboardingCard?.classList.add("hidden");
+  try{ localStorage.setItem(ONBOARDING_STORAGE_KEY, "1"); }catch(_){}
+  if(skipped) setMessage("Tutorial skipped. Open the Unit Shop whenever you need another tower.");
+  else {
+    setMessage("First defense ready! Watch the road and upgrade your Archer when you have enough gold.");
+    pushNotification("achievement", "Tutorial complete", "You placed your first tower and started the battle.");
+  }
+}
+
+function handleOnboardingUnitSelection(type){
+  if(onboardingStep !== 1) return;
+  if(type !== "archer"){
+    setMessage("First battle tutorial: select Archer to continue.");
+    showUnitInfoPanel();
+    renderOnboarding();
+    return;
+  }
+  onboardingStep = 2;
+  renderOnboarding();
+}
+
+function handleOnboardingPlacement(){
+  if(onboardingStep !== 2) return;
+  onboardingStep = 3;
+  renderOnboarding();
+}
+
+function playActionDeniedSound(type){
+  ensureAudio();
+  if(type === "gold"){
+    tone("square", 210, 125, .11, .018);
+    setTimeout(()=>tone("square", 165, 105, .09, .013), 85);
+  } else if(type === "invalid"){
+    tone("sawtooth", 145, 70, .15, .016);
+    noiseBurst(.08, .018, 700);
+  } else {
+    tone("sine", 430, 310, .08, .012);
+    setTimeout(()=>tone("sine", 430, 310, .08, .009), 105);
+  }
+}
+
+function showActionDenied(type, message, { x=null, y=null, target=null, popupText="" }={}){
+  setMessage(message);
+  messageBox.classList.remove(...FEEDBACK_CLASSES);
+  void messageBox.offsetWidth;
+  messageBox.classList.add(`feedback-${type}`);
+  if(target){
+    target.classList.remove("feedback-denied-pulse");
+    void target.offsetWidth;
+    target.classList.add("feedback-denied-pulse");
+  }
+  if(Number.isFinite(x) && Number.isFinite(y)){
+    const colors = { gold:"#fbbf24", invalid:"#fb7185", cooldown:"#7dd3fc" };
+    showPopup(x, y - 18, popupText || message, colors[type] || "#f8fafc");
+  }
+  playActionDeniedSound(type);
+  vibrate(type === "invalid" ? [35, 25, 35] : 35);
+}
+
+function showSpellCooldownFeedback(key, button){
+  const names = { slow:"Frost Nova", damage:"Meteor Strike", bomb:"Chain Lightning" };
+  const remaining = Math.max(0, spellCooldown[key]);
+  showActionDenied("cooldown", `${names[key]} is recharging - ${remaining.toFixed(1)}s remaining.`, {
+    target: button
+  });
+}
 function hideHintChip(){ hintChip?.classList.add("hidden-chip"); }
 function showHintChip(){ hintChip?.classList.remove("hidden-chip"); }
 function updateHintChip(){
   if(!hintChip) return;
-  let text = "Click pe celule libere pentru plasare.";
+  let text = "Click an empty tile to place a tower.";
   if(pendingAuraChoice){
     text = "Choose the tower that will receive the legendary aura.";
   } else if(selectedSpell === "slow"){
@@ -2354,7 +2495,9 @@ function updateSpellButtons(){
     if(!btn || !timerEl) continue;
     const cd = spellCooldown[key];
     const ready = cd <= 0;
-    btn.disabled = !hasStarted || lives<=0 || isPaused || !ready;
+    btn.disabled = !hasStarted || lives<=0 || isPaused;
+    btn.classList.toggle("on-cooldown", !ready);
+    btn.setAttribute("aria-disabled", !ready ? "true" : "false");
     btn.classList.toggle("active", selectedSpell === key);
     timerEl.textContent = ready ? (selectedSpell===key ? "Target" : "Ready") : `${cd.toFixed(1)}s`;
   }
@@ -2528,6 +2671,24 @@ function hideTowerMenu(){
   towerMenu?.classList.add("hidden");
 }
 
+function applyStandardUpgradeStats(unit){
+  unit.damage *= unit.type === "bomb" ? 1.70 : 1.55;
+  unit.range *= 1.10;
+  unit.fireRate *= .92;
+  if(unit.projectileSpeed) unit.projectileSpeed *= 1.06;
+  if(unit.splash) unit.splash *= 1.10;
+}
+
+function getStandardUpgradePreview(unit){
+  const previewUnit = { ...unit };
+  applyStandardUpgradeStats(previewUnit);
+  return getAuraAdjustedStats(previewUnit);
+}
+
+function upgradeStatValue(current, next, formatter){
+  return `<span class="tower-stat-current">${formatter(current)}</span><span class="tower-stat-arrow" aria-hidden="true">&rarr;</span><span class="tower-stat-next">${formatter(next)}</span>`;
+}
+
 function showTowerMenu(unit){
   if(!towerMenu || !canvasWrap) return;
   const worldPos = cellCenter(unit.c, unit.r);
@@ -2536,6 +2697,8 @@ function showTowerMenu(unit){
   const aura = getAuraData(unit.auraType);
   const specialization = getSpecializationData(unit);
   const stats = getAuraAdjustedStats(unit);
+  const choosingSpecialization = canChooseSpecialization(unit);
+  const nextStats = choosingSpecialization ? null : getStandardUpgradePreview(unit);
   towerMenuName.textContent = unit.name;
   towerMenuLevel.textContent = `Lv.${unit.level}${aura ? ` · ${aura.icon} ${aura.name}` : ""}${specialization ? ` · ${specialization.name}` : ""}`;
   if(towerMenuAura){
@@ -2544,20 +2707,26 @@ function showTowerMenu(unit){
     towerMenuAura.style.borderColor = specialization ? "rgba(196,181,253,.28)" : (aura ? `${aura.color}44` : "rgba(56,189,248,.18)");
     towerMenuAura.style.background = specialization ? "rgba(139,92,246,.16)" : (aura ? `${aura.color}22` : "rgba(56,189,248,.12)");
   }
-  const nextCost = canChooseSpecialization(unit) ? getSpecializationCost(unit) : Math.round(unit.nextUpgradeCost);
-  const nextLabel = canChooseSpecialization(unit) ? "Spec" : "Upgrade";
+  const nextCost = choosingSpecialization ? getSpecializationCost(unit) : Math.round(unit.nextUpgradeCost);
+  const nextLabel = choosingSpecialization ? "Spec cost" : "Upgrade cost";
   const specRow = specialization ? `<div class="tower-stat-row"><span>Spec</span><strong>${specialization.name}</strong></div>` : "";
+  const damageValue = nextStats ? upgradeStatValue(stats.damage, nextStats.damage, value => Math.round(value)) : Math.round(stats.damage);
+  const rangeValue = nextStats ? upgradeStatValue(stats.range, nextStats.range, value => Math.round(value)) : Math.round(stats.range);
+  const speedValue = nextStats ? upgradeStatValue(stats.fireRate, nextStats.fireRate, value => `${value.toFixed(2)}s`) : `${stats.fireRate.toFixed(2)}s`;
   towerMenuStats.innerHTML = `
-    <div class="tower-stat-row"><span>Damage</span><strong>${Math.round(stats.damage)}</strong></div>
-    <div class="tower-stat-row"><span>Range</span><strong>${Math.round(stats.range)}</strong></div>
-    <div class="tower-stat-row"><span>Speed</span><strong>${stats.fireRate.toFixed(2)}s</strong></div>
+    <div class="tower-stat-row"><span>Damage</span><strong>${damageValue}</strong></div>
+    <div class="tower-stat-row"><span>Range</span><strong>${rangeValue}</strong></div>
+    <div class="tower-stat-row"><span>Attack delay</span><strong>${speedValue}</strong></div>
     ${specRow}
     <div class="tower-stat-row"><span>${nextLabel}</span><strong>${nextCost}</strong></div>
     <div class="tower-stat-row"><span>Sell</span><strong>${Math.round(unit.totalSpent * unit.sellFactor)}</strong></div>
   `;
   if(towerSpecializationPanel) towerSpecializationPanel.classList.add("hidden");
   towerUpgradeBtn.textContent = canChooseSpecialization(unit) ? "✨ Specialize" : "⬆ Upgrade";
-  towerUpgradeBtn.disabled = money < nextCost;
+  const cannotAffordNext = money < nextCost;
+  towerUpgradeBtn.disabled = false;
+  towerUpgradeBtn.classList.toggle("is-unaffordable", cannotAffordNext);
+  towerUpgradeBtn.setAttribute("aria-disabled", cannotAffordNext ? "true" : "false");
 
   if(towerSpecializationPanel){
     if(canChooseSpecialization(unit)) {
@@ -2565,7 +2734,7 @@ function showTowerMenu(unit){
       towerSpecializationPanel.innerHTML = getSpecializationChoices(unit).map(choice => {
         const theme = getSpecializationTheme(choice.id);
         return `
-        <button class="tower-spec-btn" data-spec-id="${choice.id}" type="button" ${money < cost ? 'disabled' : ''} style="--spec-fill:${theme.panel}; --spec-border:${theme.panelBorder}; --spec-accent:${theme.stroke}; --spec-icon:${theme.icon}; --spec-medallion:${theme.fill}; --spec-glow:${theme.glow};">
+        <button class="tower-spec-btn${money < cost ? ' is-unaffordable' : ''}" data-spec-id="${choice.id}" type="button" aria-disabled="${money < cost ? 'true' : 'false'}" style="--spec-fill:${theme.panel}; --spec-border:${theme.panelBorder}; --spec-accent:${theme.stroke}; --spec-icon:${theme.icon}; --spec-medallion:${theme.fill}; --spec-glow:${theme.glow};">
           <span class="tower-spec-medallion" aria-hidden="true">${getSpecializationIcon(choice.id)}</span>
           <span class="tower-spec-copy">
             <strong>${choice.name}</strong>
@@ -2993,7 +3162,11 @@ function startWave(){
   waveCallBonus = 0;
   spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
-  if(isCurrentWaveBoss()) bossBannerTimer = currentMode === "endless" ? 3.2 : 2.2;
+  if(onboardingStep === 3) finishOnboarding(false);
+  if(isCurrentWaveBoss()){
+    bossBannerTimer = currentMode === "endless" ? 5.2 : 4.6;
+    playBossWaveWarning();
+  }
   playWaveSound();
   hideHintChip();
   hideTowerMenu();
@@ -3008,7 +3181,15 @@ function startWave(){
     waveIntroSubtext = `Stage ${currentStage} · ${stage.name}`;
   }
   if(isCurrentWaveBoss()){
-    setMessage("");
+    const bossStages = currentMode === "endless" ? pendingEndlessBossPair : [currentStage];
+    const mechanics = bossStages.map(stageNumber => {
+      const boss = STAGE_BOSS[stageNumber];
+      const meta = getBossAbilityMeta(stageNumber);
+      return `${boss?.name || "Boss"}: ${meta.label} - ${meta.warning}`;
+    });
+    const bossMessage = mechanics.join(" | ");
+    setMessage(`Boss wave! ${bossMessage}`);
+    pushNotification("stage", currentMode === "endless" ? "Boss Pair" : "Boss Wave", bossMessage);
   } else {
     waveIntroSubtext = `${threatProfile.label} - Stage ${currentStage} ${stage.name}`;
     pushNotification("stage", threatProfile.label, threatProfile.detail);
@@ -3077,8 +3258,15 @@ function spawnEnemy(){
 function placeUnit(c,r){
   if(lives<=0) return;
   const key=`${c}-${r}`;
-  if(pathCells.has(key)){ setMessage("You cannot place towers on the path."); return; }
-  if(isBlockedCell(c, r)){ setMessage("You cannot build on this terrain."); return; }
+  const deniedPos = cellCenter(c, r);
+  if(pathCells.has(key)){
+    showActionDenied("invalid", "Invalid placement - towers cannot be built on the enemy path.", { ...deniedPos, popupText:"Path blocked" });
+    return;
+  }
+  if(isBlockedCell(c, r)){
+    showActionDenied("invalid", "Invalid placement - this terrain cannot support a tower.", { ...deniedPos, popupText:"Terrain blocked" });
+    return;
+  }
 
   const existing=units.find(t=>t.c===c && t.r===r);
   if(existing){ selectedPlacedUnitId=existing.id; setPlacementHudAutoHide(false); setMessage(`You selected ${existing.name}.`); updateUI(); return; }
@@ -3091,12 +3279,16 @@ function placeUnit(c,r){
     usedReserve=!!unit;
   }
   if(!unit){
-    if(money < type.cost){ setMessage("You do not have enough gold for the selected tower."); return; }
+    if(money < type.cost){
+      showActionDenied("gold", `Not enough gold - ${type.name} costs ${type.cost}g and you have ${money}g.`, { ...deniedPos, popupText:`Need ${type.cost - money}g` });
+      return;
+    }
     money -= type.cost;
     unit = createFreshUnitForPlacement(selectedUnitType,c,r);
   }
 
   units.push(unit);
+  handleOnboardingPlacement();
   selectedPlacedUnitId=null;
   hideTowerMenu();
   setPlacementHudAutoHide(false);
@@ -3124,7 +3316,11 @@ function applySpecializationToSelectedUnit(specId){
   const choice = TOWER_SPECIALIZATIONS[unit.type]?.[specId];
   if(!choice) return;
   const cost = getSpecializationCost(unit);
-  if(money < cost){ setMessage("You do not have enough gold for the specialization."); return; }
+  if(money < cost){
+    const pos = cellCenter(unit.c, unit.r);
+    showActionDenied("gold", `Not enough gold - this specialization costs ${cost}g and you have ${money}g.`, { ...pos, popupText:`Need ${cost - money}g` });
+    return;
+  }
   money -= cost; unit.totalSpent += cost; unit.level += 1; unit.specialization = specId;
   choice.apply(unit);
   unit.nextUpgradeCost = Math.round(cost * 1.65);
@@ -3143,11 +3339,13 @@ function upgradeSelectedUnit(){
     setMessage(`Choose a specialization for ${unit.name}.`);
     return;
   }
-  if(money<unit.nextUpgradeCost){ setMessage("You do not have enough gold for the upgrade."); return; }
+  if(money<unit.nextUpgradeCost){
+    const pos = cellCenter(unit.c, unit.r);
+    showActionDenied("gold", `Not enough gold - this upgrade costs ${unit.nextUpgradeCost}g and you have ${money}g.`, { ...pos, popupText:`Need ${unit.nextUpgradeCost - money}g` });
+    return;
+  }
   money-=unit.nextUpgradeCost; unit.totalSpent+=unit.nextUpgradeCost; unit.level+=1;
-  unit.damage*=unit.type==="bomb"?1.70:1.55; unit.range*=1.10; unit.fireRate*=.92;
-  if(unit.projectileSpeed) unit.projectileSpeed*=1.06;
-  if(unit.splash) unit.splash*=1.10;
+  applyStandardUpgradeStats(unit);
   unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.65);
   const fxPos = cellCenter(unit.c, unit.r);
   addUpgradeEffect(fxPos.x, fxPos.y, unit.color || "#7dd3fc");
@@ -4605,6 +4803,59 @@ function drawTerrainFeatures(){
   }
 }
 
+function getPlacementPreviewUnit(typeKey, c, r){
+  const reserve = reservePool[typeKey] || [];
+  let source = UNIT_TYPES[typeKey];
+  if(reserve.length){
+    source = reserve.reduce((best, unit)=>{
+      if(!best) return unit;
+      if((unit.level || 1) !== (best.level || 1)) return (unit.level || 1) > (best.level || 1) ? unit : best;
+      return (unit.totalSpent || 0) > (best.totalSpent || 0) ? unit : best;
+    }, null) || source;
+  }
+  return { ...source, id:-1, type:typeKey, c, r, auraType:source.auraType || null, wealthSurgeTimer:0 };
+}
+
+function drawTowerPlacementGhost(typeKey, pos, blocked){
+  const sprite = towerSprites[typeKey];
+  const isBomb = typeKey === "bomb";
+  const isHunter = typeKey === "hunter";
+  const isMage = typeKey === "mage";
+  const drawSize = isBomb ? 52 : isHunter ? 44 : isMage ? 50 : 46;
+  const drawY = isBomb ? -30 : typeKey === "archer" ? -28 : isHunter ? -27 : -29;
+
+  ctx.save();
+  ctx.translate(pos.x, pos.y);
+  ctx.globalAlpha = blocked ? .44 : .78;
+  ctx.filter = blocked
+    ? "grayscale(1) sepia(1) saturate(5) hue-rotate(310deg)"
+    : "brightness(1.25) drop-shadow(0 6px 7px rgba(34,197,94,.42))";
+  if(sprite?.complete && sprite.naturalWidth){
+    ctx.drawImage(sprite, -drawSize / 2, drawY, drawSize, drawSize);
+  } else {
+    ctx.fillStyle = blocked ? "#fb7185" : (UNIT_TYPES[typeKey]?.color || "#4ade80");
+    ctx.beginPath();
+    ctx.arc(0, 2, 15, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.filter = "none";
+  ctx.globalAlpha = .96;
+  ctx.fillStyle = "rgba(5,8,16,.92)";
+  ctx.beginPath();
+  ctx.arc(20, -23, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = blocked ? "#fb7185" : "#4ade80";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(20, -23, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = blocked ? "#fb7185" : "#4ade80";
+  ctx.font = `900 8px ${FONT_UI}`;
+  ctx.textAlign = "center";
+  ctx.fillText(blocked ? "X" : "OK", 20, -20);
+  ctx.restore();
+}
+
 function drawPlacementPreview(){
   if(selectedSpell && hoveredCell){
     const pos=cellCenter(hoveredCell.c, hoveredCell.r);
@@ -4637,9 +4888,10 @@ function drawPlacementPreview(){
   const occupied=units.find(a=>a.c===c&&a.r===r);
   if(occupied){
     const pos=cellCenter(c,r);
+    const occupiedRange = getAuraAdjustedStats(occupied).range;
     ctx.save();
     ctx.beginPath();
-    ctx.arc(pos.x,pos.y,occupied.range,0,Math.PI*2);
+    ctx.arc(pos.x,pos.y,occupiedRange,0,Math.PI*2);
     ctx.fillStyle="rgba(34,197,94,.05)";
     ctx.fill();
     ctx.strokeStyle="rgba(34,197,94,.28)";
@@ -4653,28 +4905,32 @@ function drawPlacementPreview(){
 
   const blocked=pathCells.has(`${c}-${r}`) || isBlockedCell(c, r);
   const hoverLey = !blocked ? getLeyStoneAt(c, r) : null;
-  const type=UNIT_TYPES[selectedUnitType];
   const pos=cellCenter(c,r);
+  const previewUnit = getPlacementPreviewUnit(selectedUnitType, c, r);
+  const previewStats = getAuraAdjustedStats(previewUnit);
 
   ctx.save();
   ctx.beginPath();
-  ctx.arc(pos.x,pos.y,type.range,0,Math.PI*2);
-  ctx.fillStyle=blocked?"rgba(251,113,133,.06)":"rgba(56,189,248,.08)";
+  ctx.arc(pos.x,pos.y,previewStats.range,0,Math.PI*2);
+  ctx.fillStyle=blocked?"rgba(251,113,133,.07)":"rgba(34,197,94,.08)";
   ctx.fill();
-  ctx.strokeStyle=blocked?"rgba(251,113,133,.34)":"rgba(56,189,248,.34)";
+  ctx.strokeStyle=blocked?"rgba(251,113,133,.58)":"rgba(74,222,128,.62)";
   ctx.setLineDash([8,8]);
   ctx.lineWidth=2;
   ctx.stroke();
   ctx.setLineDash([]);
 
   roundRect(c*CELL+3,r*CELL+3,CELL-6,CELL-6,12);
-  ctx.fillStyle=blocked?"rgba(251,113,133,.18)":"rgba(56,189,248,.14)";
+  ctx.fillStyle=blocked?"rgba(251,113,133,.22)":"rgba(34,197,94,.18)";
   ctx.fill();
 
-  ctx.fillStyle=blocked?"rgba(251,113,133,.92)":"rgba(125,211,252,.95)";
-  ctx.beginPath();
-  ctx.arc(pos.x,pos.y,8,0,Math.PI*2);
-  ctx.fill();
+  drawTowerPlacementGhost(selectedUnitType, pos, blocked);
+
+  ctx.fillStyle = blocked ? "#fecdd3" : "#bbf7d0";
+  ctx.font = `700 10px ${FONT_UI}`;
+  ctx.textAlign = "center";
+  ctx.fillText(`Range ${Math.round(previewStats.range)}`, pos.x, pos.y - previewStats.range - 9);
+  ctx.textAlign = "start";
 
   if(!blocked){
     const preview = getUnitSynergies(null, c, r, selectedUnitType);
@@ -4717,11 +4973,6 @@ function drawPlacementPreview(){
     }
   }
 
-  ctx.fillStyle="#08111f";
-  ctx.font=`bold 11px ${FONT_UI}`;
-  ctx.textAlign="center";
-  ctx.fillText(type.name, pos.x, pos.y - 16);
-  ctx.textAlign="start";
   ctx.restore();
 }
 function drawPlacedUnit(unit){
@@ -5869,6 +6120,58 @@ function drawBossCastBanner(){
   ctx.restore();
 }
 
+function drawBossMechanicPanel(alpha, stages, y){
+  const bossStages = stages.length ? stages : [currentStage];
+  const isPair = bossStages.length > 1;
+  const width = Math.min(canvas.width - 72, isPair ? 760 : 620);
+  const height = isPair ? 126 : 116;
+  const x = canvas.width / 2 - width / 2;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = "rgba(5,8,16,.94)";
+  roundRect(x, y, width, height, 18);
+  ctx.fill();
+  ctx.strokeStyle = isPair ? "rgba(248,113,113,.95)" : "rgba(251,191,36,.88)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = isPair ? "#fecaca" : "#fde68a";
+  ctx.font = `800 12px ${FONT_UI}`;
+  ctx.fillText(isPair ? "BOSS PAIR - SPECIAL MECHANICS" : "BOSS WAVE - SPECIAL MECHANIC", canvas.width / 2, y + 20);
+
+  if(isPair){
+    bossStages.forEach((stageNumber, index)=>{
+      const boss = STAGE_BOSS[stageNumber];
+      const meta = getBossAbilityMeta(stageNumber);
+      ctx.fillStyle = meta.color;
+      ctx.font = `700 12px ${FONT_DISPLAY}`;
+      ctx.fillText(`${boss?.name || "Boss"}: ${meta.label}`, canvas.width / 2, y + 45 + index * 27, width - 36);
+      ctx.fillStyle = "rgba(226,232,240,.88)";
+      ctx.font = `600 10px ${FONT_UI}`;
+      ctx.fillText(meta.warning, canvas.width / 2, y + 58 + index * 27, width - 42);
+    });
+    ctx.fillStyle = "#fef3c7";
+    ctx.font = `700 10px ${FONT_UI}`;
+    ctx.fillText("TIP: Expect both mechanics. Save spells for the most dangerous overlap.", canvas.width / 2, y + 115, width - 40);
+  } else {
+    const stageNumber = bossStages[0];
+    const boss = STAGE_BOSS[stageNumber];
+    const meta = getBossAbilityMeta(stageNumber);
+    ctx.fillStyle = boss?.color || "#f8fafc";
+    ctx.font = `700 19px ${FONT_DISPLAY}`;
+    ctx.fillText(boss?.name || "Boss", canvas.width / 2, y + 44, width - 32);
+    ctx.fillStyle = meta.color;
+    ctx.font = `800 13px ${FONT_UI}`;
+    ctx.fillText(`${meta.label}: ${meta.warning}`, canvas.width / 2, y + 68, width - 36);
+    ctx.fillStyle = "#fef3c7";
+    ctx.font = `700 11px ${FONT_UI}`;
+    ctx.fillText(`TIP: ${meta.tip}`, canvas.width / 2, y + 94, width - 40);
+  }
+  ctx.restore();
+}
+
 function drawBossBanner(){
   if(bossBannerTimer<=0) return;
   const alpha=Math.min(1,bossBannerTimer/.45,bossBannerTimer);
@@ -5933,6 +6236,7 @@ function drawBossBanner(){
     });
 
     ctx.restore();
+    drawBossMechanicPanel(alpha, imageStages, panelY + panelHeight + 8);
     return;
   }
 
@@ -5969,6 +6273,7 @@ function drawBossBanner(){
     ctx.fillText(subtitle, canvas.width/2, y + 44);
   }
   ctx.restore();
+  drawBossMechanicPanel(alpha, imageStages, y + height + 10);
 }
 
 function drawWaveIntro(){
@@ -6310,12 +6615,18 @@ function bindUnitSelectorButtons(buttonList){
       setPlacementHudAutoHide(true);
       setMessage(`You selected ${t.name} · Cost ${t.cost} · Range ${Math.round(t.range)}`);
       updateUI();
+      handleOnboardingUnitSelection(selectedUnitType);
     });
   });
 }
 
 bindUnitSelectorButtons(unitButtons);
 bindUnitSelectorButtons(unitInfoButtons);
+
+onboardingSkipBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  finishOnboarding(true);
+});
 
 towerUpgradeBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
@@ -6337,7 +6648,8 @@ resetBtn.addEventListener("click",resetGame);
 
 spellSlowBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  if(!hasStarted || lives<=0 || isPaused || spellCooldown.slow > 0) return;
+  if(!hasStarted || lives<=0 || isPaused) return;
+  if(spellCooldown.slow > 0){ showSpellCooldownFeedback("slow", spellSlowBtn); return; }
   selectedSpell = selectedSpell === "slow" ? null : "slow";
   setMessage(selectedSpell === "slow" ? "Choose the target area for Frost Nova." : "Spell canceled.");
   updateSpellButtons();
@@ -6345,7 +6657,8 @@ spellSlowBtn?.addEventListener("click",(event)=>{
 
 spellDamageBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  if(!hasStarted || lives<=0 || isPaused || spellCooldown.damage > 0) return;
+  if(!hasStarted || lives<=0 || isPaused) return;
+  if(spellCooldown.damage > 0){ showSpellCooldownFeedback("damage", spellDamageBtn); return; }
   selectedSpell = selectedSpell === "damage" ? null : "damage";
   setMessage(selectedSpell === "damage" ? "Choose the target area for Meteor Strike." : "Spell canceled.");
   updateSpellButtons();
@@ -6353,7 +6666,8 @@ spellDamageBtn?.addEventListener("click",(event)=>{
 
 spellBombBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  if(!hasStarted || lives<=0 || isPaused || spellCooldown.bomb > 0) return;
+  if(!hasStarted || lives<=0 || isPaused) return;
+  if(spellCooldown.bomb > 0){ showSpellCooldownFeedback("bomb", spellBombBtn); return; }
   selectedSpell = selectedSpell === "bomb" ? null : "bomb";
   setMessage(selectedSpell === "bomb" ? "Choose the target area for Chain Lightning." : "Spell canceled.");
   updateSpellButtons();
@@ -6372,6 +6686,14 @@ startGameBtn.addEventListener("click",()=>{
   loadProgressNotice();
   loadBonusLeaderboard();
   setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
+  requestAnimationFrame(()=>{
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    canvasWrap?.scrollIntoView({
+      behavior: reduceMotion ? "auto" : "smooth",
+      block: "start"
+    });
+    beginOnboarding();
+  });
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
@@ -6513,9 +6835,19 @@ document.addEventListener("keydown",(event)=>{
 
 notificationToggle?.addEventListener("click",()=>{
   notificationPanel?.classList.toggle("collapsed");
-  if(!notificationPanel?.classList.contains("collapsed")){
+  const isCollapsed = notificationPanel?.classList.contains("collapsed");
+  notificationToggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+  notificationToggle.setAttribute("aria-label", isCollapsed ? "Expand notifications" : "Collapse notifications");
+  if(!isCollapsed){
     notificationBadge?.classList.add("hidden");
   }
+});
+
+coreStatsToggle?.addEventListener("click",()=>{
+  overviewCard?.classList.toggle("collapsed");
+  const isCollapsed = overviewCard?.classList.contains("collapsed");
+  coreStatsToggle.setAttribute("aria-expanded", isCollapsed ? "false" : "true");
+  coreStatsToggle.setAttribute("aria-label", isCollapsed ? "Expand core stats" : "Collapse core stats");
 });
 
 auraRewardList?.addEventListener("click", (event) => {
