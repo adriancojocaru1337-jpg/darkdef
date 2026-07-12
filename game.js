@@ -4839,20 +4839,6 @@ function drawTowerPlacementGhost(typeKey, pos, blocked){
     ctx.fill();
   }
   ctx.filter = "none";
-  ctx.globalAlpha = .96;
-  ctx.fillStyle = "rgba(5,8,16,.92)";
-  ctx.beginPath();
-  ctx.arc(20, -23, 10, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = blocked ? "#fb7185" : "#4ade80";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(20, -23, 10, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = blocked ? "#fb7185" : "#4ade80";
-  ctx.font = `900 8px ${FONT_UI}`;
-  ctx.textAlign = "center";
-  ctx.fillText(blocked ? "X" : "OK", 20, -20);
   ctx.restore();
 }
 

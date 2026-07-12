@@ -2979,6 +2979,24 @@ kbd{
   padding-left:20px;
 }
 
+.guide-nav{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:18px}
+.guide-nav a{padding:8px 11px;border-radius:999px;border:1px solid rgba(171,131,84,.18);background:rgba(16,12,9,.56);color:#e7dcc7;font-size:12px;font-weight:800;text-decoration:none}
+.guide-nav a:hover{border-color:rgba(211,161,93,.48);color:#fff7ed}
+.guide-table-wrap{width:100%;overflow-x:auto;margin-top:12px;border-radius:16px;border:1px solid rgba(171,131,84,.14)}
+.guide-table{width:100%;border-collapse:collapse;min-width:650px;background:rgba(8,12,20,.48)}
+.guide-table th,.guide-table td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid rgba(148,163,184,.10);color:#cbd5e1;font-size:13px;line-height:1.5}
+.guide-table th{color:#f3e8d5;background:rgba(92,72,50,.18);font-size:11px;letter-spacing:.06em;text-transform:uppercase}
+.guide-table tr:last-child th,.guide-table tr:last-child td{border-bottom:0}
+.guide-table strong{color:#f8fafc}
+.controls-table{min-width:520px}
+.controls-table th{width:110px}
+.content-card[id],.content-grid[id]{scroll-margin-top:18px}
+.advanced-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.advanced-guide-grid>div{padding:16px;border-radius:18px;border:1px solid rgba(171,131,84,.12);background:rgba(8,12,20,.42)}
+.advanced-guide-grid h3{margin:0 0 7px;color:#f3e8d5;font-size:17px}
+.advanced-guide-grid p{margin:0}
+@media (max-width:700px){.advanced-guide-grid{grid-template-columns:1fr}}
+
 .site-footer{
   text-align:center;
   padding:22px 16px 28px;

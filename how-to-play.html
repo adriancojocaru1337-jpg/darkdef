@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How to Play Dark Defense - Beginner Guide</title>
-  <meta name="description" content="Learn how to play Dark Defense with this beginner guide covering tower placement, upgrades, spells, bosses, endless mode, and early-game strategy." />
+  <title>How to Play Dark Defense - Complete Beginner Guide</title>
+  <meta name="description" content="Learn Dark Defense tower placement, counters, upgrades, spells, bosses, auras, Ley Attunement, scoring, Campaign, and Endless Mode." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/how-to-play.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,77 +18,191 @@
   <main class="page-content">
     <section class="glass content-hero">
       <div class="panel-kicker">How to Play</div>
-      <h1>Beginner guide for Dark Defense</h1>
-      <p>This guide explains the basics of tower placement, upgrades, spell timing, and survival priorities so new players can reach later stages faster and build stronger endless runs.</p>
+      <h1>Complete beginner guide to Dark Defense</h1>
+      <p>Build beside the road, counter each threat, survive boss mechanics, and turn every run into permanent Ley power. This guide covers the current Campaign and Endless systems.</p>
+      <nav class="guide-nav" aria-label="Guide sections">
+        <a href="#first-battle">First Battle</a><a href="#towers">Towers</a><a href="#threats">Threats</a><a href="#bosses">Bosses</a><a href="#progression">Progression</a><a href="#advanced-strategy">Advanced Strategy</a><a href="#controls">Controls</a>
+      </nav>
     </section>
 
-    <section class="content-grid">
+    <section class="content-grid" id="first-battle">
       <article class="glass content-card">
-        <div class="panel-kicker">Core Loop</div>
-        <h2>What to do first</h2>
+        <div class="panel-kicker">First Battle</div>
+        <h2>Your first three actions</h2>
         <ol class="guide-list">
-          <li>Place early towers near corners and long path segments for maximum attack time.</li>
-          <li>Start waves only after spending your opening gold efficiently.</li>
-          <li>Upgrade your highest-impact towers instead of spreading resources too thin.</li>
-          <li>Use spells reactively when leaks are likely, not the moment they come off cooldown.</li>
-          <li>Prepare specifically for boss waves with stronger single-target coverage.</li>
+          <li>Select <strong>Archer</strong> in the Unit Shop.</li>
+          <li>Place it on a green tile beside the road. The transparent tower and dashed circle preview its real range. Red tiles are blocked.</li>
+          <li>Press <strong>Start</strong> to call Wave 1. Starting later waves quickly grants extra gold and Bonus Score; the reward decays for 30 seconds.</li>
         </ol>
+        <p>Place towers near corners or long path segments so enemies remain in range longer. Click a placed tower to upgrade, specialize, or sell it.</p>
       </article>
-
       <aside class="glass content-card">
-        <div class="panel-kicker">Tower Roles</div>
-        <h2>Quick unit breakdown</h2>
+        <div class="panel-kicker">Resources</div>
+        <h2>Gold, lives, and score</h2>
         <ul class="guide-list">
-          <li><strong>Archer:</strong> cheap and reliable early-game tower</li>
-          <li><strong>Hunter:</strong> high range and better single-target pressure</li>
-          <li><strong>Mage:</strong> splash damage for clustered enemies</li>
-          <li><strong>Bomb Tower:</strong> heavy burst for dense waves and choke points</li>
+          <li><strong>Gold:</strong> buys towers, upgrades, and specializations. Kills and clears provide more.</li>
+          <li><strong>Lives:</strong> normal enemies cost 1 life at the gate; bosses cost 3.</li>
+          <li><strong>Total Score:</strong> combat score plus every Bonus Score point.</li>
+          <li><strong>Bonus Score:</strong> rewards combos, quick calls, clears, preserved lives, and special effects. It ranks the Endless Bonus leaderboard.</li>
         </ul>
       </aside>
+    </section>
+
+    <section class="glass content-card" id="towers">
+      <div class="panel-kicker">Tower Roles</div>
+      <h2>Choose the right tool</h2>
+      <div class="guide-table-wrap"><table class="guide-table">
+        <thead><tr><th>Tower</th><th>Role</th><th>Best against</th><th>Specializations</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Archer</strong></td><td>Cheap, fast single-target fire</td><td>Fast enemies and early waves</td><td>Rapid Shot / Heavy Arrows</td></tr>
+          <tr><td><strong>Hunter</strong></td><td>Long-range heavy precision</td><td>Tanks, elites, and bosses</td><td>Sniper / Tracker</td></tr>
+          <tr><td><strong>Mage</strong></td><td>Magic splash and control</td><td>Armored groups and Splitters</td><td>Frost Mage / Arc Mage</td></tr>
+          <tr><td><strong>Bomb Tower</strong></td><td>Slow, powerful area burst</td><td>Dense and armored waves</td><td>Demolition / Shock Bomb</td></tr>
+        </tbody>
+      </table></div>
+      <p>Normal upgrades increase damage, range, projectile speed, and attack speed. The tower panel previews exact current-to-next values. At Level 2, choose one permanent specialization.</p>
     </section>
 
     <section class="content-grid">
       <article class="glass content-card">
         <div class="panel-kicker">Tower Synergies</div>
-        <h2>Bonuses for adjacent towers</h2>
-        <p>Every tower grants a bonus to towers of a <strong>different type</strong> placed in one of the 8 cells around it. Each neighbor type counts only once, so duplicates do not stack.</p>
+        <h2>Build adjacent combinations</h2>
+        <p>A different tower type in any of the eight neighboring cells grants a bonus. Each neighbor type counts once; duplicates do not stack.</p>
         <ul class="guide-list">
-          <li><strong>🏹 Archer nearby — Volley Drill:</strong> +8% attack speed</li>
-          <li><strong>🎯 Hunter nearby — Marked Targets:</strong> +8% damage</li>
-          <li><strong>🔮 Mage nearby — Arcane Insight:</strong> +6% range</li>
-          <li><strong>💣 Bomb nearby — Shrapnel Craft:</strong> +10% splash radius (splash towers only)</li>
+          <li><strong>Archer nearby - Volley Drill:</strong> +8% attack speed.</li>
+          <li><strong>Hunter nearby - Marked Targets:</strong> +8% damage.</li>
+          <li><strong>Mage nearby - Arcane Insight:</strong> +6% range.</li>
+          <li><strong>Bomb nearby - Shrapnel Craft:</strong> +10% splash radius for splash towers.</li>
         </ul>
-        <p>While placing a tower, dotted lines show which neighbors it will link with. Select a placed tower to see its active synergy links. Clustered builds earn strong bonuses but cover less of the path — spreading out trades power for coverage.</p>
+        <p>Dotted links appear during placement and when selecting a linked tower. Clusters gain power but sacrifice coverage.</p>
       </article>
-
       <aside class="glass content-card">
-        <div class="panel-kicker">Combos &amp; New Threats</div>
-        <h2>Kill streaks and the Splitter</h2>
+        <div class="panel-kicker">Spell Usage</div>
+        <h2>Save spells for danger</h2>
         <ul class="guide-list">
-          <li><strong>Combo:</strong> every kill within 2.6 seconds of the last one extends your streak. At x5 kills score is multiplied by 1.25, at x10 by 1.5, and at x20 by 2. Finishing a x10+ streak grants bonus score — but a single enemy reaching the gate breaks the combo with no reward.</li>
-          <li><strong>Splitter:</strong> from Stage 3 onward, this teal blob splits into two smaller, faster fragments when killed. Splash towers handle it best — pure single-target builds will struggle.</li>
+          <li><strong>Frost Nova:</strong> 18s cooldown. Slows enemies in an area by 55% for 3.2 seconds.</li>
+          <li><strong>Meteor Strike:</strong> 24s cooldown. Deals 180 area damage.</li>
+          <li><strong>Chain Lightning:</strong> 16s cooldown. Hits up to 4 nearby targets for 90 damage.</li>
         </ul>
-        <p>Combos reward builds that keep kills flowing constantly. Slows and splash coverage help bridge the gaps between enemy packs and protect your streak.</p>
+        <p>Click a ready spell, then click its target area. Hold spells for leaks, boss ability windows, or overlapping packs.</p>
       </aside>
     </section>
 
-    <section class="glass content-card">
-      <div class="panel-kicker">Spell Usage</div>
-      <h2>When to cast each spell</h2>
-      <ul class="guide-list">
-        <li><strong>Frost Nova:</strong> best for slowing a dense pack entering a kill zone.</li>
-        <li><strong>Meteor Strike:</strong> strongest when multiple enemies overlap or a boss is supported by minions.</li>
-        <li><strong>Chain Lightning:</strong> useful when several enemies are close and you need instant cleanup.</li>
-      </ul>
-      <p>Holding spells for danger moments is usually stronger than using them on cooldown. The best players treat spells as tools to prevent leaks, stabilize bad waves, and protect score potential.</p>
+    <section class="glass content-card" id="threats">
+      <div class="panel-kicker">Enemy Counters</div>
+      <h2>Read the next wave</h2>
+      <div class="guide-table-wrap"><table class="guide-table">
+        <thead><tr><th>Threat</th><th>Behavior</th><th>Recommended answer</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fast</strong></td><td>Low health, high movement speed</td><td>Archer, Tracker, Frost Nova</td></tr>
+          <tr><td><strong>Tank</strong></td><td>Large health pool</td><td>Hunter, Heavy Arrows, focused fire</td></tr>
+          <tr><td><strong>Armored</strong></td><td>Resists Archer and Hunter projectiles</td><td>Mage and Bomb Tower deal increased damage</td></tr>
+          <tr><td><strong>Splitter</strong></td><td>Splits into two faster fragments after death</td><td>Splash damage, Arc Mage, Chain Lightning</td></tr>
+        </tbody>
+      </table></div>
+      <p>The wave forecast identifies the dominant threat. Keep both single-target damage and splash coverage instead of relying on one tower type.</p>
+    </section>
+
+    <section class="content-grid" id="bosses">
+      <article class="glass content-card">
+        <div class="panel-kicker">Boss Mechanics</div>
+        <h2>React to the special ability</h2>
+        <ul class="guide-list">
+          <li><strong>Root Grasp:</strong> snares the nearest tower for 3.5 seconds. Spread damage across several positions.</li>
+          <li><strong>Blood Rage:</strong> restores health and gains speed. Save burst damage and control for the rage.</li>
+          <li><strong>Grave Summons:</strong> creates fast minions. Keep splash damage near the main path.</li>
+          <li><strong>Void Bulwark:</strong> restores health through a shield. Hold Meteor or heavy damage for it.</li>
+        </ul>
+        <p>The boss warning shows the exact mechanic before combat. Endless boss waves bring two bosses and both mechanics together.</p>
+      </article>
+      <aside class="glass content-card">
+        <div class="panel-kicker">Legendary Auras</div>
+        <h2>Boss rewards stay with a tower</h2>
+        <ul class="guide-list">
+          <li><strong>Inferno Core:</strong> burn damage and an explosion on kill.</li>
+          <li><strong>Frost Crown:</strong> slow and freeze after repeated hits.</li>
+          <li><strong>Storm Sigil:</strong> chain jumps or bonus single-target damage.</li>
+          <li><strong>Golden Pact:</strong> bonus gold, Bonus Score, and Pact Surge.</li>
+        </ul>
+        <p>Choose an aura after defeating a boss, then click one tower to bind it permanently for that run.</p>
+      </aside>
+    </section>
+
+    <section class="content-grid" id="progression">
+      <article class="glass content-card">
+        <div class="panel-kicker">Campaign &amp; Reserve</div>
+        <h2>Carry your army between stages</h2>
+        <p>Defeat the stage boss to continue. Towers move into Reserve and can be placed for free on the next battlefield. Their levels, specialization, aura, and investment are preserved. Stage clears also provide gold, healing, and Ley Crystals.</p>
+        <p>Complete all six Campaign stages to unlock Endless Mode.</p>
+      </article>
+      <aside class="glass content-card">
+        <div class="panel-kicker">Ley Attunement</div>
+        <h2>Permanent progression</h2>
+        <p>Spend Ley Crystals earned from waves, bosses, victories, and defeats on three permanent branches:</p>
+        <ul class="guide-list">
+          <li><strong>Radiance:</strong> damage, speed, range, and stronger Ley Stones.</li>
+          <li><strong>Bastion:</strong> starting gold, lives, income, and stage healing.</li>
+          <li><strong>Arcana:</strong> spell cooldowns, aura rerolls, crystal gain, and larger aura drafts.</li>
+        </ul>
+        <p>Ley Stones empower towers placed directly on them with damage or range.</p>
+      </aside>
+    </section>
+
+    <section class="content-grid">
+      <article class="glass content-card">
+        <div class="panel-kicker">Combos</div>
+        <h2>Keep the streak alive</h2>
+        <p>A kill within 2.6 seconds extends the combo. Multipliers activate at x5, x10, and x20. Completing a x10+ combo grants Bonus Score. An enemy reaching the gate breaks it without the completion reward.</p>
+      </article>
+      <aside class="glass content-card">
+        <div class="panel-kicker">Endless Mode</div>
+        <h2>Push beyond the Campaign</h2>
+        <p>Waves scale continuously and every tenth wave brings a random boss pair. Best wave, defeated boss pairs, Total Score, and Bonus Score are tracked. The Endless Bonus leaderboard ranks Bonus Score first.</p>
+      </aside>
+    </section>
+
+    <section class="glass content-card" id="advanced-strategy">
+      <div class="panel-kicker">Advanced Strategy</div>
+      <h2>Build efficient kill zones</h2>
+      <div class="advanced-guide-grid">
+        <div>
+          <h3>Use route geometry</h3>
+          <p>Build around corners, long lanes, and overlapping range pockets. A well-positioned basic tower often outperforms a stronger tower with poor uptime. Let splash towers soften groups while long-range towers finish priority targets.</p>
+        </div>
+        <div>
+          <h3>Invest before expanding</h3>
+          <p>Upgrade towers in proven positions before buying weak filler. Add a new tower when coverage breaks down, a counter is missing, or another route segment becomes important.</p>
+        </div>
+        <div>
+          <h3>Prepare for bosses</h3>
+          <p>Save gold before boss waves, keep at least one spell ready, and buy for the announced mechanic. Protecting lives also preserves Bonus Score and later-run momentum.</p>
+        </div>
+        <div>
+          <h3>Survive Endless pressure</h3>
+          <p>A stable layout should work while spells are unavailable. Establish reliable damage, add splash and control, then reinforce answers for boss pairs before spending on greedy effects.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="glass content-card" id="controls">
+      <div class="panel-kicker">Controls</div>
+      <h2>Mouse and keyboard</h2>
+      <div class="guide-table-wrap"><table class="guide-table controls-table"><tbody>
+        <tr><th>Mouse</th><td>Select towers, place units, target spells, upgrade, specialize, and sell.</td></tr>
+        <tr><th>Space</th><td>Start the next wave or pause/resume an active wave.</td></tr>
+        <tr><th>1-4</th><td>Select Archer, Hunter, Mage, or Bomb Tower.</td></tr>
+        <tr><th>V</th><td>Open or close the Unit Shop.</td></tr>
+        <tr><th>H</th><td>Hide or show the battlefield HUD.</td></tr>
+        <tr><th>R</th><td>Reset the current run.</td></tr>
+        <tr><th>Esc</th><td>Cancel a spell or close the active menu.</td></tr>
+      </tbody></table></div>
       <div class="cta-row">
         <a href="/" class="btn btn-primary">Play Now</a>
-        <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Advanced Strategy</a>
         <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
         <a href="/account.html" class="btn btn-secondary">Account</a>
       </div>
     </section>
   </main>
-  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+  <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>
