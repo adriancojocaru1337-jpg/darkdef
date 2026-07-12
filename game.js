@@ -799,6 +799,261 @@ function markAchievementRewardClaimed(key){
   try{ localStorage.setItem(getAchievementRewardClaimKey(key), "1"); }catch(e){}
 }
 
+/* ============================================================
+   LEY ATTUNEMENT — persistent meta progression.
+   Ley Crystals are earned every run (win or lose) and spent on
+   permanent talents. Stored in localStorage; survives resets.
+   ============================================================ */
+const LEY_STORAGE_KEYS = { crystals:"sdcLeyCrystals", talents:"sdcLeyTalents" };
+
+const LEY_TALENT_BRANCHES = [
+  {
+    id:"radiance", name:"Radiance", icon:"🔆", color:"#fbbf24",
+    tagline:"Channel ley light into raw firepower.",
+    nodes:[
+      { id:"radiant_edge", name:"Radiant Edge", maxRank:3, costs:[20,45,90],
+        desc:r=>`Towers deal +${4*r}% damage.`, next:r=>`+${4*(r+1)}% damage` },
+      { id:"swift_current", name:"Swift Current", maxRank:2, costs:[60,120],
+        desc:r=>`Towers attack ${4*r}% faster.`, next:r=>`${4*(r+1)}% faster attacks` },
+      { id:"farsight", name:"Farsight Prism", maxRank:1, costs:[150],
+        desc:r=>r>0?"Towers gain +6% range.":"Towers gain +6% range.", next:()=> "+6% tower range" },
+      { id:"ley_conduit", name:"Ley Conduit", maxRank:1, costs:[100],
+        desc:()=> "Ley stones on the map are empowered: +18% damage / +22% range (up from +10% / +12%).",
+        next:()=> "Empowered ley stones" }
+    ]
+  },
+  {
+    id:"bastion", name:"Bastion", icon:"🛡️", color:"#5eead4",
+    tagline:"Fortify the gate and your war chest.",
+    nodes:[
+      { id:"golden_veins", name:"Golden Veins", maxRank:3, costs:[20,40,80],
+        desc:r=>`Start every run with +${40*r} gold.`, next:r=>`+${40*(r+1)} starting gold` },
+      { id:"warding_light", name:"Warding Light", maxRank:2, costs:[55,110],
+        desc:r=>`Start every run with +${2*r} lives.`, next:r=>`+${2*(r+1)} starting lives` },
+      { id:"prosperity", name:"Prosperity", maxRank:2, costs:[70,140],
+        desc:r=>`Enemies drop +${6*r}% gold.`, next:r=>`+${6*(r+1)}% gold from kills` },
+      { id:"mended_gate", name:"Mended Gate", maxRank:1, costs:[90],
+        desc:()=> "Stage-clear healing restores up to 4 lives (up from 2).",
+        next:()=> "Stage heal 2 → 4 lives" }
+    ]
+  },
+  {
+    id:"arcana", name:"Arcana", icon:"🔮", color:"#c084fc",
+    tagline:"Bend spells, auras and the ley itself.",
+    nodes:[
+      { id:"attuned_casting", name:"Attuned Casting", maxRank:2, costs:[40,85],
+        desc:r=>`Spell cooldowns reduced by ${Math.round((1-Math.pow(0.90,r))*100)}%.`, next:r=>`-10% spell cooldowns` },
+      { id:"second_sight", name:"Second Sight", maxRank:1, costs:[130],
+        desc:()=> "Once per boss reward, you may reroll the aura draft.",
+        next:()=> "Aura draft reroll" },
+      { id:"crystal_harvest", name:"Crystal Harvest", maxRank:2, costs:[30,70],
+        desc:r=>`Earn +${20*r}% Ley Crystals from all sources.`, next:r=>`+${20*(r+1)}% crystal gain` },
+      { id:"luminous_awakening", name:"Luminous Awakening", maxRank:1, costs:[200],
+        desc:()=> "Boss aura drafts reveal all 4 auras instead of 3.",
+        next:()=> "Draft shows all auras" }
+    ]
+  }
+];
+
+function getLeyNodeDef(nodeId){
+  for(const branch of LEY_TALENT_BRANCHES){
+    const node = branch.nodes.find(n=>n.id===nodeId);
+    if(node) return node;
+  }
+  return null;
+}
+
+let leyCrystals = (()=>{ try{ return Math.max(0, parseInt(localStorage.getItem(LEY_STORAGE_KEYS.crystals)||"0",10)||0); }catch(e){ return 0; } })();
+let leyTalents = (()=>{ try{ const raw = JSON.parse(localStorage.getItem(LEY_STORAGE_KEYS.talents)||"{}"); return raw && typeof raw === "object" ? raw : {}; }catch(e){ return {}; } })();
+let runLeyCrystalsEarned = 0;
+let auraRerollUsed = false;
+
+function saveLeyState(){
+  try{
+    localStorage.setItem(LEY_STORAGE_KEYS.crystals, String(leyCrystals));
+    localStorage.setItem(LEY_STORAGE_KEYS.talents, JSON.stringify(leyTalents));
+  }catch(e){}
+}
+
+function getLeyRank(nodeId){
+  const def = getLeyNodeDef(nodeId);
+  if(!def) return 0;
+  const raw = parseInt(leyTalents[nodeId],10) || 0;
+  return Math.max(0, Math.min(def.maxRank, raw));
+}
+
+/* --- effect helpers (single source of truth for all hooks) --- */
+function leyDamageMult(){ return 1 + 0.04 * getLeyRank("radiant_edge"); }
+function leyFireRateMult(){ return Math.pow(0.96, getLeyRank("swift_current")); }
+function leyRangeMult(){ return 1 + 0.06 * getLeyRank("farsight"); }
+function getLeyTileDamageMult(){ return getLeyRank("ley_conduit") > 0 ? 1.18 : 1.10; }
+function getLeyTileRangeMult(){ return getLeyRank("ley_conduit") > 0 ? 1.22 : 1.12; }
+function leyStartGoldBonus(){ return 40 * getLeyRank("golden_veins"); }
+function leyBonusLives(){ return 2 * getLeyRank("warding_light"); }
+function getMaxLives(){ return START_LIVES + leyBonusLives(); }
+function leyKillGoldMult(){ return 1 + 0.06 * getLeyRank("prosperity"); }
+function leyStageHealAmount(){ return getLeyRank("mended_gate") > 0 ? 4 : 2; }
+function leySpellCooldownMult(){ return Math.pow(0.90, getLeyRank("attuned_casting")); }
+function hasAuraReroll(){ return getLeyRank("second_sight") > 0; }
+function leyCrystalGainMult(){ return 1 + 0.20 * getLeyRank("crystal_harvest"); }
+function getAuraDraftCount(){ return getLeyRank("luminous_awakening") > 0 ? 4 : 3; }
+
+function awardLeyCrystals(base, label, opts={}){
+  const amount = Math.max(1, Math.round(base * leyCrystalGainMult()));
+  leyCrystals += amount;
+  runLeyCrystalsEarned += amount;
+  saveLeyState();
+  if(!opts.silent) pushNotification("gold","Ley Crystals",`+${amount} ✦ ${label}`);
+  updateLeyBadges();
+  return amount;
+}
+
+function buyLeyTalent(nodeId){
+  const def = getLeyNodeDef(nodeId);
+  if(!def) return false;
+  const rank = getLeyRank(nodeId);
+  if(rank >= def.maxRank) return false;
+  const cost = def.costs[rank];
+  if(leyCrystals < cost){
+    setMessage(`Not enough Ley Crystals. ${def.name} needs ✦ ${cost}.`);
+    return false;
+  }
+  leyCrystals -= cost;
+  leyTalents[nodeId] = rank + 1;
+  saveLeyState();
+  tone("sine", 620, 940, .12, .02);
+  pushNotification("achievement","Ley Attunement",`${def.name} — rank ${rank+1}/${def.maxRank} unlocked.`);
+  renderLeyOverlay();
+  updateLeyBadges();
+  return true;
+}
+
+/* --- UI --- */
+const leyOverlay = document.getElementById("leyOverlay");
+const leyBranchesEl = document.getElementById("leyBranches");
+const leyCrystalBalanceEl = document.getElementById("leyCrystalBalance");
+const openLeyBtn = document.getElementById("openLeyBtn");
+const openLeyFromGameOverBtn = document.getElementById("openLeyFromGameOverBtn");
+const closeLeyBtn = document.getElementById("closeLeyBtn");
+const leyBtnBalanceEl = document.getElementById("leyBtnBalance");
+const leyHudBadge = document.getElementById("leyHudBadge");
+const gameOverCrystalsStat = document.getElementById("gameOverCrystalsStat");
+const auraRerollBtn = document.getElementById("auraRerollBtn");
+let leyAutoPaused = false;
+
+function hasAffordableLeyTalent(){
+  for(const branch of LEY_TALENT_BRANCHES){
+    for(const node of branch.nodes){
+      const rank = getLeyRank(node.id);
+      if(rank < node.maxRank && leyCrystals >= node.costs[rank]) return true;
+    }
+  }
+  return false;
+}
+
+function updateLeyBadges(){
+  const affordable = hasAffordableLeyTalent();
+  if(leyBtnBalanceEl) leyBtnBalanceEl.textContent = `✦ ${leyCrystals}`;
+  if(leyCrystalBalanceEl) leyCrystalBalanceEl.textContent = String(leyCrystals);
+  if(leyHudBadge){
+    leyHudBadge.textContent = `✦ ${leyCrystals}`;
+    leyHudBadge.classList.toggle("ley-glow", affordable);
+  }
+  openLeyBtn?.classList.toggle("ley-glow", affordable);
+}
+
+function renderLeyOverlay(){
+  if(!leyBranchesEl) return;
+  updateLeyBadges();
+  leyBranchesEl.innerHTML = "";
+  for(const branch of LEY_TALENT_BRANCHES){
+    const branchEl = document.createElement("div");
+    branchEl.className = "ley-branch";
+    branchEl.style.setProperty("--branch-color", branch.color);
+    const nodesHtml = branch.nodes.map(node=>{
+      const rank = getLeyRank(node.id);
+      const maxed = rank >= node.maxRank;
+      const cost = maxed ? null : node.costs[rank];
+      const affordable = cost !== null && leyCrystals >= cost;
+      const pips = Array.from({length:node.maxRank}, (_,i)=>`<span class="ley-pip${i<rank?" filled":""}"></span>`).join("");
+      const buyLabel = maxed
+        ? `<span class="ley-buy-label">✓ Maxed</span>`
+        : `<span class="ley-buy-label">${rank>0?"Upgrade":"Attune"}</span><span class="ley-buy-cost">✦ ${cost}</span>`;
+      return `
+        <div class="ley-node${maxed?" ley-node-maxed":""}">
+          <div class="ley-node-head">
+            <span class="ley-node-name">${node.name}</span>
+            <span class="ley-pips">${pips}</span>
+          </div>
+          <p class="ley-node-desc">${rank>0 ? node.desc(rank) : node.next(0)}</p>
+          ${!maxed && rank>0 ? `<p class="ley-node-next">Next: ${node.next(rank)}</p>` : ""}
+          <button class="btn ley-buy-btn${maxed?" ley-buy-maxed":affordable?" btn-primary":" ley-buy-locked"}" data-ley-node="${node.id}" ${maxed?"disabled":""}>${buyLabel}</button>
+        </div>`;
+    }).join("");
+    branchEl.innerHTML = `
+      <div class="ley-branch-head">
+        <span class="ley-branch-icon">${branch.icon}</span>
+        <div>
+          <div class="ley-branch-name">${branch.name}</div>
+          <div class="ley-branch-tagline">${branch.tagline}</div>
+        </div>
+      </div>
+      <div class="ley-branch-nodes">${nodesHtml}</div>`;
+    leyBranchesEl.appendChild(branchEl);
+  }
+  leyBranchesEl.querySelectorAll("[data-ley-node]").forEach(btn=>{
+    btn.addEventListener("click",(event)=>{
+      event.stopPropagation();
+      buyLeyTalent(btn.getAttribute("data-ley-node"));
+    });
+  });
+}
+
+function openLeyOverlay(){
+  renderLeyOverlay();
+  leyOverlay?.classList.remove("hidden");
+  if(hasStarted && lives > 0 && !isPaused){
+    isPaused = true;
+    leyAutoPaused = true;
+    updateUI();
+  }
+}
+function closeLeyOverlay(){
+  leyOverlay?.classList.add("hidden");
+  if(leyAutoPaused){
+    leyAutoPaused = false;
+    if(lives > 0) isPaused = false;
+    updateUI();
+  }
+}
+
+openLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
+openLeyFromGameOverBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
+closeLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); closeLeyOverlay(); });
+leyHudBadge?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
+leyOverlay?.addEventListener("click",(event)=>{ if(event.target === leyOverlay) closeLeyOverlay(); });
+document.addEventListener("keydown",(event)=>{
+  if(event.key === "Escape" && leyOverlay && !leyOverlay.classList.contains("hidden")) closeLeyOverlay();
+});
+
+function updateAuraRerollButton(){
+  if(!auraRerollBtn) return;
+  const draftShowsAll = getAuraDraftCount() >= Object.keys(AURA_REWARDS).length;
+  const available = hasAuraReroll() && !auraRerollUsed && !draftShowsAll;
+  auraRerollBtn.classList.toggle("hidden", !available);
+}
+
+auraRerollBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!hasAuraReroll() || auraRerollUsed || pendingAuraChoice) return;
+  auraRerollUsed = true;
+  pendingAuraDraft = randomAuraDraft(getAuraDraftCount());
+  renderAuraRewardCards();
+  updateAuraRerollButton();
+  tone("sine", 540, 820, .1, .018);
+  setMessage("Second Sight: the ley revealed a new draft.");
+});
+
 
 function randomAuraDraft(count=3){
   const pool = Object.values(AURA_REWARDS).slice();
@@ -870,9 +1125,12 @@ function getAuraAdjustedStats(unit){
   }
   const ley = getLeyStoneAt(unit.c, unit.r);
   if(ley){
-    if(ley.kind === "damage") stats.damage *= 1.10;
-    else stats.range *= 1.12;
+    if(ley.kind === "damage") stats.damage *= getLeyTileDamageMult();
+    else stats.range *= getLeyTileRangeMult();
   }
+  stats.damage *= leyDamageMult();
+  stats.range *= leyRangeMult();
+  stats.fireRate *= leyFireRateMult();
   applySynergiesToStats(stats, unit);
   return stats;
 }
@@ -1018,10 +1276,12 @@ function renderAuraRewardCards(){
 
 function showAuraRewardOverlay(){
   if(!auraRewardOverlay) return;
-  pendingAuraDraft = randomAuraDraft(3);
+  pendingAuraDraft = randomAuraDraft(getAuraDraftCount());
   pendingAuraChoice = null;
+  auraRerollUsed = false;
   renderAuraRewardCards();
-  auraRewardText.textContent = "The boss has been defeated. Choose 1 of 3 legendary auras, then apply it to a single tower. That aura stays on the tower in future stages.";
+  updateAuraRerollButton();
+  auraRewardText.textContent = `The boss has been defeated. Choose 1 of ${pendingAuraDraft.length} legendary auras, then apply it to a single tower. That aura stays on the tower in future stages.`;
   const upcomingClearReward = pendingBossResolution?.type === "campaign-next-stage" ? getStageClearGoldReward(Math.max(1, pendingBossResolution.nextStage - 1)) : 0;
   if(auraRewardBonus){
     auraRewardBonus.textContent = upcomingClearReward > 0 ? `Stage clear reward: +${upcomingClearReward} gold` : "";
@@ -1115,8 +1375,9 @@ function resolveBossWaveCompletion(){
   if(resolution.type === "campaign-next-stage") {
     const clearedStage = Math.max(1, resolution.nextStage - 1);
     const clearReward = getStageClearGoldReward(clearedStage);
-    if(lives < START_LIVES){
-      const healed = Math.min(2, START_LIVES - lives);
+    awardLeyCrystals(5 * clearedStage, `Stage ${clearedStage} cleared`);
+    if(lives < getMaxLives()){
+      const healed = Math.min(leyStageHealAmount(), getMaxLives() - lives);
       lives += healed;
       pushNotification("stage","The gate is mended",`+${healed} ${healed === 1 ? "life" : "lives"} restored for the next stage.`);
     }
@@ -1134,6 +1395,7 @@ function resolveBossWaveCompletion(){
   } else if(resolution.type === "unlock-endless") {
     const clearedStage = currentStage;
     const clearReward = getStageClearGoldReward(clearedStage);
+    awardLeyCrystals(5 * clearedStage, "Campaign complete");
     submitStoryLeaderboardScore(currentStage);
     if(clearReward > 0){
       money += clearReward;
@@ -1149,7 +1411,7 @@ function resolveBossWaveCompletion(){
     updateUI();
     return;
   } else if(resolution.type === "endless-next") {
-    if(lives < START_LIVES){
+    if(lives < getMaxLives()){
       lives += 1;
       pushNotification("stage","The gate holds","+1 life restored after the boss pair.");
     }
@@ -2009,7 +2271,7 @@ function castSlowSpell(x, y){
   }
   placementEffects.push({x,y,color:"#93c5fd",life:.45,maxLife:.45});
   burstSpellParticles(x, y, "#dbeafe", "#93c5fd", 18);
-  spellCooldown.slow = cfg.cooldown;
+  spellCooldown.slow = cfg.cooldown * leySpellCooldownMult();
   cancelSpellSelection();
   unlockAchievement("first_spell_cast");
   setMessage(affected ? `Frost Nova slowed ${affected} enemies.` : "Frost Nova cast.");
@@ -2033,7 +2295,7 @@ function castDamageSpell(x, y){
   placementEffects.push({x,y,color:"#fb923c",life:.52,maxLife:.52});
   burstSpellParticles(x, y, "#fdba74", "#fb923c", 22);
   showPopup(x, y - cfg.radius - 6, "Meteor!", "#fdba74");
-  spellCooldown.damage = cfg.cooldown;
+  spellCooldown.damage = cfg.cooldown * leySpellCooldownMult();
   cancelSpellSelection();
   unlockAchievement("first_spell_cast");
   setMessage(affected ? `Meteor Strike hit ${affected} enemies.` : "Meteor Strike cast.");
@@ -2063,7 +2325,7 @@ function castBombSpell(x, y){
 
   placementEffects.push({x,y,color:"#fde047",life:.32,maxLife:.32});
   burstSpellParticles(x, y, "#fde68a", "#fde047", 14);
-  spellCooldown.bomb = cfg.cooldown;
+  spellCooldown.bomb = cfg.cooldown * leySpellCooldownMult();
   cancelSpellSelection();
   unlockAchievement("first_spell_cast");
   setMessage(affected ? `Chain Lightning hit ${affected} enemies.` : "Chain Lightning cast.");
@@ -2480,6 +2742,8 @@ function openGameOverOverlay(){
     gameOverComboStat.textContent = comboBest > 0 && comboBest >= record && comboBest >= 10
       ? `x${comboBest} ★` : `x${comboBest}`;
   }
+  if(gameOverCrystalsStat) gameOverCrystalsStat.textContent = `+${runLeyCrystalsEarned} ✦`;
+  updateLeyBadges();
   const spent = getRunSpentGold();
   if(currentMode === "endless") {
     gameOverText.textContent = `You survived ${stageWave} Endless Waves. Boss pairs defeated: ${runEndlessBossPairsDefeated}. Best Endless Wave: ${bestEndlessWave}.`;
@@ -2569,8 +2833,9 @@ function applyStage(stageNumber, resetRun=false){
 
   if(resetRun){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
-    money=START_MONEY + (stageNumber-1)*60;
-    lives=START_LIVES; score=0; bonusScore=0; kills=0; wave=1;
+    money=START_MONEY + leyStartGoldBonus() + (stageNumber-1)*60;
+    lives=getMaxLives(); score=0; bonusScore=0; kills=0; wave=1;
+    runLeyCrystalsEarned = 0;
     runEndlessBossPairsDefeated = 0;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
     resetAchievementsUI(); clearNotifications();
@@ -3043,7 +3308,7 @@ function getKillRewardMultiplier(){
   return 1 + stageBonus + endlessBonus;
 }
 function rewardKill(enemy,pos){
-  const scaledBase = Math.max(1, Math.round(enemy.reward * getKillRewardMultiplier()));
+  const scaledBase = Math.max(1, Math.round(enemy.reward * getKillRewardMultiplier() * leyKillGoldMult()));
   let reward = scaledBase;
   let scoreGain = 0;
   money += reward; kills += 1;
@@ -3406,6 +3671,8 @@ function update(dt){
 
     if(isCurrentWaveBoss()){
       addScore(500,lives*25);
+      const bossCrystals = currentMode === "campaign" ? 8 + 4 * currentStage : 25;
+      awardLeyCrystals(bossCrystals, currentMode === "campaign" ? `${STAGE_BOSS[currentStage]?.name || "Boss"} defeated` : "Endless boss pair defeated");
       if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
 
       if(!pendingBossResolution){
@@ -3428,8 +3695,9 @@ function update(dt){
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
     bonusScore += 20;
+    const waveCrystals = awardLeyCrystals(currentMode === "endless" ? 3 : 2, "Wave cleared", { silent:true });
     armWaveCallBonus();
-    setMessage(currentMode === "campaign" ? `Wave complete. Next wave in this stage: ${stageWave}.` : `Endless wave complete. Next wave: ${stageWave}.`);
+    setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Ley Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Ley Crystals. Next wave: ${stageWave}.`);
     updateUI();
   }
 }
@@ -6012,6 +6280,7 @@ applyStage(1,true);
 loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
+updateLeyBadges();
 draw();
 requestAnimationFrame(gameLoop);
 
