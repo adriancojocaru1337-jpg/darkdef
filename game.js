@@ -761,8 +761,8 @@ let selectedSpell = null;
 const spellCooldown = { slow:0, damage:0, bomb:0 };
 const spellConfig = {
   slow: { cooldown: 18, radius: 92, factor: 0.45, duration: 3.2 },
-  damage: { cooldown: 24, radius: 84, damage: 180 },
-  bomb: { cooldown: 16, range: 120, damage: 90, chains: 4 }
+  damage: { cooldown: 24, radius: 84, damage: 180, damagePerWave: 12, maxDamage: 650 },
+  bomb: { cooldown: 16, range: 120, damage: 90, damagePerWave: 6, maxDamage: 300, chains: 4 }
 };
 
 let pendingAuraDraft = null;
@@ -1808,11 +1808,15 @@ function createAudioPool(src, size, volume, loop=false){
   });
   let index = 0;
   return {
-    play(restart=true){
+    play(restart=true, options={}){
       if(isMuted) return;
       const audio = items[index % items.length];
       index += 1;
-      if(restart) audio.currentTime = 0;
+      audio.volume = Math.max(0, Math.min(1, options.volume ?? volume));
+      audio.playbackRate = Math.max(.5, Math.min(2, options.playbackRate ?? 1));
+      if(restart){
+        try{ audio.currentTime = Math.max(0, options.startOffset || 0); }catch(_){}
+      }
       audio.play().catch(()=>{});
     },
     stop(){
@@ -2144,10 +2148,25 @@ function tone(type, a, b, d, v){
   g.gain.setValueAtTime(.0001,n); g.gain.exponentialRampToValueAtTime(v,n+Math.min(d*.25,.02)); g.gain.exponentialRampToValueAtTime(.0001,n+d);
   o.connect(g); g.connect(audioCtx.destination); o.start(n); o.stop(n+d);
 }
-function playShootSound(kind="arrow"){
+let lastArcherShotSoundAt = 0;
+function playShootSound(kind="arrow", unitType=""){
   ensureAudio();
   if(kind==="magic") audioAssets.mage.play();
-  else audioAssets.arrow.play();
+  else if(unitType === "archer"){
+    const now = performance.now();
+    const stackedShot = now - lastArcherShotSoundAt < 55;
+    lastArcherShotSoundAt = now;
+    audioAssets.arrow.play(true, {
+      volume: stackedShot ? .20 : .32,
+      playbackRate: .90 + Math.random() * .05,
+      startOffset: .008
+    });
+  } else {
+    audioAssets.arrow.play(true, {
+      volume: .50,
+      playbackRate: .98 + Math.random() * .04
+    });
+  }
 }
 function playHitSound(){ tone("square",220,120,.06,.012); }
 function noiseBurst(duration, volume, filterFreq){
@@ -2500,6 +2519,9 @@ function updateSpellButtons(){
     btn.setAttribute("aria-disabled", !ready ? "true" : "false");
     btn.classList.toggle("active", selectedSpell === key);
     timerEl.textContent = ready ? (selectedSpell===key ? "Target" : "Ready") : `${cd.toFixed(1)}s`;
+    if(key === "damage") btn.title = `Meteor Strike - ${getScaledSpellDamage("damage")} damage`;
+    else if(key === "bomb") btn.title = `Chain Lightning - ${getScaledSpellDamage("bomb")} damage per target`;
+    else btn.title = "Frost Nova - 55% slow for 3.2 seconds";
   }
 }
 
@@ -2521,6 +2543,13 @@ function burstSpellParticles(x, y, colorA, colorB, count=18){
       color: i % 2 ? colorA : colorB
     });
   }
+}
+
+function getScaledSpellDamage(key){
+  const cfg = spellConfig[key];
+  if(!cfg?.damage) return 0;
+  const waveNumber = Math.max(1, getDifficultyWaveNumber());
+  return Math.round(Math.min(cfg.maxDamage || Infinity, cfg.damage + (waveNumber - 1) * (cfg.damagePerWave || 0)));
 }
 
 function castSlowSpell(x, y){
@@ -2550,14 +2579,15 @@ function castSlowSpell(x, y){
 function castDamageSpell(x, y){
   if(isPaused || spellCooldown.damage > 0) return false;
   const cfg = spellConfig.damage;
+  const damage = getScaledSpellDamage("damage");
   let affected = 0;
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
     if(distance({x,y}, pos) <= cfg.radius){
-      enemy.hp -= cfg.damage;
+      enemy.hp -= damage;
       affected += 1;
       addHitParticles(pos.x, pos.y, 10, "#fb923c");
-      showPopup(pos.x, pos.y - 10, `-${cfg.damage}`, "#fb923c");
+      showPopup(pos.x, pos.y - 10, `-${damage}`, "#fb923c");
     }
   }
   placementEffects.push({x,y,color:"#fb923c",life:.52,maxLife:.52});
@@ -2566,7 +2596,7 @@ function castDamageSpell(x, y){
   spellCooldown.damage = cfg.cooldown * leySpellCooldownMult();
   cancelSpellSelection();
   unlockAchievement("first_spell_cast");
-  setMessage(affected ? `Meteor Strike hit ${affected} enemies.` : "Meteor Strike cast.");
+  setMessage(affected ? `Meteor Strike dealt ${damage} damage to ${affected} enemies.` : `Meteor Strike cast (${damage} damage).`);
   updateUI();
   return true;
 }
@@ -2574,6 +2604,7 @@ function castDamageSpell(x, y){
 function castBombSpell(x, y){
   if(isPaused || spellCooldown.bomb > 0) return false;
   const cfg = spellConfig.bomb;
+  const damage = getScaledSpellDamage("bomb");
   const inRange = enemies
     .map(enemy => {
       const pos = getPathPosition(enemy.progress);
@@ -2585,10 +2616,10 @@ function castBombSpell(x, y){
 
   let affected = 0;
   for(const item of inRange){
-    item.enemy.hp -= cfg.damage;
+    item.enemy.hp -= damage;
     affected += 1;
     addHitParticles(item.pos.x, item.pos.y, 8, "#fde047");
-    showPopup(item.pos.x, item.pos.y - 10, `-${cfg.damage}`, "#fde047");
+    showPopup(item.pos.x, item.pos.y - 10, `-${damage}`, "#fde047");
   }
 
   placementEffects.push({x,y,color:"#fde047",life:.32,maxLife:.32});
@@ -2596,7 +2627,7 @@ function castBombSpell(x, y){
   spellCooldown.bomb = cfg.cooldown * leySpellCooldownMult();
   cancelSpellSelection();
   unlockAchievement("first_spell_cast");
-  setMessage(affected ? `Chain Lightning hit ${affected} enemies.` : "Chain Lightning cast.");
+  setMessage(affected ? `Chain Lightning dealt ${damage} damage to ${affected} enemies.` : `Chain Lightning cast (${damage} damage).`);
   updateUI();
   return true;
 }
@@ -3868,7 +3899,7 @@ function update(dt){
       unit.aimAngle=Math.atan2(dy,dx);
       if(unit.cooldown<=0){
         projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * (unit.specialization === "tracker" && bestTarget.enemy.type === "fast" ? (unit.specBonusVsFast || 1.35) : 1), speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
-        unit.cooldown=stats.fireRate; playShootSound(unit.kind);
+        unit.cooldown=stats.fireRate; playShootSound(unit.kind, unit.type);
       }
     }
   }
@@ -4847,8 +4878,8 @@ function drawPlacementPreview(){
     const pos=cellCenter(hoveredCell.c, hoveredCell.r);
     let radius=0, title="", fill="rgba(147,197,253,.10)", stroke="rgba(147,197,253,.48)";
     if(selectedSpell==="slow"){ radius=spellConfig.slow.radius; title="Frost Nova"; }
-    if(selectedSpell==="damage"){ radius=spellConfig.damage.radius; title="Meteor"; fill="rgba(251,146,60,.10)"; stroke="rgba(251,146,60,.46)"; }
-    if(selectedSpell==="bomb"){ radius=spellConfig.bomb.range; title="Lightning"; fill="rgba(250,204,21,.10)"; stroke="rgba(250,204,21,.48)"; }
+    if(selectedSpell==="damage"){ radius=spellConfig.damage.radius; title=`Meteor - ${getScaledSpellDamage("damage")} damage`; fill="rgba(251,146,60,.10)"; stroke="rgba(251,146,60,.46)"; }
+    if(selectedSpell==="bomb"){ radius=spellConfig.bomb.range; title=`Lightning - ${getScaledSpellDamage("bomb")} per target`; fill="rgba(250,204,21,.10)"; stroke="rgba(250,204,21,.48)"; }
     ctx.save();
     ctx.beginPath();
     ctx.arc(pos.x,pos.y,radius,0,Math.PI*2);
