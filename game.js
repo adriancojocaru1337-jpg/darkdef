@@ -123,10 +123,14 @@ function clampPercent(value){
   return `${Math.max(8, Math.min(100, Math.round(value)))}%`;
 }
 
-function setPanelUserLabel(name){
+function setPanelUserLabel(name, crestId = null){
   if(!panelHeaderUserValue) return;
   const trimmedName = String(name || "").trim();
   panelHeaderUserValue.textContent = trimmedName || "Guest";
+  const crestSlot = document.getElementById("panelHeaderUserCrest");
+  if(crestSlot && window.DarkDefenseCrest){
+    crestSlot.innerHTML = window.DarkDefenseCrest.markup(trimmedName || "Guest", "dd-crest-header", crestId);
+  }
 }
 
 async function loadPanelUserSession(){
@@ -141,9 +145,11 @@ async function loadPanelUserSession(){
     if(!response.ok) return;
     const data = await response.json();
     if(!data?.authenticated || !data?.user?.username) return;
-    setPanelUserLabel(data.user.username);
+    setPanelUserLabel(data.user.username, data.user.crestId || null);
     panelHeaderUserLink?.setAttribute("href", "/profile.html");
     panelHeaderLogoutBtn?.classList.remove("hidden");
+    leyAccountAuthed = true;
+    syncLeyMetaWithAccount();
   }catch(_){
     setPanelUserLabel("Guest");
   }
@@ -868,10 +874,31 @@ let leyTalents = (()=>{ try{ const raw = JSON.parse(localStorage.getItem(LEY_STO
 let runLeyCrystalsEarned = 0;
 let auraRerollUsed = false;
 
+function leyTalentsSpentTotal(talents = leyTalents){
+  let spent = 0;
+  for(const branch of LEY_TALENT_BRANCHES){
+    for(const node of branch.nodes){
+      const rank = Math.max(0, Math.min(node.maxRank, parseInt(talents[node.id],10) || 0));
+      for(let i=0;i<rank;i++) spent += node.costs[i] || 0;
+    }
+  }
+  return spent;
+}
+
+let leyEarnedTotal = (()=>{
+  try{
+    const stored = localStorage.getItem("sdcLeyEarnedTotal");
+    if(stored !== null) return Math.max(0, parseInt(stored,10)||0);
+  }catch(e){}
+  // migration from balance-only format: lifetime = current balance + everything already spent
+  return leyCrystals + leyTalentsSpentTotal();
+})();
+
 function saveLeyState(){
   try{
     localStorage.setItem(LEY_STORAGE_KEYS.crystals, String(leyCrystals));
     localStorage.setItem(LEY_STORAGE_KEYS.talents, JSON.stringify(leyTalents));
+    localStorage.setItem("sdcLeyEarnedTotal", String(leyEarnedTotal));
   }catch(e){}
 }
 
@@ -901,12 +928,104 @@ function getAuraDraftCount(){ return getLeyRank("luminous_awakening") > 0 ? 4 : 
 function awardLeyCrystals(base, label, opts={}){
   const amount = Math.max(1, Math.round(base * leyCrystalGainMult()));
   leyCrystals += amount;
+  leyEarnedTotal += amount;
   runLeyCrystalsEarned += amount;
   saveLeyState();
+  scheduleLeySyncPush();
   if(!opts.silent) pushNotification("gold","Ley Crystals",`+${amount} ✦ ${label}`);
   updateLeyBadges();
   return amount;
 }
+
+/* --- account sync (Neon DB via Netlify functions) ---
+   Model: total_earned and talent ranks only ever grow, so merging
+   two states is a per-field max(). Balance is derived from them. */
+let leyAccountAuthed = false;
+let leySyncPushTimer = null;
+let leySyncInFlight = false;
+
+function mergeLeyMeta(a, b){
+  const talents = {};
+  for(const branch of LEY_TALENT_BRANCHES){
+    for(const node of branch.nodes){
+      const rank = Math.min(node.maxRank, Math.max(
+        parseInt(a.talents?.[node.id],10) || 0,
+        parseInt(b.talents?.[node.id],10) || 0
+      ));
+      if(rank > 0) talents[node.id] = rank;
+    }
+  }
+  return {
+    totalEarned: Math.max(parseInt(a.totalEarned,10)||0, parseInt(b.totalEarned,10)||0),
+    talents
+  };
+}
+
+function getLocalLeyMeta(){
+  return { totalEarned: leyEarnedTotal, talents: { ...leyTalents } };
+}
+
+function adoptLeyMeta(meta){
+  const merged = mergeLeyMeta(getLocalLeyMeta(), meta || {});
+  leyEarnedTotal = merged.totalEarned;
+  leyTalents = merged.talents;
+  leyCrystals = Math.max(0, leyEarnedTotal - leyTalentsSpentTotal(leyTalents));
+  saveLeyState();
+  updateLeyBadges();
+  if(leyOverlay && !leyOverlay.classList.contains("hidden")) renderLeyOverlay();
+}
+
+async function pushLeyMeta(){
+  if(!leyAccountAuthed || leySyncInFlight) return;
+  leySyncInFlight = true;
+  try{
+    const response = await fetch("/.netlify/functions/save-ley-meta", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(getLocalLeyMeta())
+    });
+    if(response.ok){
+      const data = await response.json();
+      if(data?.ok) adoptLeyMeta({ totalEarned: data.totalEarned, talents: data.talents });
+    }
+  }catch(_){ /* offline is fine — localStorage remains source of truth until next push */ }
+  finally{ leySyncInFlight = false; }
+}
+
+function scheduleLeySyncPush(delayMs = 2500){
+  if(!leyAccountAuthed) return;
+  if(leySyncPushTimer) clearTimeout(leySyncPushTimer);
+  leySyncPushTimer = setTimeout(()=>{ leySyncPushTimer = null; pushLeyMeta(); }, delayMs);
+}
+
+async function syncLeyMetaWithAccount(){
+  if(!leyAccountAuthed) return;
+  let server = null;
+  try{
+    const response = await fetch("/.netlify/functions/get-ley-meta", { credentials: "include", cache: "no-store" });
+    if(response.ok){
+      const data = await response.json();
+      if(data?.ok) server = { totalEarned: data.totalEarned, talents: data.talents };
+    }
+  }catch(_){ return; }
+  if(!server) return;
+  const localBefore = getLocalLeyMeta();
+  adoptLeyMeta(server);
+  const serverMissesLocal = localBefore.totalEarned > (server.totalEarned || 0) ||
+    LEY_TALENT_BRANCHES.some(branch => branch.nodes.some(node =>
+      (parseInt(localBefore.talents[node.id],10)||0) > (parseInt(server.talents?.[node.id],10)||0)
+    ));
+  if(serverMissesLocal) pushLeyMeta();
+}
+
+window.addEventListener("pagehide", ()=>{
+  if(!leyAccountAuthed || !navigator.sendBeacon) return;
+  try{
+    const blob = new Blob([JSON.stringify(getLocalLeyMeta())], { type:"application/json" });
+    navigator.sendBeacon("/.netlify/functions/save-ley-meta", blob);
+  }catch(_){}
+});
 
 function buyLeyTalent(nodeId){
   const def = getLeyNodeDef(nodeId);
@@ -921,6 +1040,7 @@ function buyLeyTalent(nodeId){
   leyCrystals -= cost;
   leyTalents[nodeId] = rank + 1;
   saveLeyState();
+  scheduleLeySyncPush();
   tone("sine", 620, 940, .12, .02);
   pushNotification("achievement","Ley Attunement",`${def.name} — rank ${rank+1}/${def.maxRank} unlocked.`);
   renderLeyOverlay();
@@ -937,6 +1057,8 @@ const openLeyFromGameOverBtn = document.getElementById("openLeyFromGameOverBtn")
 const closeLeyBtn = document.getElementById("closeLeyBtn");
 const leyBtnBalanceEl = document.getElementById("leyBtnBalance");
 const leyHudBadge = document.getElementById("leyHudBadge");
+const panelHeaderLeyBtn = document.getElementById("panelHeaderLeyBtn");
+const panelHeaderLeyBalance = document.getElementById("panelHeaderLeyBalance");
 const gameOverCrystalsStat = document.getElementById("gameOverCrystalsStat");
 const auraRerollBtn = document.getElementById("auraRerollBtn");
 let leyAutoPaused = false;
@@ -959,6 +1081,8 @@ function updateLeyBadges(){
     leyHudBadge.textContent = `✦ ${leyCrystals}`;
     leyHudBadge.classList.toggle("ley-glow", affordable);
   }
+  if(panelHeaderLeyBalance) panelHeaderLeyBalance.textContent = String(leyCrystals);
+  panelHeaderLeyBtn?.classList.toggle("ley-glow", affordable);
   openLeyBtn?.classList.toggle("ley-glow", affordable);
 }
 
@@ -1031,6 +1155,7 @@ openLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLey
 openLeyFromGameOverBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
 closeLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); closeLeyOverlay(); });
 leyHudBadge?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
+panelHeaderLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
 leyOverlay?.addEventListener("click",(event)=>{ if(event.target === leyOverlay) closeLeyOverlay(); });
 document.addEventListener("keydown",(event)=>{
   if(event.key === "Escape" && leyOverlay && !leyOverlay.classList.contains("hidden")) closeLeyOverlay();
@@ -2744,6 +2869,7 @@ function openGameOverOverlay(){
   }
   if(gameOverCrystalsStat) gameOverCrystalsStat.textContent = `+${runLeyCrystalsEarned} ✦`;
   updateLeyBadges();
+  scheduleLeySyncPush(300);
   const spent = getRunSpentGold();
   if(currentMode === "endless") {
     gameOverText.textContent = `You survived ${stageWave} Endless Waves. Boss pairs defeated: ${runEndlessBossPairsDefeated}. Best Endless Wave: ${bestEndlessWave}.`;
@@ -6285,61 +6411,9 @@ draw();
 requestAnimationFrame(gameLoop);
 
 
-canvas.addEventListener("wheel",(event)=>{
-  event.preventDefault();
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const anchorX = (event.clientX - rect.left) * scaleX;
-  const anchorY = (event.clientY - rect.top) * scaleY;
-  const factor = event.deltaY < 0 ? 1.08 : 0.92;
-  setZoom(view.scale * factor, anchorX, anchorY);
-}, { passive:false });
-
-function touchPointToCanvas(touch){
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return {
-    x: (touch.clientX - rect.left) * scaleX,
-    y: (touch.clientY - rect.top) * scaleY
-  };
-}
-
-canvas.addEventListener("touchstart",(event)=>{
-  if(event.touches.length === 2){
-    const a = touchPointToCanvas(event.touches[0]);
-    const b = touchPointToCanvas(event.touches[1]);
-    pinchState = {
-      distance: Math.hypot(b.x - a.x, b.y - a.y),
-      midpoint: { x:(a.x+b.x)/2, y:(a.y+b.y)/2 },
-      scale: view.scale,
-      offsetX: view.offsetX,
-      offsetY: view.offsetY
-    };
-  }
-}, { passive:true });
-
-canvas.addEventListener("touchmove",(event)=>{
-  if(event.touches.length !== 2 || !pinchState) return;
-  event.preventDefault();
-  const a = touchPointToCanvas(event.touches[0]);
-  const b = touchPointToCanvas(event.touches[1]);
-  const newDistance = Math.hypot(b.x - a.x, b.y - a.y);
-  const midpoint = { x:(a.x+b.x)/2, y:(a.y+b.y)/2 };
-  const scaleFactor = newDistance / pinchState.distance;
-
-  view.scale = Math.max(view.minScale, Math.min(view.maxScale, pinchState.scale * scaleFactor));
-  view.offsetX = midpoint.x - ((pinchState.midpoint.x - pinchState.offsetX) * (view.scale / pinchState.scale));
-  view.offsetY = midpoint.y - ((pinchState.midpoint.y - pinchState.offsetY) * (view.scale / pinchState.scale));
-  clampView();
-  if(selectedPlacedUnitId) updateSelectedPanel();
-}, { passive:false });
-
-canvas.addEventListener("touchend",()=>{
-  if(!pinchState) return;
-  pinchState = null;
-});
+/* Zoom removed by design — the camera is fixed at scale 1.
+   The wheel now scrolls the page normally, and two-finger
+   gestures on mobile are left to the browser. */
 
 document.addEventListener("click",(event)=>{
   const clickedInsideTowerMenu = !!(towerMenu && towerMenu.contains(event.target));
