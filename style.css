@@ -246,6 +246,7 @@ body::after {
 .panel-header {
   padding:22px 24px 18px; border-bottom:1px solid rgba(148,163,184,.10);
   display:flex; justify-content:space-between; align-items:flex-start; gap:18px; flex-wrap:wrap;
+  position:relative;
 }
 .panel-kicker, .section-label { text-transform:uppercase; letter-spacing:.12em; color:#c09b68; font-size:12px; }
 .panel-header h2, .side-card h3 { margin:0; }
@@ -3793,7 +3794,7 @@ kbd {
    Challenge of the Day button
    ============================================================ */
 .daily-challenge-btn{
-  margin-top:12px;
+  margin-top:26px;
   display:inline-flex;
   align-items:center;
   gap:14px;
@@ -3853,3 +3854,11 @@ kbd {
   .daily-challenge-name{ font-size:14.5px; }
   .daily-challenge-cta{ padding:7px 10px; font-size:12px; }
 }
+
+/* Center the "Battlefield" kicker + challenge button as a header block */
+.panel-header-lead{ display:flex; flex-direction:column; align-items:flex-start; }
+.panel-header-lead .panel-kicker{
+  position:absolute; top:14px; left:50%; transform:translateX(-50%);
+  margin:0; z-index:1; white-space:nowrap;
+}
+.panel-header-lead .daily-challenge-btn{ margin-top:0; }
