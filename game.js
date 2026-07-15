@@ -87,6 +87,10 @@ const leaderboardNameInput = document.getElementById("leaderboardNameInput");
 const leaderboardNameSubmitBtn = document.getElementById("leaderboardNameSubmitBtn");
 const leaderboardNameCancelBtn = document.getElementById("leaderboardNameCancelBtn");
 const startGameBtn = document.getElementById("startGameBtn");
+const dailyChallengeBtn = document.getElementById("dailyChallengeBtn");
+const dailyChallengeEmoji = document.getElementById("dailyChallengeEmoji");
+const dailyChallengeName = document.getElementById("dailyChallengeName");
+const dailyChallengeBest = document.getElementById("dailyChallengeBest");
 const restartFromGameOverBtn = document.getElementById("restartFromGameOverBtn");
 const returnToMenuBtn = document.getElementById("returnToMenuBtn");
 const gameOverText = document.getElementById("gameOverText");
@@ -654,6 +658,152 @@ let wave = 1, stageWave = 1, waveActive = false, spawnLeft = 0, selectedUnitType
 let isHudManuallyHidden = false, isPlacementHudAutoHidden = false;
 let spawnTimer = 0, idCounter = 1, lastTime = 0, hoveredCell = null, isPaused = false, hasStarted = false, bossBannerTimer = 0, stageStartLives = START_LIVES;
 let currentMode = "campaign", endlessUnlocked = false;
+
+/* ============================================================
+   CHALLENGE OF THE DAY
+   A deterministic daily challenge: everyone gets the same one
+   each calendar day, and it rotates every day. It runs on top of
+   the endless survival loop with a set of gameplay modifiers, and
+   the best wave reached is tracked per day.
+   ============================================================ */
+let dailyChallengeActive = false;
+let activeDailyChallenge = null; // holds the modifier object while a run is live
+
+// Small deterministic string hash -> 32-bit int (FNV-1a style).
+function hashStringToInt(str){
+  let h = 2166136261 >>> 0;
+  for(let i = 0; i < str.length; i++){
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+// Local calendar day key, e.g. "2026-07-16".
+function getTodayKey(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// The pool of daily challenges. Each defines gameplay modifiers.
+// mods:
+//   startGoldMult / startGoldBonus : starting economy
+//   bonusLives                     : extra lives on top of max
+//   livesOverride                  : hard-set starting lives (optional)
+//   enemyHpMult / enemySpeedMult   : enemy difficulty
+//   killGoldMult                   : gold per kill
+//   spellCdMult                    : spell cooldown multiplier
+//   startStage                     : which stage's map/palette to fight on (1-6)
+const DAILY_CHALLENGES = [
+  {
+    id: "iron_purse",
+    name: "Iron Purse",
+    emoji: "🪙",
+    blurb: "Half the starting gold. Every tower placement counts — but kills pay 40% more.",
+    mods: { startGoldMult: 0.5, killGoldMult: 1.4, startStage: 2 }
+  },
+  {
+    id: "swift_tide",
+    name: "Swift Tide",
+    emoji: "💨",
+    blurb: "The horde moves 25% faster and hits harder. Frost and control are your friends.",
+    mods: { enemySpeedMult: 1.25, enemyHpMult: 0.9, killGoldMult: 1.2, startStage: 1 }
+  },
+  {
+    id: "stone_skin",
+    name: "Stone Skin",
+    emoji: "🛡️",
+    blurb: "Enemies carry 45% more health but crawl 10% slower. Bring sustained damage.",
+    mods: { enemyHpMult: 1.45, enemySpeedMult: 0.9, killGoldMult: 1.35, startStage: 4 }
+  },
+  {
+    id: "glass_gate",
+    name: "Glass Gate",
+    emoji: "💔",
+    blurb: "Only 8 lives — but you begin rich. One leak too many and it's over.",
+    mods: { livesOverride: 8, startGoldMult: 1.8, startStage: 3 }
+  },
+  {
+    id: "gold_rush",
+    name: "Gold Rush",
+    emoji: "💰",
+    blurb: "Double kill gold and a fat purse — but faster spells cost you longer cooldowns.",
+    mods: { startGoldMult: 1.5, killGoldMult: 2.0, spellCdMult: 1.4, enemyHpMult: 1.15, startStage: 5 }
+  },
+  {
+    id: "arcane_flood",
+    name: "Arcane Flood",
+    emoji: "🔮",
+    blurb: "Spells recharge 40% faster. Lean on your magic to hold the Dark Portal.",
+    mods: { spellCdMult: 0.6, enemyHpMult: 1.2, killGoldMult: 1.1, startStage: 6 }
+  },
+  {
+    id: "last_stand",
+    name: "Last Stand",
+    emoji: "⚔️",
+    blurb: "Tougher, faster foes on every front — but every kill overflows your coffers.",
+    mods: { enemyHpMult: 1.3, enemySpeedMult: 1.15, killGoldMult: 1.6, bonusLives: 5, startStage: 2 }
+  },
+  {
+    id: "frugal_fortress",
+    name: "Frugal Fortress",
+    emoji: "🏰",
+    blurb: "A lean economy and lean spells. Survival is pure positioning and patience.",
+    mods: { startGoldMult: 0.7, killGoldMult: 0.9, spellCdMult: 1.25, bonusLives: 8, startStage: 4 }
+  }
+];
+
+// Deterministically pick today's challenge from the pool.
+function getDailyChallenge(dateKey = getTodayKey()){
+  const idx = hashStringToInt("dark-defense-cotd::" + dateKey) % DAILY_CHALLENGES.length;
+  const base = DAILY_CHALLENGES[idx];
+  return { ...base, dateKey };
+}
+
+// Persisted best wave for a given day.
+function getDailyBestWave(dateKey = getTodayKey()){
+  try { return Math.max(0, parseInt(localStorage.getItem("sdcDailyBest::" + dateKey) || "0", 10) || 0); }
+  catch(e){ return 0; }
+}
+function saveDailyBestWave(dateKey, waveReached){
+  try {
+    const prev = getDailyBestWave(dateKey);
+    if(waveReached > prev){
+      localStorage.setItem("sdcDailyBest::" + dateKey, String(waveReached));
+      return waveReached;
+    }
+    return prev;
+  } catch(e){ return waveReached; }
+}
+
+// Convenience accessors used by the gameplay hooks. They return neutral
+// values (1 / 0) unless a daily-challenge run is currently active.
+function dcEnemyHpMult(){ return dailyChallengeActive && activeDailyChallenge?.mods.enemyHpMult ? activeDailyChallenge.mods.enemyHpMult : 1; }
+function dcEnemySpeedMult(){ return dailyChallengeActive && activeDailyChallenge?.mods.enemySpeedMult ? activeDailyChallenge.mods.enemySpeedMult : 1; }
+function dcKillGoldMult(){ return dailyChallengeActive && activeDailyChallenge?.mods.killGoldMult ? activeDailyChallenge.mods.killGoldMult : 1; }
+function dcSpellCdMult(){ return dailyChallengeActive && activeDailyChallenge?.mods.spellCdMult ? activeDailyChallenge.mods.spellCdMult : 1; }
+
+// Update the menu button to reflect today's challenge + best wave.
+function refreshDailyChallengeUI(){
+  const challenge = getDailyChallenge();
+  if(dailyChallengeEmoji) dailyChallengeEmoji.textContent = challenge.emoji;
+  if(dailyChallengeName) dailyChallengeName.textContent = challenge.name;
+  if(dailyChallengeBtn) dailyChallengeBtn.title = `${challenge.name} — ${challenge.blurb}`;
+  if(dailyChallengeBest){
+    const best = getDailyBestWave(challenge.dateKey);
+    if(best > 0){
+      dailyChallengeBest.textContent = `Today's best: Wave ${best}`;
+      dailyChallengeBest.classList.add("has-best");
+    } else {
+      dailyChallengeBest.textContent = "Not attempted today";
+      dailyChallengeBest.classList.remove("has-best");
+    }
+  }
+}
+
 let comboCount = 0, comboTimer = 0, comboPop = 0, comboBest = 0;
 let waveCallBonus = 0, waveCallBonusMax = 0;
 const WAVE_CALL_DECAY_SECONDS = 30;
@@ -937,7 +1087,7 @@ function leyBonusLives(){ return 2 * getLeyRank("warding_light"); }
 function getMaxLives(){ return START_LIVES + leyBonusLives(); }
 function leyKillGoldMult(){ return 1 + 0.06 * getLeyRank("prosperity"); }
 function leyStageHealAmount(){ return getLeyRank("mended_gate") > 0 ? 4 : 2; }
-function leySpellCooldownMult(){ return Math.pow(0.90, getLeyRank("attuned_casting")); }
+function leySpellCooldownMult(){ return Math.pow(0.90, getLeyRank("attuned_casting")) * dcSpellCdMult(); }
 function hasAuraReroll(){ return getLeyRank("second_sight") > 0; }
 function leyCrystalGainMult(){ return 1 + 0.20 * getLeyRank("crystal_harvest"); }
 function getAuraDraftCount(){ return getLeyRank("luminous_awakening") > 0 ? 4 : 3; }
@@ -1563,6 +1713,7 @@ function resolveBossWaveCompletion(){
     money += 50;
     bonusScore += 80;
     maybeSaveBestEndlessRun();
+    maybeSaveDailyChallengeWave();
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
   isPaused = false;
@@ -2690,19 +2841,95 @@ function hideEndlessUnlockOverlay(){
 
 function enterEndlessModeFromUnlock(){
   hideEndlessUnlockOverlay();
+  exitDailyChallenge();
+
+  // Keep the player's army: move placed towers into reserve before wiping the board.
+  moveUnitsToReserve();
+
+  // Full, clean state reset for the Dark Portal (stage 6). This clears leftover
+  // enemies, projectiles, boss banners / defeat-intro / stage-quote FX and all
+  // wave/spawn timers left over from the campaign finale — the cause of the
+  // broken end-of-campaign screen.
+  applyStage(6, false);
+
+  // Endless-specific state (applyStage forces campaign-style defaults).
   currentMode = "endless";
-  currentStage = 6;
-  path = STAGES[6].route;
-  pathCells = buildPathCells(path);
   stageWave = 1;
   wave = 1;
+  waveActive = false;
+  spawnLeft = 0;
+  spawnTimer = 0;
+  pendingBossResolution = null;
   pendingEndlessBossPair = [];
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
+  syncAmbientAudio();
   saveProgress();
-  setMessage("Endless Mode begins. Your defenses hold the Dark Portal.");
+  setMessage("Endless Mode begins. Your defenses hold the Dark Portal. Re-place your reserve towers for free.");
   isPaused = false;
   updateUI();
+}
+
+// Save the best wave reached for today's challenge. Called as waves advance
+// and again on game over, so a run always records its furthest wave.
+function maybeSaveDailyChallengeWave(){
+  if(!dailyChallengeActive || !activeDailyChallenge) return;
+  try{
+    const reached = Math.max(1, stageWave);
+    saveDailyBestWave(activeDailyChallenge.dateKey, reached);
+  }catch(e){}
+  refreshDailyChallengeUI();
+}
+
+// Begin today's Challenge of the Day. It runs on the endless survival loop
+// (escalating waves, dual bosses every 10) but on the challenge's chosen map
+// and with its modifiers applied. A fresh run every time — no reserve carryover.
+function startDailyChallenge(){
+  const challenge = getDailyChallenge();
+  activeDailyChallenge = challenge;
+  dailyChallengeActive = true;
+
+  const stage = Math.min(6, Math.max(1, challenge.mods.startStage || 1));
+
+  // Fresh run on the chosen stage. resetRun=true wipes reserves/score and,
+  // because dailyChallengeActive is now set, applies the economy/lives mods.
+  applyStage(stage, true);
+
+  // Switch the survival loop to endless on this map.
+  currentMode = "endless";
+  currentStage = stage;
+  path = STAGES[stage].route;
+  pathCells = buildPathCells(path);
+  stageWave = 1;
+  wave = 1;
+  waveActive = false;
+  spawnLeft = 0;
+  spawnTimer = 0;
+  pendingBossResolution = null;
+  pendingEndlessBossPair = [];
+  lastEndlessBossPairKey = "";
+  runEndlessBossPairsDefeated = 0;
+  stageStartLives = lives;
+  isPaused = false;
+
+  hasStarted = true;
+  ensureAudio();
+  syncAmbientAudio();
+  startOverlay?.classList.add("hidden");
+  hideEndlessUnlockOverlay();
+  showHintChip();
+  resetCamera();
+
+  pushNotification("stage", `${challenge.emoji} ${challenge.name}`, challenge.blurb);
+  setMessage(`Challenge of the Day — ${challenge.name}: ${challenge.blurb}`);
+  refreshDailyChallengeUI();
+  updateUI();
+}
+
+// Clear challenge state (used when leaving to campaign / endless / menu).
+function exitDailyChallenge(){
+  dailyChallengeActive = false;
+  activeDailyChallenge = null;
 }
 
 function moveUnitsToReserve(){
@@ -2874,8 +3101,9 @@ function getRunSpentGold(){
 
 function openGameOverOverlay(){
   if(currentMode === "endless") maybeSaveBestEndlessRun();
-  if(gameOverStageLabel) gameOverStageLabel.textContent = currentMode === "campaign" ? "Stage" : "Mode";
-  if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : "Endless";
+  if(dailyChallengeActive) maybeSaveDailyChallengeWave();
+  if(gameOverStageLabel) gameOverStageLabel.textContent = currentMode === "campaign" ? "Stage" : (dailyChallengeActive ? "Challenge" : "Mode");
+  if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : (dailyChallengeActive ? (activeDailyChallenge?.name || "Daily") : "Endless");
   if(gameOverWaveStat) gameOverWaveStat.textContent = String(currentMode === "campaign" ? wave : stageWave);
   if(gameOverKillsStat) gameOverKillsStat.textContent = String(kills);
   if(gameOverScoreStat) gameOverScoreStat.textContent = String(totalScore());
@@ -2888,7 +3116,11 @@ function openGameOverOverlay(){
   updateLeyBadges();
   scheduleLeySyncPush(300);
   const spent = getRunSpentGold();
-  if(currentMode === "endless") {
+  if(dailyChallengeActive && activeDailyChallenge) {
+    const todayBest = getDailyBestWave(activeDailyChallenge.dateKey);
+    gameOverText.textContent = `${activeDailyChallenge.emoji} ${activeDailyChallenge.name} — you reached Wave ${stageWave}. Today's best: Wave ${todayBest}.`;
+    if(gameOverQuote) gameOverQuote.textContent = `Come back tomorrow for a new Challenge of the Day.`;
+  } else if(currentMode === "endless") {
     gameOverText.textContent = `You survived ${stageWave} Endless Waves. Boss pairs defeated: ${runEndlessBossPairsDefeated}. Best Endless Wave: ${bestEndlessWave}.`;
     if(gameOverQuote) gameOverQuote.textContent = `The abyss marked ${runEndlessBossPairsDefeated} boss waves this run. Best boss-pair record: ${bestEndlessBossPairs}.`;
   } else {
@@ -2983,6 +3215,17 @@ function applyStage(stageNumber, resetRun=false){
     Object.keys(achievements).forEach(k=>achievements[k]=false);
     resetAchievementsUI(); clearNotifications();
     currentMode="campaign";
+
+    // Daily Challenge economy / lives overrides (only when a run is active).
+    if(dailyChallengeActive && activeDailyChallenge){
+      const m = activeDailyChallenge.mods;
+      if(typeof m.startGoldMult === "number") money = Math.round(money * m.startGoldMult);
+      if(typeof m.startGoldBonus === "number") money += m.startGoldBonus;
+      if(typeof m.livesOverride === "number") lives = m.livesOverride;
+      else if(typeof m.bonusLives === "number") lives += m.bonusLives;
+      money = Math.max(0, money);
+      lives = Math.max(1, lives);
+    }
   }else{
     pushNotification("stage","New stage",`You entered Stage ${currentStage} — ${STAGES[currentStage].name}. Boss: ${STAGE_BOSS[currentStage].name}. Your towers are in reserve.`);
   }
@@ -2992,7 +3235,7 @@ function applyStage(stageNumber, resetRun=false){
   setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.`);
   updateUI();
 }
-const resetGame=()=>{ showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
+const resetGame=()=>{ exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
 
 function startWave(){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
@@ -3086,7 +3329,9 @@ function enemyTemplateForSpawn(indexFromEnd){
 }
 function spawnEnemy(){
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
-  const enemy = { id:idCounter++, hp:hpBase*t.hpMult, maxHp:hpBase*t.hpMult, speed:t.speed, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
+  const dcHp = dcEnemyHpMult(), dcSpd = dcEnemySpeedMult();
+  const scaledHp = hpBase*t.hpMult*dcHp;
+  const enemy = { id:idCounter++, hp:scaledHp, maxHp:scaledHp, speed:t.speed*dcSpd, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -3451,7 +3696,7 @@ function getKillRewardMultiplier(){
   return 1 + stageBonus + endlessBonus;
 }
 function rewardKill(enemy,pos){
-  const scaledBase = Math.max(1, Math.round(enemy.reward * getKillRewardMultiplier() * leyKillGoldMult()));
+  const scaledBase = Math.max(1, Math.round(enemy.reward * getKillRewardMultiplier() * leyKillGoldMult() * dcKillGoldMult()));
   let reward = scaledBase;
   let scoreGain = 0;
   money += reward; kills += 1;
@@ -3839,6 +4084,7 @@ function update(dt){
     money += 35 + Math.min(currentStage,6) * 10;
     bonusScore += 20;
     const waveCrystals = awardLeyCrystals(currentMode === "endless" ? 3 : 2, "Wave cleared", { silent:true });
+    maybeSaveDailyChallengeWave();
     armWaveCallBonus();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Ley Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Ley Crystals. Next wave: ${stageWave}.`);
     updateUI();
@@ -6419,6 +6665,11 @@ resetCameraBtn?.addEventListener("click",(event)=>{
 });
 
 startGameBtn.addEventListener("click",()=>{
+  // If a daily challenge was previously active, drop back to a clean campaign.
+  if(dailyChallengeActive || currentMode !== "campaign"){
+    exitDailyChallenge();
+    applyStage(1, true);
+  }
   hasStarted=true; ensureAudio(); syncAmbientAudio();
   startOverlay.classList.add("hidden");
   loadProgressNotice();
@@ -6427,7 +6678,11 @@ startGameBtn.addEventListener("click",()=>{
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
-  applyStage(currentStage, true);
+  if(dailyChallengeActive){
+    startDailyChallenge();
+  } else {
+    applyStage(currentStage, true);
+  }
   if(hasStarted && !isMuted) syncAmbientAudio();
 });
 
@@ -6440,6 +6695,10 @@ returnToMenuBtn?.addEventListener("click",()=>{
 
 enterEndlessBtn?.addEventListener("click", ()=>{
   enterEndlessModeFromUnlock();
+});
+
+dailyChallengeBtn?.addEventListener("click", ()=>{
+  startDailyChallenge();
 });
 
 backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
@@ -6459,6 +6718,7 @@ loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
 updateLeyBadges();
+refreshDailyChallengeUI();
 draw();
 requestAnimationFrame(gameLoop);
 

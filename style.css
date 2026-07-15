@@ -3788,3 +3788,68 @@ kbd {
   .panel-header-ley{min-height:38px;padding:8px 13px;font-size:13px}
   .dd-crest-header{width:28px;height:28px;font-size:10px}
 }
+
+/* ============================================================
+   Challenge of the Day button
+   ============================================================ */
+.daily-challenge-btn{
+  margin-top:12px;
+  display:inline-flex;
+  align-items:center;
+  gap:14px;
+  width:100%;
+  max-width:520px;
+  padding:12px 16px;
+  border-radius:16px;
+  cursor:pointer;
+  text-align:left;
+  color:var(--text);
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(192,138,74,0.20), transparent 60%),
+    linear-gradient(180deg, rgba(28,22,16,0.92), rgba(14,11,9,0.92));
+  border:1px solid rgba(192,138,74,0.38);
+  box-shadow:0 12px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,220,170,0.08);
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+.daily-challenge-btn:hover{
+  transform:translateY(-2px);
+  border-color:rgba(214,180,124,0.75);
+  box-shadow:0 18px 44px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,220,170,0.14);
+  filter:brightness(1.05);
+}
+.daily-challenge-btn:active{ transform:translateY(0); }
+.daily-challenge-emoji{
+  flex:0 0 auto;
+  display:grid;
+  place-items:center;
+  width:44px;height:44px;
+  border-radius:12px;
+  font-size:22px;
+  background:linear-gradient(180deg, rgba(192,138,74,0.28), rgba(140,90,47,0.20));
+  border:1px solid rgba(214,180,124,0.35);
+  box-shadow:inset 0 0 18px rgba(255,190,120,0.14);
+}
+.daily-challenge-copy{ display:flex; flex-direction:column; gap:2px; flex:1 1 auto; min-width:0; }
+.daily-challenge-kicker{
+  text-transform:uppercase; letter-spacing:.14em; font-size:10.5px; color:#c09b68; font-weight:700;
+}
+.daily-challenge-name{
+  font-size:16px; font-weight:700; color:#f2e6d2; line-height:1.15;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.daily-challenge-best{ font-size:11.5px; color:var(--muted); }
+.daily-challenge-best.has-best{ color:#7fdca0; }
+.daily-challenge-cta{
+  flex:0 0 auto;
+  font-size:12.5px; font-weight:700; letter-spacing:.04em;
+  padding:8px 12px; border-radius:10px;
+  color:#140f0b;
+  background:linear-gradient(180deg,#d3a15d,#8c5a2f);
+  box-shadow:0 6px 16px rgba(140,90,47,0.35);
+}
+@media (max-width:600px){
+  .daily-challenge-btn{ gap:10px; padding:10px 12px; }
+  .daily-challenge-emoji{ width:38px;height:38px;font-size:19px; }
+  .daily-challenge-name{ font-size:14.5px; }
+  .daily-challenge-cta{ padding:7px 10px; font-size:12px; }
+}
