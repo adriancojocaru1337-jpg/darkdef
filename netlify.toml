@@ -1,8 +1,2 @@
 [functions]
   node_bundler = "esbuild"
-
-[[redirects]]
-  from = "/best-tower-defense-browser-game-strategy.html"
-  to = "/how-to-play.html#advanced-strategy"
-  status = 301
-  force = true

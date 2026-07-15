@@ -165,6 +165,7 @@
           <div class="hero-actions hero-nav-actions">
             <a href="/about.html" class="btn btn-secondary">About</a>
             <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
+            <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Strategy Guide</a>
             <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
             <a href="/account.html" class="btn btn-secondary">Account</a>
           </div>
@@ -180,7 +181,7 @@
         </div>
         <button class="btn btn-secondary hero-refresh-btn" id="refreshLeaderboardBtn" type="button">Refresh</button>
       </div>
-      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Ranks Endless runs by Bonus Score, not Total Score.</div>
+      <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Loading the best bonus scores...</div>
       <div class="hero-leaderboard-list" id="bonusLeaderboardList">
         <div class="leaderboard-empty">No entries yet.</div>
       </div>
@@ -211,18 +212,6 @@
           <button class="audio-toggle" id="audioToggle" aria-label="Audio on" title="Toggle audio">🔊</button>
           <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
-          <section class="onboarding-card hidden" id="onboardingCard" aria-live="polite" aria-label="First battle tutorial">
-            <div class="onboarding-topline">
-              <span class="onboarding-kicker">First Battle</span>
-              <span class="onboarding-progress" id="onboardingProgress">1 / 3</span>
-            </div>
-            <h3 id="onboardingTitle">Select Archer</h3>
-            <p id="onboardingText">Choose the Archer from the Unit Shop.</p>
-            <div class="onboarding-footer">
-              <div class="onboarding-dots" id="onboardingDots" aria-hidden="true"></div>
-              <button class="onboarding-skip" id="onboardingSkipBtn" type="button">Skip tutorial</button>
-            </div>
-          </section>
           <div class="canvas-overlay">
             <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
             <div class="canvas-top-hud single-row">
@@ -367,8 +356,8 @@
           <div class="notification-header">
             <h3>Notifications</h3>
             <div class="notification-header-actions">
-              <span class="mini-pill neutral hidden" id="notificationBadge">New</span>
-              <button class="notification-toggle" id="notificationToggle" type="button" aria-label="Expand notifications" aria-expanded="false">&#9662;</button>
+              <span class="mini-pill neutral hidden" id="notificationBadge">Nou</span>
+              <button class="notification-toggle" id="notificationToggle" aria-label="Expand notifications">▾</button>
             </div>
           </div>
           <div id="notificationEmpty" class="notification-empty">There are no notifications right now.</div>
@@ -388,7 +377,7 @@
 
           <div class="progress-box">
             <div class="progress-row">
-              <span>Wave progress</span>
+              <span>Progres wave</span>
               <span id="progressText">Ready</span>
             </div>
             <div class="progress-track">
@@ -399,28 +388,23 @@
           <div class="message-box emphasis" id="messageBox">Place towers and start the first wave.</div>
         </section>
 
-        <section class="glass side-card overview-card collapsed" id="overviewCard">
+        <section class="glass side-card overview-card">
           <div class="side-title-row">
             <div>
               <div class="section-label compact-label">Run Overview</div>
               <h3>Core Stats</h3>
             </div>
-            <div class="overview-header-actions">
-              <span class="mini-pill neutral" id="modeStat">Campaign</span>
-              <button class="notification-toggle" id="coreStatsToggle" type="button" aria-label="Expand core stats" aria-expanded="false">&#9662;</button>
-            </div>
+            <span class="mini-pill neutral" id="modeStat">Campaign</span>
           </div>
 
           <div class="spotlight-grid">
-            <div class="spotlight-item" title="Total Score combines combat points and every bonus point earned during the run.">
-              <span>Total Score</span>
+            <div class="spotlight-item">
+              <span>Score total</span>
               <strong id="scoreStat">0</strong>
-              <small>Combat score + Bonus Score</small>
             </div>
-            <div class="spotlight-item bonus" title="Earned from combos, quick wave starts, wave and boss clears, preserved lives, and special effects. This ranks the Endless Bonus leaderboard.">
-              <span>Bonus Score</span>
+            <div class="spotlight-item bonus">
+              <span>Bonus score</span>
               <strong id="bonusScoreStat">0</strong>
-              <small>Skill and speed rewards</small>
             </div>
           </div>
 
