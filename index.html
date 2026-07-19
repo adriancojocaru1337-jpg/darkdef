@@ -70,7 +70,7 @@
       </div>
       <div class="overlay-actions">
         <button class="btn btn-primary" id="startGameBtn">Play</button>
-        <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ley Attunement <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
+        <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ascension <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
         <a href="/about.html" class="btn btn-secondary">About</a>
         <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
         <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
@@ -94,11 +94,11 @@
         <div class="gameover-stat"><span>Kills</span><strong id="gameOverKillsStat">0</strong></div>
         <div class="gameover-stat"><span>Score</span><strong id="gameOverScoreStat">0</strong></div>
         <div class="gameover-stat"><span>Best Combo</span><strong id="gameOverComboStat">x0</strong></div>
-        <div class="gameover-stat gameover-stat-ley"><span>Ley Crystals</span><strong id="gameOverCrystalsStat">+0 ✦</strong></div>
+        <div class="gameover-stat gameover-stat-ley"><span>Crystals</span><strong id="gameOverCrystalsStat">+0 ✦</strong></div>
       </div>
       <div class="overlay-actions gameover-actions two-buttons">
         <button class="btn btn-primary" id="restartFromGameOverBtn">Rise Again</button>
-        <button class="btn btn-secondary btn-ley" id="openLeyFromGameOverBtn">Ley Attunement</button>
+        <button class="btn btn-secondary btn-ley" id="openLeyFromGameOverBtn">Ascension</button>
         <button class="btn btn-secondary" id="returnToMenuBtn">Main Menu</button>
       </div>
     </div>
@@ -133,9 +133,9 @@
   <div class="screen-overlay hidden" id="leyOverlay">
     <div class="overlay-card ley-card">
       <div class="reward-kicker">Meta Progression</div>
-      <h1>Ley Attunement</h1>
-      <p class="ley-intro">The ley lines beneath every battlefield radiate light. Each run — victory or defeat — crystallizes some of it. Spend Ley Crystals on permanent attunements that carry into every future run.</p>
-      <div class="ley-balance">✦ <span id="leyCrystalBalance">0</span> <span class="ley-balance-label">Ley Crystals</span></div>
+      <h1>Ascension</h1>
+      <p class="ley-intro">Every run — victory or defeat — leaves behind Crystals. Spend them here on permanent upgrades that carry into every future run, growing stronger with each ascent.</p>
+      <div class="ley-balance">✦ <span id="leyCrystalBalance">0</span> <span class="ley-balance-label">Crystals</span></div>
       <div class="ley-branches" id="leyBranches"></div>
       <div class="overlay-actions">
         <button class="btn btn-secondary" id="closeLeyBtn">Close</button>
@@ -205,7 +205,7 @@
             </button>
           </div>
           <div class="panel-header-user-actions">
-            <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Ley Attunement — talent tree">✦ <span id="panelHeaderLeyBalance">0</span></button>
+            <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Ascension — talent tree">✦ <span id="panelHeaderLeyBalance">0</span></button>
             <a class="panel-header-user" id="panelHeaderUserLink" aria-live="polite" href="/account.html">
               <span class="panel-header-user-crest" id="panelHeaderUserCrest" aria-hidden="true"></span>
               <span class="panel-header-user-label">Player</span>
@@ -251,7 +251,7 @@
               <div class="badge lives" id="livesBadge">❤️ 20</div>
               <div class="badge wave" id="waveBadge">🌊 Wave 1</div>
               <div class="badge level" id="stageBadge">🗺️ Stage 1 · Forest</div>
-              <button class="badge ley" id="leyHudBadge" title="Ley Attunement — spend Ley Crystals">✦ 0</button>
+              <button class="badge ley" id="leyHudBadge" title="Ascension — spend Crystals">✦ 0</button>
             </div>
           </div>
 
@@ -360,7 +360,7 @@
               </div>
             </button>
 
-            <button class="unit-info-card unit-locked" data-type="cryo" aria-disabled="true" title="Unlock Cryo permanently with 75 Ley Crystals.">
+            <button class="unit-info-card unit-locked" data-type="cryo" aria-disabled="true" title="Unlock Cryo permanently with 150 Crystals.">
               <div class="unit-card-headline">
                 <div class="unit-info-top">
                   <strong>❄ Cryo</strong>
@@ -372,7 +372,7 @@
                 <div class="unit-bar"><span>DMG 22</span><i style="--fill:21%"></i></div>
                 <div class="unit-bar"><span>RNG 150</span><i style="--fill:81%"></i></div>
               </div>
-              <div class="unit-info-meta">Permanent unlock · 75 Ley Crystals</div>
+              <div class="unit-info-meta">Permanent unlock · 150 Crystals</div>
               <div class="unit-card-footer">
                 <span class="unit-info-count" id="panel-reserve-cryo">0</span>
               </div>

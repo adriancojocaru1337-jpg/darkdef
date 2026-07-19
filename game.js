@@ -210,7 +210,7 @@ function refreshUnitShopCards(){
     const cryoLocked = type === "cryo" && !hasCryoUnlock();
     card.classList.toggle("unit-locked", cryoLocked);
     card.setAttribute("aria-disabled", cryoLocked ? "true" : "false");
-    card.title = cryoLocked ? "Unlock Cryo permanently with 75 Ley Crystals." : "";
+    card.title = cryoLocked ? "Unlock Cryo permanently with 150 Crystals." : "";
     if(costEl){
       costEl.textContent = cryoLocked ? "✦ 75" : String(unit.cost);
       costEl.classList.toggle("crystal-cost", cryoLocked);
@@ -225,7 +225,7 @@ function refreshUnitShopCards(){
     }
     if(barEls[0]) barEls[0].style.setProperty('--fill', clampPercent((unit.damage / maxDamage) * 100));
     if(barEls[1]) barEls[1].style.setProperty('--fill', clampPercent((unit.range / maxRange) * 100));
-    if(metaEl) metaEl.textContent = cryoLocked ? "Permanent unlock · 75 Ley Crystals" : `${meta.summary}`;
+    if(metaEl) metaEl.textContent = cryoLocked ? "Permanent unlock · 150 Crystals" : `${meta.summary}`;
   });
 }
 
@@ -1102,8 +1102,8 @@ function markAchievementRewardClaimed(key){
 }
 
 /* ============================================================
-   LEY ATTUNEMENT — persistent meta progression.
-   Ley Crystals are earned every run (win or lose) and spent on
+   ASCENSION — persistent meta progression.
+   Crystals are earned every run (win or lose) and spent on
    permanent talents. Stored in localStorage; survives resets.
    ============================================================ */
 const LEY_STORAGE_KEYS = { crystals:"sdcLeyCrystals", talents:"sdcLeyTalents" };
@@ -1149,7 +1149,7 @@ const LEY_TALENT_BRANCHES = [
         desc:()=> "Once per boss reward, you may reroll the aura draft.",
         next:()=> "Aura draft reroll" },
       { id:"crystal_harvest", name:"Crystal Harvest", maxRank:2, costs:[30,70],
-        desc:r=>`Earn +${20*r}% Ley Crystals from all sources.`, next:r=>`+${20*(r+1)}% crystal gain` },
+        desc:r=>`Earn +${20*r}% Crystals from all sources.`, next:r=>`+${20*(r+1)}% crystal gain` },
       { id:"luminous_awakening", name:"Luminous Awakening", maxRank:1, costs:[200],
         desc:()=> "Boss aura drafts reveal all 4 auras instead of 3.",
         next:()=> "Draft shows all auras" }
@@ -1157,11 +1157,19 @@ const LEY_TALENT_BRANCHES = [
   },
   {
     id:"special_towers", name:"Special Towers", icon:"❄", color:"#38bdf8",
-    tagline:"Unlock rare defenses with Ley Crystals.",
+    tagline:"Unlock rare defenses with Crystals.",
     nodes:[
-      { id:"cryo_tower", name:"Cryo Tower", maxRank:1, costs:[75],
+      { id:"cryo_tower", name:"Cryo Tower", maxRank:1, costs:[150],
         desc:()=> "Permanently unlocked · chill field · brittle stacks.",
-        next:()=> "Permanent Cryo unlock" }
+        next:()=> "Permanent Cryo unlock" },
+      { id:"cryo_chill", name:"Deep Frost", maxRank:4, costs:[300,600,1000,1600],
+        desc:r=>`Cryo chill slows enemies ${5*r}% harder.`, next:r=>`+${5*(r+1)}% chill slow` },
+      { id:"cryo_reach", name:"Glacial Reach", maxRank:4, costs:[300,600,1000,1600],
+        desc:r=>`Cryo gains +${6*r}% range and larger chill field.`, next:r=>`+${6*(r+1)}% Cryo range/AoE` },
+      { id:"cryo_power", name:"Frostbite", maxRank:4, costs:[300,600,1000,1600],
+        desc:r=>`Cryo deals +${10*r}% damage.`, next:r=>`+${10*(r+1)}% Cryo damage` },
+      { id:"cryo_brittle", name:"Shatterpoint", maxRank:4, costs:[300,600,1000,1600],
+        desc:r=>`Cryo applies +${r} brittle stack${r===1?"":"s"} per hit.`, next:r=>`+${r+1} brittle per hit` }
     ]
   }
 ];
@@ -1233,6 +1241,11 @@ function leySpellCooldownMult(){ return Math.pow(0.90, getLeyRank("attuned_casti
 function hasAuraReroll(){ return getLeyRank("second_sight") > 0; }
 function leyCrystalGainMult(){ return 1 + 0.20 * getLeyRank("crystal_harvest"); }
 function getAuraDraftCount(){ return getLeyRank("luminous_awakening") > 0 ? 4 : 3; }
+/* Cryo permanent upgrades (applied at placement in createFreshUnitForPlacement) */
+function cryoChillMult(){ return Math.max(0, 1 - 0.05 * getLeyRank("cryo_chill")); }
+function cryoRangeMult(){ return 1 + 0.06 * getLeyRank("cryo_reach"); }
+function cryoDamageMult(){ return 1 + 0.10 * getLeyRank("cryo_power"); }
+function cryoBonusBrittle(){ return getLeyRank("cryo_brittle"); }
 
 function awardLeyCrystals(base, label, opts={}){
   const amount = Math.max(1, Math.round(base * leyCrystalGainMult()));
@@ -1241,7 +1254,7 @@ function awardLeyCrystals(base, label, opts={}){
   runLeyCrystalsEarned += amount;
   saveLeyState();
   scheduleLeySyncPush();
-  if(!opts.silent) pushNotification("gold","Ley Crystals",`+${amount} ✦ ${label}`);
+  if(!opts.silent) pushNotification("gold","Crystals",`+${amount} ✦ ${label}`);
   updateLeyBadges();
   return amount;
 }
@@ -1339,11 +1352,16 @@ window.addEventListener("pagehide", ()=>{
 function buyLeyTalent(nodeId){
   const def = getLeyNodeDef(nodeId);
   if(!def) return false;
+  const CRYO_UPGRADE_NODES = ["cryo_chill","cryo_reach","cryo_power","cryo_brittle"];
+  if(CRYO_UPGRADE_NODES.includes(nodeId) && !hasCryoUnlock()){
+    setMessage("Unlock the Cryo Tower first before enhancing it.");
+    return false;
+  }
   const rank = getLeyRank(nodeId);
   if(rank >= def.maxRank) return false;
   const cost = def.costs[rank];
   if(leyCrystals < cost){
-    setMessage(`Not enough Ley Crystals. ${def.name} needs ✦ ${cost}.`);
+    setMessage(`Not enough Crystals. ${def.name} needs ✦ ${cost}.`);
     return false;
   }
   leyCrystals -= cost;
@@ -1351,7 +1369,7 @@ function buyLeyTalent(nodeId){
   saveLeyState();
   scheduleLeySyncPush();
   tone("sine", 620, 940, .12, .02);
-  pushNotification("achievement","Ley Attunement",`${def.name} — rank ${rank+1}/${def.maxRank} unlocked.`);
+  pushNotification("achievement","Ascension",`${def.name} — rank ${rank+1}/${def.maxRank} unlocked.`);
   renderLeyOverlay();
   updateLeyBadges();
   if(nodeId === "cryo_tower"){
@@ -3221,7 +3239,18 @@ function createPlacedUnit(c,r,typeKey){
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
   unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0; unit.specBrittleStacks=1; unit.cryoTick=0;
+  if(typeKey==="cryo") applyCryoPermanentUpgrades(unit);
   return unit;
+}
+
+// Permanent, crystal-bought Cryo upgrades from the Ley "Special Towers" branch.
+// Applied to base stats at placement so they persist for this tower's whole life.
+function applyCryoPermanentUpgrades(unit){
+  const baseChill = unit.cryoChillFactor || 0.70;
+  unit.cryoChillFactor = Math.max(0.20, baseChill * cryoChillMult());
+  unit.range *= cryoRangeMult();
+  unit.damage *= cryoDamageMult();
+  unit.specBrittleStacks = (unit.specBrittleStacks || 1) + cryoBonusBrittle();
 }
 function takeReservedUnit(typeKey,c,r){
   if(!reservePool[typeKey] || reservePool[typeKey].length===0) return null;
@@ -3613,7 +3642,7 @@ function spawnEnemy(){
 function placeUnit(c,r){
   if(lives<=0) return;
   if(selectedUnitType === "cryo" && !hasCryoUnlock()){
-    setMessage("Cryo is locked. Unlock it permanently with 75 Ley Crystals in Ley Attunement.");
+    setMessage("Cryo is locked. Unlock it permanently with 150 Crystals in Ascension.");
     openLeyOverlay();
     return;
   }
@@ -3623,6 +3652,11 @@ function placeUnit(c,r){
 
   const existing=units.find(t=>t.c===c && t.r===r);
   if(existing){ selectedPlacedUnitId=existing.id; setPlacementHudAutoHide(false); setMessage(`You selected ${existing.name}.`); updateUI(); return; }
+
+  if(selectedUnitType === "cryo" && units.some(t=>t.type === "cryo")){
+    setMessage("Only one Cryo tower can be active at a time. Sell it to place another.");
+    return;
+  }
 
   const type=UNIT_TYPES[selectedUnitType];
   let unit=null, usedReserve=false;
@@ -4209,7 +4243,9 @@ function update(dt){
       unit.cryoTick = (unit.cryoTick || 0) - dt;
       if(unit.cryoTick <= 0){
         unit.cryoTick = unit.cryoTickInterval || 0.20;
-        const chillFactor = unit.specialization === "glacier" ? 0.55 : (unit.cryoChillFactor || 0.70);
+        const chillFactor = unit.specialization === "glacier"
+          ? Math.min(0.55, unit.cryoChillFactor || 0.70)
+          : (unit.cryoChillFactor || 0.70);
         for(const enemy of enemies){
           const enemyPos = getPathPosition(enemy.progress);
           if(distance(unitPos, enemyPos) <= stats.range){
@@ -4389,7 +4425,7 @@ function update(dt){
     const waveCrystals = awardLeyCrystals(currentMode === "endless" ? 3 : 2, "Wave cleared", { silent:true });
     maybeSaveDailyChallengeWave();
     armWaveCallBonus();
-    setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Ley Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Ley Crystals. Next wave: ${stageWave}.`);
+    setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
     updateUI();
   }
 }
@@ -7008,7 +7044,7 @@ function bindUnitSelectorButtons(buttonList){
       event.stopPropagation();
       const nextType = btn.dataset.type;
       if(nextType === "cryo" && !hasCryoUnlock()){
-        setMessage("Cryo is locked. Unlock it permanently with 75 Ley Crystals.");
+        setMessage("Cryo is locked. Unlock it permanently with 150 Crystals.");
         openLeyOverlay();
         return;
       }
@@ -7232,7 +7268,7 @@ document.addEventListener("keydown",(event)=>{
   else if(key === "4"){ selectedUnitType = "bomb"; }
   else if(key === "5"){
     if(!hasCryoUnlock()){
-      setMessage("Cryo is locked. Unlock it permanently with 75 Ley Crystals.");
+      setMessage("Cryo is locked. Unlock it permanently with 150 Crystals.");
       openLeyOverlay();
       return;
     }
