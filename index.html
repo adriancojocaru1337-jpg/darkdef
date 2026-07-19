@@ -234,12 +234,22 @@
                 <span class="audio-setting-switch" aria-hidden="true"><i></i></span>
                 <span class="audio-setting-state">On</span>
               </button>
+              <div class="audio-setting-volume-row">
+                <label for="effectsVolumeSlider" class="audio-setting-volume-label">Sound volume</label>
+                <input type="range" id="effectsVolumeSlider" class="audio-setting-slider" min="0" max="100" step="1" value="50" aria-label="Sound volume" />
+                <span class="audio-setting-volume-value" id="effectsVolumeValue">50%</span>
+              </div>
               <button class="audio-setting-row" id="musicToggle" type="button" aria-pressed="true">
                 <span class="audio-setting-glyph" aria-hidden="true">♫</span>
                 <span class="audio-setting-copy"><strong>Music</strong><small>Stage soundtrack</small></span>
                 <span class="audio-setting-switch" aria-hidden="true"><i></i></span>
                 <span class="audio-setting-state">On</span>
               </button>
+              <div class="audio-setting-volume-row">
+                <label for="musicVolumeSlider" class="audio-setting-volume-label">Music volume</label>
+                <input type="range" id="musicVolumeSlider" class="audio-setting-slider" min="0" max="100" step="1" value="100" aria-label="Music volume" />
+                <span class="audio-setting-volume-value" id="musicVolumeValue">100%</span>
+              </div>
             </div>
           </section>
           <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
@@ -257,6 +267,7 @@
 
           <div class="map-controls" id="mapControls">
             <button class="map-btn map-btn-start" id="startWaveBtn" title="Start Wave">✦</button>
+            <button class="map-btn map-btn-auto" id="autoPlayBtn" title="Auto Play: waves start automatically" aria-pressed="false"><span class="btn-label">Auto</span></button>
             <button class="map-btn map-btn-pause" id="pauseBtn" title="Pause"><span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span></button>
             <button class="map-btn map-btn-reset" id="resetBtn" title="Reset Run">✕</button>
             <button class="map-btn map-btn-camera" id="resetCameraBtn" title="Reset Camera">◉</button>

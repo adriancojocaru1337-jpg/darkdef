@@ -37,6 +37,10 @@ const audioSettingsPanel = document.getElementById("audioSettingsPanel");
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
 const masterSoundToggle = document.getElementById("masterSoundToggle");
 const musicToggle = document.getElementById("musicToggle");
+const effectsVolumeSlider = document.getElementById("effectsVolumeSlider");
+const effectsVolumeValue = document.getElementById("effectsVolumeValue");
+const musicVolumeSlider = document.getElementById("musicVolumeSlider");
+const musicVolumeValue = document.getElementById("musicVolumeValue");
 const hudToggleBtn = document.getElementById("hudToggleBtn");
 
 const enemyCountStat = document.getElementById("enemyCountStat");
@@ -69,6 +73,7 @@ const towerSellBtn = document.getElementById("towerSellBtn");
 const towerSpecializationPanel = document.getElementById("towerSpecializationPanel");
 
 const startWaveBtn = document.getElementById("startWaveBtn");
+const autoPlayBtn = document.getElementById("autoPlayBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const resetBtn = document.getElementById("resetBtn");
 const resetCameraBtn = document.getElementById("resetCameraBtn");
@@ -1017,22 +1022,38 @@ let reservePool = { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 const AUDIO_SETTINGS_STORAGE_KEY = "sdcAudioSettings";
+// effectsVolume defaults to 0.5 so combat SFX start at half of their old level;
+// music is a separate channel and stays at full by default.
+function clamp01(v){ return Math.max(0, Math.min(1, v)); }
 function loadAudioSettings(){
   try{
     const stored = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY) || "null");
     return {
       sound: stored?.sound !== false,
-      music: stored?.music !== false
+      music: stored?.music !== false,
+      effectsVolume: typeof stored?.effectsVolume === "number" ? clamp01(stored.effectsVolume) : 0.5,
+      musicVolume: typeof stored?.musicVolume === "number" ? clamp01(stored.musicVolume) : 1.0
     };
   }catch(e){
-    return { sound:true, music:true };
+    return { sound:true, music:true, effectsVolume:0.5, musicVolume:1.0 };
   }
 }
 let audioSettings = loadAudioSettings();
 function isMusicEnabled(){ return audioSettings.music; }
 function isEffectsEnabled(){ return audioSettings.sound; }
+function getEffectsVolume(){ return audioSettings.sound ? clamp01(audioSettings.effectsVolume) : 0; }
+function getMusicVolume(){ return audioSettings.music ? clamp01(audioSettings.musicVolume) : 0; }
 function saveAudioSettings(){
   try{ localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings)); }catch(e){}
+}
+// Push current volume settings to already-playing audio (SFX pools + music track).
+function applyLiveAudioVolumes(){
+  if(audioAssets){
+    Object.values(audioAssets).forEach((pool)=>{ pool.setVolume && pool.setVolume(); });
+  }
+  if(ambientState && ambientState.track){
+    ambientState.track.volume = STAGE_MUSIC_BASE_VOLUME * getMusicVolume();
+  }
 }
 let selectedSpell = null;
 const spellCooldown = { slow:0, damage:0, bomb:0 };
@@ -1890,6 +1911,10 @@ function resolveBossWaveCompletion(){
     if(currentMode === "campaign") wave += 1;
     money += 50;
     bonusScore += 80;
+    if(currentMode === "endless"){
+      rollEndlessMusicStage();
+      syncAmbientAudio();
+    }
     maybeSaveBestEndlessRun();
     maybeSaveDailyChallengeWave();
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
@@ -2133,6 +2158,14 @@ const STAGE_MUSIC_SOURCES = {
 };
 const STAGE_MUSIC_BASE_VOLUME = 0.16; // Godot's -16 dB resting level.
 const STAGE_MUSIC_SWELL_VOLUME = 0.285; // +5 dB boss-entry swell.
+// In endless, the soundtrack starts on stage 1's theme, then rerolls to a random
+// theme (never repeating the current one) after each boss pair is defeated.
+let endlessMusicStage = null;
+function rollEndlessMusicStage(){
+  const options = [1,2,3,4,5,6].filter(s => s !== endlessMusicStage);
+  endlessMusicStage = options[Math.floor(Math.random() * options.length)];
+  return endlessMusicStage;
+}
 let ambientState = {
   currentStage:null,
   track:null,
@@ -2148,16 +2181,18 @@ function createAudioPool(src, size, volume, loop=false){
   const items = Array.from({ length: size }, () => {
     const audio = new Audio(src);
     audio.preload = "auto";
-    audio.volume = volume;
+    audio.volume = clamp01(volume * getEffectsVolume());
     audio.loop = loop;
     return audio;
   });
   let index = 0;
   return {
+    baseVolume: volume,
     play(restart=true){
-      if(!isEffectsEnabled()) return;
+      if(!isEffectsEnabled() || getEffectsVolume() <= 0) return;
       const audio = items[index % items.length];
       index += 1;
+      audio.volume = clamp01(this.baseVolume * getEffectsVolume());
       if(restart) audio.currentTime = 0;
       audio.play().catch(()=>{});
     },
@@ -2170,6 +2205,11 @@ function createAudioPool(src, size, volume, loop=false){
     setMuted(value){
       for(const audio of items){
         audio.muted = value;
+      }
+    },
+    setVolume(){
+      for(const audio of items){
+        audio.volume = clamp01(this.baseVolume * getEffectsVolume());
       }
     },
     get first(){
@@ -2483,12 +2523,14 @@ function syncProceduralAmbientAudio(){
 function rampStageMusic(targetVolume, durationMs, token, onDone){
   const track = ambientState.track;
   if(!track || token !== ambientState.swellToken) return;
+  const mv = getMusicVolume();
   const from = track.volume;
+  const target = targetVolume * mv;
   const startedAt = performance.now();
   const step = (now) => {
     if(!ambientState.track || token !== ambientState.swellToken) return;
     const progress = Math.min(1, (now - startedAt) / Math.max(1, durationMs));
-    ambientState.track.volume = from + (targetVolume - from) * progress;
+    ambientState.track.volume = from + (target - from) * progress;
     if(progress < 1) requestAnimationFrame(step);
     else onDone?.();
   };
@@ -2511,7 +2553,9 @@ function syncAmbientAudio(){
     clearAmbientAudio();
     return;
   }
-  const stage = Math.min(6, Math.max(1, currentStage));
+  const stage = currentMode === "endless"
+    ? (endlessMusicStage || 1)
+    : Math.min(6, Math.max(1, currentStage));
   const src = STAGE_MUSIC_SOURCES[stage];
   if(!src) return;
   if(ambientState.currentStage === stage && ambientState.track){
@@ -2523,7 +2567,7 @@ function syncAmbientAudio(){
   const track = new Audio(src);
   track.preload = "auto";
   track.loop = true;
-  track.volume = STAGE_MUSIC_BASE_VOLUME;
+  track.volume = STAGE_MUSIC_BASE_VOLUME * getMusicVolume();
   track.muted = !isMusicEnabled();
   ambientState.currentStage = stage;
   ambientState.track = track;
@@ -2532,9 +2576,11 @@ function syncAmbientAudio(){
 
 function tone(type, a, b, d, v){
   if(!audioCtx || !isEffectsEnabled()) return;
+  const vol = v * getEffectsVolume();
+  if(vol <= 0.00001) return;
   const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.type=type; o.frequency.setValueAtTime(a,n); o.frequency.exponentialRampToValueAtTime(Math.max(40,b),n+d);
-  g.gain.setValueAtTime(.0001,n); g.gain.exponentialRampToValueAtTime(v,n+Math.min(d*.25,.02)); g.gain.exponentialRampToValueAtTime(.0001,n+d);
+  g.gain.setValueAtTime(.0001,n); g.gain.exponentialRampToValueAtTime(vol,n+Math.min(d*.25,.02)); g.gain.exponentialRampToValueAtTime(.0001,n+d);
   o.connect(g); g.connect(audioCtx.destination); o.start(n); o.stop(n+d);
 }
 function playShootSound(kind="arrow"){
@@ -2757,6 +2803,19 @@ function updateAudioSettingsUI(){
     row.classList.toggle("off", !enabled);
     const state = row.querySelector(".audio-setting-state");
     if(state) state.textContent = enabled ? "On" : "Off";
+  }
+
+  if(effectsVolumeSlider){
+    const pct = Math.round(clamp01(audioSettings.effectsVolume) * 100);
+    effectsVolumeSlider.value = String(pct);
+    effectsVolumeSlider.disabled = !audioSettings.sound;
+    if(effectsVolumeValue) effectsVolumeValue.textContent = `${pct}%`;
+  }
+  if(musicVolumeSlider){
+    const pct = Math.round(clamp01(audioSettings.musicVolume) * 100);
+    musicVolumeSlider.value = String(pct);
+    musicVolumeSlider.disabled = !audioSettings.music;
+    if(musicVolumeValue) musicVolumeValue.textContent = `${pct}%`;
   }
 
   if(!settingsToggleBtn) return;
@@ -3075,7 +3134,6 @@ function getBossCountForCurrentWave(){
 }
 
 function getWaveEnemyTotal(){
-  if(currentMode === "endless" && isCurrentWaveBoss()) return getBossCountForCurrentWave();
   return enemyCountForWave(stageWave) + getBossCountForCurrentWave();
 }
 
@@ -3155,6 +3213,7 @@ function enterEndlessModeFromUnlock(){
   pendingEndlessBossPair = [];
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
+  endlessMusicStage = 1;
   syncAmbientAudio();
   saveProgress();
   setMessage("Endless Mode begins. Your defenses hold the Dark Portal. Re-place your reserve towers for free.");
@@ -3201,6 +3260,7 @@ function startDailyChallenge(){
   pendingEndlessBossPair = [];
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
+  endlessMusicStage = 1;
   stageStartLives = lives;
   isPaused = false;
 
@@ -3587,6 +3647,23 @@ function togglePause(){
   updateUI();
 }
 
+let autoPlay = (()=>{ try{ return localStorage.getItem("sdcAutoPlay") === "1"; }catch(e){ return false; } })();
+const AUTO_PLAY_DELAY = 1.5; // seconds of idle before the next wave auto-starts
+let autoPlayTimer = AUTO_PLAY_DELAY;
+function updateAutoPlayUI(){
+  if(!autoPlayBtn) return;
+  autoPlayBtn.classList.toggle("active", autoPlay);
+  autoPlayBtn.setAttribute("aria-pressed", String(autoPlay));
+  autoPlayBtn.title = autoPlay ? "Auto Play: ON — waves start automatically" : "Auto Play: OFF";
+}
+function toggleAutoPlay(){
+  autoPlay = !autoPlay;
+  try{ localStorage.setItem("sdcAutoPlay", autoPlay ? "1" : "0"); }catch(e){}
+  setMessage(autoPlay ? "Auto Play on — waves will start automatically." : "Auto Play off.");
+  updateAutoPlayUI();
+  updateUI();
+}
+
 function getBossHpBonus(stageNumber){
   if(stageNumber >= 1 && stageNumber <= 2) return 1.10;
   if(stageNumber >= 3 && stageNumber <= 4) return 1.20;
@@ -3633,7 +3710,9 @@ function enemyTemplateForSpawn(indexFromEnd){
 function spawnEnemy(){
   const t=enemyTemplateForSpawn(spawnLeft), hpBase=44+Math.max(wave, stageWave)*13+currentStage*9;
   const dcHp = dcEnemyHpMult(), dcSpd = dcEnemySpeedMult();
-  const scaledHp = hpBase*t.hpMult*dcHp;
+  // Endless mobs are twice as tough (bosses already scale via the endless cycle).
+  const endlessHpMult = (currentMode === "endless" && t.type !== "boss") ? 2 : 1;
+  const scaledHp = hpBase*t.hpMult*dcHp*endlessHpMult;
   const enemy = { id:idCounter++, hp:scaledHp, maxHp:scaledHp, speed:t.speed*dcSpd, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
@@ -3652,6 +3731,8 @@ function placeUnit(c,r){
 
   const existing=units.find(t=>t.c===c && t.r===r);
   if(existing){ selectedPlacedUnitId=existing.id; setPlacementHudAutoHide(false); setMessage(`You selected ${existing.name}.`); updateUI(); return; }
+
+  if(isPaused){ setMessage("You cannot place towers while the game is paused. Press play to resume."); return; }
 
   if(selectedUnitType === "cryo" && units.some(t=>t.type === "cryo")){
     setMessage("Only one Cryo tower can be active at a time. Sell it to place another.");
@@ -3720,7 +3801,7 @@ function upgradeSelectedUnit(){
   }
   if(money<unit.nextUpgradeCost){ setMessage("You do not have enough gold for the upgrade."); return; }
   money-=unit.nextUpgradeCost; unit.totalSpent+=unit.nextUpgradeCost; unit.level+=1;
-  unit.damage*=unit.type==="bomb"?1.70:1.55; unit.range*=1.10; unit.fireRate*=.92;
+  unit.damage*=unit.type==="bomb"?1.50:1.40; unit.range*=1.10; unit.fireRate*=.95;
   if(unit.projectileSpeed) unit.projectileSpeed*=1.06;
   if(unit.splash) unit.splash*=1.10;
   unit.nextUpgradeCost=Math.round(unit.nextUpgradeCost*1.65);
@@ -4124,6 +4205,15 @@ function update(dt){
   if(!waveActive && waveCallBonus > 0 && hasStarted && lives > 0 && !pendingAuraChoice && !pendingBossResolution){
     waveCallBonus = Math.max(0, waveCallBonus - (waveCallBonusMax / WAVE_CALL_DECAY_SECONDS) * dt);
   }
+  // Auto Play: when idle between waves, start the next wave after a short delay.
+  if(autoPlay && !waveActive && hasStarted && lives > 0 && !isPaused
+      && !pendingAuraChoice && !pendingBossResolution
+      && stageQuoteResolveTimer <= 0 && bossDefeatIntroTimer <= 0){
+    autoPlayTimer -= dt;
+    if(autoPlayTimer <= 0){ startWave(); autoPlayTimer = AUTO_PLAY_DELAY; }
+  } else {
+    autoPlayTimer = AUTO_PLAY_DELAY;
+  }
   bossBannerTimer=Math.max(0,bossBannerTimer-dt);
   bossFxTimer=Math.max(0,bossFxTimer-dt);
   bossTelegraphTimer=Math.max(0,bossTelegraphTimer-dt);
@@ -4398,7 +4488,7 @@ function update(dt){
 
     if(isCurrentWaveBoss()){
       addScore(500,lives*25);
-      const bossCrystals = currentMode === "campaign" ? 8 + 4 * currentStage : 25;
+      const bossCrystals = currentMode === "campaign" ? 8 + 4 * currentStage : 15;
       awardLeyCrystals(bossCrystals, currentMode === "campaign" ? `${STAGE_BOSS[currentStage]?.name || "Boss"} defeated` : "Endless boss pair defeated");
       if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
 
@@ -4422,7 +4512,7 @@ function update(dt){
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
     bonusScore += 20;
-    const waveCrystals = awardLeyCrystals(currentMode === "endless" ? 3 : 2, "Wave cleared", { silent:true });
+    const waveCrystals = awardLeyCrystals(currentMode === "endless" ? 1 : 2, "Wave cleared", { silent:true });
     maybeSaveDailyChallengeWave();
     armWaveCallBonus();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
@@ -7079,6 +7169,7 @@ towerSpecializationPanel?.addEventListener("click",(event)=>{
   applySpecializationToSelectedUnit(btn.dataset.specId);
 });
 startWaveBtn.addEventListener("click",startWave);
+autoPlayBtn?.addEventListener("click",toggleAutoPlay);
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
 
@@ -7161,6 +7252,7 @@ window.addEventListener("resize", syncEndlessUnlockArtworkBounds);
 endlessUnlockArtworkImage?.addEventListener("load", syncEndlessUnlockArtworkBounds);
 
 updateAudioSettingsUI();
+updateAutoPlayUI();
 applyHudVisibility();
 applyStage(1,true);
 loadPanelUserSession();
@@ -7214,6 +7306,21 @@ settingsToggleBtn?.addEventListener("click",(event)=>{
 settingsCloseBtn?.addEventListener("click",()=>setAudioSettingsPanelOpen(false));
 masterSoundToggle?.addEventListener("click",()=>toggleAudioSetting("sound", "Sound"));
 musicToggle?.addEventListener("click",()=>toggleAudioSetting("music", "Music"));
+effectsVolumeSlider?.addEventListener("input",(e)=>{
+  ensureAudio();
+  audioSettings.effectsVolume = clamp01((parseInt(e.target.value,10)||0) / 100);
+  if(effectsVolumeValue) effectsVolumeValue.textContent = `${Math.round(audioSettings.effectsVolume*100)}%`;
+  applyLiveAudioVolumes();
+  saveAudioSettings();
+});
+effectsVolumeSlider?.addEventListener("change",()=>{ tone("sine", 520, 620, .08, .05); });
+musicVolumeSlider?.addEventListener("input",(e)=>{
+  ensureAudio();
+  audioSettings.musicVolume = clamp01((parseInt(e.target.value,10)||0) / 100);
+  if(musicVolumeValue) musicVolumeValue.textContent = `${Math.round(audioSettings.musicVolume*100)}%`;
+  applyLiveAudioVolumes();
+  saveAudioSettings();
+});
 
 document.addEventListener("keydown",(event)=>{
   const activeTag = document.activeElement?.tagName;
