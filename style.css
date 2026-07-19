@@ -2642,6 +2642,7 @@ kbd{
 .unit-role-tag.power{color:#ffedd5;background:rgba(251,146,60,.14);border-color:rgba(251,146,60,.22)}
 .unit-role-tag.splash{color:#ede9fe;background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.22)}
 .unit-role-tag.blast{color:#fee2e2;background:rgba(251,113,133,.14);border-color:rgba(251,113,133,.22)}
+.unit-role-tag.cryo{color:#cffafe;background:rgba(34,211,238,.14);border-color:rgba(103,232,249,.28)}
 .unit-cost-badge{
   min-width:42px;
   text-align:center;
@@ -2652,6 +2653,29 @@ kbd{
   color:#d7b06a;
   background:rgba(250,204,21,.08);
   border:1px solid rgba(250,204,21,.16);
+}
+
+.unit-info-card.unit-locked{
+  border-color:rgba(103,232,249,.16);
+  filter:saturate(.72);
+}
+
+.unit-info-card.unit-locked:hover{
+  border-color:rgba(103,232,249,.42);
+  filter:saturate(1);
+}
+
+.unit-info-card.unit-locked .unit-info-top strong::after{
+  content:"  LOCKED";
+  color:#7dd3fc;
+  font-size:9px;
+  letter-spacing:.08em;
+}
+
+.unit-cost-badge.crystal-cost{
+  color:#cffafe;
+  border-color:rgba(94,234,212,.34);
+  background:rgba(13,148,136,.16);
 }
 .unit-bar-group{display:grid;gap:7px;margin:10px 0 8px}
 .unit-bar{
@@ -3644,7 +3668,7 @@ kbd {
 .ley-balance-label{font-size:.85rem;font-weight:600;color:var(--muted);letter-spacing:.04em}
 
 .ley-branches{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-bottom:16px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;text-align:left;margin-bottom:16px;
 }
 .ley-branch{
   border:1px solid rgba(178,144,88,.18);border-radius:16px;padding:14px;

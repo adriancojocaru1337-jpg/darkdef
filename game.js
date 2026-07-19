@@ -121,14 +121,16 @@ const reserveBadgeEls = {
   archer: null,
   hunter: null,
   mage: null,
-  bomb: null
+  bomb: null,
+  cryo: null
 };
 
 const reservePanelEls = {
   archer: document.getElementById("panel-reserve-archer"),
   hunter: document.getElementById("panel-reserve-hunter"),
   mage: document.getElementById("panel-reserve-mage"),
-  bomb: document.getElementById("panel-reserve-bomb")
+  bomb: document.getElementById("panel-reserve-bomb"),
+  cryo: document.getElementById("panel-reserve-cryo")
 };
 const reserveLevelEls = {};
 const mobileLayoutMedia = window.matchMedia("(max-width: 700px)");
@@ -137,7 +139,8 @@ const UNIT_CARD_META = {
   archer:{emoji:"🏹", role:"Fast", roleClass:"", summary:"Fast single-target damage"},
   hunter:{emoji:"🎯", role:"Power", roleClass:"power", summary:"Heavy precision shots"},
   mage:{emoji:"🔮", role:"Splash", roleClass:"splash", summary:"AoE magic damage"},
-  bomb:{emoji:"💣", role:"Blast", roleClass:"blast", summary:"Splash burst tower"}
+  bomb:{emoji:"💣", role:"Blast", roleClass:"blast", summary:"Splash burst tower"},
+  cryo:{emoji:"❄", role:"Control", roleClass:"cryo", summary:"Chill field · brittle stacks"}
 };
 
 function clampPercent(value){
@@ -200,7 +203,14 @@ function refreshUnitShopCards(){
       roleEl.textContent = meta.role;
       roleEl.className = `unit-role-tag ${meta.roleClass}`.trim();
     }
-    if(costEl) costEl.textContent = String(unit.cost);
+    const cryoLocked = type === "cryo" && !hasCryoUnlock();
+    card.classList.toggle("unit-locked", cryoLocked);
+    card.setAttribute("aria-disabled", cryoLocked ? "true" : "false");
+    card.title = cryoLocked ? "Unlock Cryo permanently with 75 Ley Crystals." : "";
+    if(costEl){
+      costEl.textContent = cryoLocked ? "✦ 75" : String(unit.cost);
+      costEl.classList.toggle("crystal-cost", cryoLocked);
+    }
     if(barRows[0]){
       const dmgLabelEl = barRows[0].querySelector('span');
       if(dmgLabelEl) dmgLabelEl.textContent = `DMG ${Math.round(unit.damage)}`;
@@ -211,7 +221,7 @@ function refreshUnitShopCards(){
     }
     if(barEls[0]) barEls[0].style.setProperty('--fill', clampPercent((unit.damage / maxDamage) * 100));
     if(barEls[1]) barEls[1].style.setProperty('--fill', clampPercent((unit.range / maxRange) * 100));
-    if(metaEl) metaEl.textContent = `${meta.summary}`;
+    if(metaEl) metaEl.textContent = cryoLocked ? "Permanent unlock · 75 Ley Crystals" : `${meta.summary}`;
   });
 }
 
@@ -305,6 +315,48 @@ function loadTowerSprites(){
   });
 }
 loadTowerSprites();
+
+// Directional mob artwork exported from the Godot version. Front is used while
+// moving down, back while moving up, and side while moving horizontally.
+const enemyArtSources = {
+  normal: {
+    front: "assets/enemies/normal_rig_source.png",
+    side: "assets/enemies/normal_side_rig_source.png",
+    back: "assets/enemies/normal_back_rig_source.png"
+  },
+  fast: {
+    front: "assets/enemies/fast_rig_source.png",
+    side: "assets/enemies/fast_side_rig_source.png",
+    back: "assets/enemies/fast_back_rig_source.png"
+  },
+  armored: {
+    front: "assets/enemies/armored_rig_source.png",
+    side: "assets/enemies/armored_side_rig_source.png",
+    back: "assets/enemies/armored_back_rig_source.png"
+  },
+  tank: {
+    front: "assets/enemies/tank_rig_source.png",
+    side: "assets/enemies/tank_side_rig_source.png",
+    back: "assets/enemies/tank_back_rig_source.png"
+  },
+  splitter: {
+    front: "assets/enemies/splitter_rig_source.png",
+    side: "assets/enemies/splitter_side_rig_source.png",
+    back: "assets/enemies/splitter_back_rig_source.png"
+  }
+};
+const enemyArt = {};
+function loadEnemyArt(){
+  Object.entries(enemyArtSources).forEach(([type, views]) => {
+    enemyArt[type] = {};
+    Object.entries(views).forEach(([view, src]) => {
+      const img = new Image();
+      img.src = src;
+      enemyArt[type][view] = img;
+    });
+  });
+}
+loadEnemyArt();
 
 const bossSplashSources = {
   1: "assets/ui/boss-stage1.jpg",
@@ -412,10 +464,9 @@ const UNIT_TYPES = {
   archer:{name:"Archer",cost:90,range:122,fireRate:.72,damage:30,projectileSpeed:450,color:"#34d399",hood:"#065f46",upgradeCost:105,sellFactor:.8,kind:"arrow"},
   hunter:{name:"Hunter",cost:190,range:186,fireRate:1.24,damage:76,projectileSpeed:520,color:"#f59e0b",hood:"#78350f",upgradeCost:215,sellFactor:.8,kind:"arrow"},
   mage:{name:"Mage",cost:235,range:156,fireRate:1.08,damage:54,projectileSpeed:400,color:"#a78bfa",hood:"#5b21b6",upgradeCost:230,sellFactor:.82,kind:"magic",splash:52},
-  bomb:{name:"Bomb Tower",cost:305,range:145,fireRate:1.7,damage:104,projectileSpeed:315,color:"#ef4444",hood:"#7f1d1d",upgradeCost:345,sellFactor:.84,kind:"bomb",splash:68}
+  bomb:{name:"Bomb Tower",cost:305,range:145,fireRate:1.7,damage:104,projectileSpeed:315,color:"#ef4444",hood:"#7f1d1d",upgradeCost:345,sellFactor:.84,kind:"bomb",splash:68},
+  cryo:{name:"Cryo",cost:160,range:150,fireRate:1.0,damage:22,projectileSpeed:430,color:"#38bdf8",hood:"#0e7490",upgradeCost:175,sellFactor:.82,kind:"magic",cryoChillFactor:.70,cryoTickInterval:.20,cryoSlowDuration:.35,specBrittleStacks:1}
 };
-
-refreshUnitShopCards();
 
 const TOWER_SPECIALIZATIONS = {
   archer: {
@@ -523,6 +574,31 @@ const TOWER_SPECIALIZATIONS = {
         unit.specStunDuration = 0.60;
       }
     }
+  },
+  cryo: {
+    glacier: {
+      id:"glacier",
+      name:"Glacier",
+      short:"Deeper chill · wider field",
+      costMult:1.35,
+      statLabel:"Chill 55% / Range↑",
+      apply(unit){
+        unit.range *= 1.20;
+        unit.damage *= 1.05;
+        unit.cryoChillFactor = 0.55;
+      }
+    },
+    shatter: {
+      id:"shatter",
+      name:"Shatter",
+      short:"2 brittle stacks per hit",
+      costMult:1.35,
+      statLabel:"Brittle×2 / DMG↑",
+      apply(unit){
+        unit.damage *= 1.15;
+        unit.specBrittleStacks = 2;
+      }
+    }
   }
 };
 
@@ -540,7 +616,9 @@ function getSpecializationIcon(specId){
     frost: "❄",
     arc: "⚡",
     demolition: "✹",
-    shock: "✦"
+    shock: "✦",
+    glacier: "❄",
+    shatter: "◆"
   };
   return icons[specId] || "✦";
 }
@@ -554,7 +632,9 @@ function getSpecializationTheme(specId){
     frost: { fill:"rgba(14,116,144,.90)", stroke:"rgba(103,232,249,.84)", icon:"#ecfeff", glow:"rgba(6,182,212,.30)", panel:"rgba(6,182,212,.18)", panelBorder:"rgba(103,232,249,.46)" },
     arc: { fill:"rgba(91,33,182,.90)", stroke:"rgba(196,181,253,.84)", icon:"#f5f3ff", glow:"rgba(139,92,246,.30)", panel:"rgba(139,92,246,.18)", panelBorder:"rgba(196,181,253,.46)" },
     demolition: { fill:"rgba(153,27,27,.90)", stroke:"rgba(252,165,165,.84)", icon:"#fef2f2", glow:"rgba(239,68,68,.30)", panel:"rgba(239,68,68,.18)", panelBorder:"rgba(252,165,165,.46)" },
-    shock: { fill:"rgba(133,77,14,.92)", stroke:"rgba(253,224,71,.84)", icon:"#fefce8", glow:"rgba(234,179,8,.30)", panel:"rgba(234,179,8,.18)", panelBorder:"rgba(253,224,71,.46)" }
+    shock: { fill:"rgba(133,77,14,.92)", stroke:"rgba(253,224,71,.84)", icon:"#fefce8", glow:"rgba(234,179,8,.30)", panel:"rgba(234,179,8,.18)", panelBorder:"rgba(253,224,71,.46)" },
+    glacier: { fill:"rgba(14,116,144,.92)", stroke:"rgba(165,243,252,.88)", icon:"#ecfeff", glow:"rgba(34,211,238,.34)", panel:"rgba(6,182,212,.20)", panelBorder:"rgba(103,232,249,.52)" },
+    shatter: { fill:"rgba(30,64,175,.92)", stroke:"rgba(191,219,254,.88)", icon:"#eff6ff", glow:"rgba(59,130,246,.34)", panel:"rgba(59,130,246,.20)", panelBorder:"rgba(147,197,253,.52)" }
   };
   return themes[specId] || { fill:"rgba(30,41,59,.92)", stroke:"rgba(196,181,253,.46)", icon:"rgba(196,181,253,.98)", glow:"rgba(139,92,246,.22)", panel:"rgba(139,92,246,.16)", panelBorder:"rgba(196,181,253,.36)" };
 }
@@ -901,7 +981,7 @@ let stageQuoteSubtext = "";
 let stageQuoteResolveTimer = 0;
 let auraBindFxTimer = 0;
 let auraBindFxUnitId = null;
-let reservePool = { archer:[], hunter:[], mage:[], bomb:[] };
+let reservePool = { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
 let isMuted = false;
@@ -1025,6 +1105,15 @@ const LEY_TALENT_BRANCHES = [
         desc:()=> "Boss aura drafts reveal all 4 auras instead of 3.",
         next:()=> "Draft shows all auras" }
     ]
+  },
+  {
+    id:"special_towers", name:"Special Towers", icon:"❄", color:"#38bdf8",
+    tagline:"Unlock rare defenses with Ley Crystals.",
+    nodes:[
+      { id:"cryo_tower", name:"Cryo Tower", maxRank:1, costs:[75],
+        desc:()=> "Permanently unlocked · chill field · brittle stacks.",
+        next:()=> "Permanent Cryo unlock" }
+    ]
   }
 ];
 
@@ -1075,6 +1164,10 @@ function getLeyRank(nodeId){
   const raw = parseInt(leyTalents[nodeId],10) || 0;
   return Math.max(0, Math.min(def.maxRank, raw));
 }
+
+function hasCryoUnlock(){ return getLeyRank("cryo_tower") > 0; }
+
+refreshUnitShopCards();
 
 /* --- effect helpers (single source of truth for all hooks) --- */
 function leyDamageMult(){ return 1 + 0.04 * getLeyRank("radiant_edge"); }
@@ -1212,6 +1305,9 @@ function buyLeyTalent(nodeId){
   pushNotification("achievement","Ley Attunement",`${def.name} — rank ${rank+1}/${def.maxRank} unlocked.`);
   renderLeyOverlay();
   updateLeyBadges();
+  if(nodeId === "cryo_tower"){
+    setMessage("Cryo Tower permanently unlocked. It now costs 160 gold to place in a run.");
+  }
   return true;
 }
 
@@ -1251,6 +1347,7 @@ function updateLeyBadges(){
   if(panelHeaderLeyBalance) panelHeaderLeyBalance.textContent = String(leyCrystals);
   panelHeaderLeyBtn?.classList.toggle("ley-glow", affordable);
   openLeyBtn?.classList.toggle("ley-glow", affordable);
+  refreshUnitShopCards();
 }
 
 function renderLeyOverlay(){
@@ -1369,7 +1466,8 @@ const SYNERGY_CONFIG = {
   archer: { name:"Volley Drill",   icon:"🏹", color:"#34d399", desc:"+8% attack speed" },
   hunter: { name:"Marked Targets", icon:"🎯", color:"#f59e0b", desc:"+8% damage" },
   mage:   { name:"Arcane Insight", icon:"🔮", color:"#a78bfa", desc:"+6% range" },
-  bomb:   { name:"Shrapnel Craft", icon:"💣", color:"#fb7185", desc:"+10% splash radius" }
+  bomb:   { name:"Shrapnel Craft", icon:"💣", color:"#fb7185", desc:"+10% splash radius" },
+  cryo:   { name:"Cryo Fracture",  icon:"❄", color:"#38bdf8", desc:"+12% allied damage" }
 };
 function getUnitSynergies(unit, cOverride, rOverride, typeOverride){
   const c = cOverride ?? unit?.c, r = rOverride ?? unit?.r, myType = typeOverride ?? unit?.type;
@@ -1390,6 +1488,7 @@ function applySynergiesToStats(stats, unit){
     else if(t === "hunter") stats.damage *= 1.08;
     else if(t === "mage") stats.range *= 1.06;
     else if(t === "bomb" && stats.splash > 0) stats.splash *= 1.10;
+    else if(t === "cryo" && unit.type !== "cryo") stats.damage *= 1.12;
   }
   return stats;
 }
@@ -1477,6 +1576,14 @@ function applySpecializationStatusOnEnemy(enemy, unit, pos, damageDone=0){
   }
 }
 
+function applyCryoBrittle(enemy, unit, pos){
+  if(!enemy || !unit || unit.type !== "cryo") return;
+  const stacks = Math.max(1, unit.specBrittleStacks || 1);
+  enemy.brittleStacks = Math.min(5, (enemy.brittleStacks || 0) + stacks);
+  enemy.brittleTimer = 2.5;
+  if(pos && enemy.brittleStacks === 5) showPopup(pos.x, pos.y - 22, "Brittle ×5", "#67e8f9");
+}
+
 function triggerSpecializationChain(sourceEnemy, sourceUnit, sourcePos){
   if(!sourceEnemy || !sourceUnit || sourceUnit.type !== "mage" || sourceUnit.specialization !== "arc") return;
   const jumps = sourceUnit.specChainTargets || 0;
@@ -1493,10 +1600,11 @@ function triggerSpecializationChain(sourceEnemy, sourceUnit, sourcePos){
       .sort((a,b)=>a.dist-b.dist)[0];
     if(!next) break;
     visited.add(next.enemy.id);
-    next.enemy.hp -= chainDamage;
-    markEnemyHit(next.enemy, sourceUnit, chainDamage);
+    const finalChainDamage = chainDamage * getDamageMultiplierAgainstEnemy(next.enemy, "mage");
+    next.enemy.hp -= finalChainDamage;
+    markEnemyHit(next.enemy, sourceUnit, finalChainDamage);
     addHitParticles(next.pos.x, next.pos.y, 7, "#c4b5fd");
-    showPopup(next.pos.x, next.pos.y - 12, `-${Math.round(chainDamage)}`, "#c4b5fd");
+    showPopup(next.pos.x, next.pos.y - 12, `-${Math.round(finalChainDamage)}`, "#c4b5fd");
     currentPos = next.pos;
   }
 }
@@ -1518,16 +1626,18 @@ function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
       .sort((a,b)=>a.dist-b.dist)[0];
     if(!next) break;
     visited.add(next.enemy.id);
-    next.enemy.hp -= chainDamage;
-    markEnemyHit(next.enemy, sourceUnit, chainDamage);
+    if(sourceUnit.type === "cryo") applyCryoBrittle(next.enemy, sourceUnit, next.pos);
+    const finalChainDamage = chainDamage * getDamageMultiplierAgainstEnemy(next.enemy, sourceUnit.type);
+    next.enemy.hp -= finalChainDamage;
+    markEnemyHit(next.enemy, sourceUnit, finalChainDamage);
     addHitParticles(next.pos.x, next.pos.y, 8, "#fde047");
-    showPopup(next.pos.x, next.pos.y - 10, `-${Math.round(chainDamage)}`, "#fde047");
+    showPopup(next.pos.x, next.pos.y - 10, `-${Math.round(finalChainDamage)}`, "#fde047");
     particles.push({ x:next.pos.x, y:next.pos.y, vx:0, vy:0, life:.12, maxLife:.12, color:"#fde047" });
     currentPos = next.pos;
     jumpsDone += 1;
   }
   if(jumpsDone === 0 && sourceEnemy){
-    const bonusDamage = stats.damage * 0.20;
+    const bonusDamage = stats.damage * 0.20 * getBrittleDamageMultiplier(sourceEnemy);
     sourceEnemy.hp -= bonusDamage;
     markEnemyHit(sourceEnemy, sourceUnit, bonusDamage);
     addHitParticles(sourcePos.x, sourcePos.y, 6, "#fde047");
@@ -1545,10 +1655,11 @@ function triggerInfernoExplosion(deadEnemy){
     if(enemy.id === deadEnemy.id) continue;
     const pos = getPathPosition(enemy.progress);
     if(distance(center, pos) <= 55){
-      enemy.hp -= dmg;
-      if(owner) markEnemyHit(enemy, owner, dmg);
+      const finalDamage = dmg * getBrittleDamageMultiplier(enemy);
+      enemy.hp -= finalDamage;
+      if(owner) markEnemyHit(enemy, owner, finalDamage);
       addHitParticles(pos.x, pos.y, 8, "#fb923c");
-      showPopup(pos.x, pos.y - 12, `-${Math.round(dmg)}`, "#fb923c");
+      showPopup(pos.x, pos.y - 12, `-${Math.round(finalDamage)}`, "#fb923c");
     }
   }
   burstSpellParticles(center.x, center.y, "#fdba74", "#fb923c", 20);
@@ -1945,7 +2056,26 @@ function requestLeaderboardName(modeLabel, helperText){
 
 let audioCtx = null;
 let audioAssets = null;
-let ambientState = { currentStage:null, masterGain:null, nodes:[], intervals:[], noiseBuffer:null };
+const STAGE_MUSIC_SOURCES = {
+  1: "assets/music/stage_1.ogg",
+  2: "assets/music/stage_2.ogg",
+  3: "assets/music/stage_3.ogg",
+  4: "assets/music/stage_4.ogg",
+  5: "assets/music/stage_5.ogg",
+  6: "assets/music/stage_6.ogg"
+};
+const STAGE_MUSIC_BASE_VOLUME = 0.16; // Godot's -16 dB resting level.
+const STAGE_MUSIC_SWELL_VOLUME = 0.285; // +5 dB boss-entry swell.
+let ambientState = {
+  currentStage:null,
+  track:null,
+  swellToken:0,
+  swellTimers:[],
+  masterGain:null,
+  nodes:[],
+  intervals:[],
+  noiseBuffer:null
+};
 
 function createAudioPool(src, size, volume, loop=false){
   const items = Array.from({ length: size }, () => {
@@ -1992,25 +2122,15 @@ function ensureAudio(){
     audioAssets = {
       arrow: createAudioPool("archer_hunter_shot.mp3", 8, 0.55),
       mage: createAudioPool("mage_shot.mp3", 8, 0.55),
-      upgrade: createAudioPool("upgrade.mp3", 4, 0.72),
-      boss: createAudioPool("boss_entry.mp3", 1, 0.65, true)
+      upgrade: createAudioPool("upgrade.mp3", 4, 0.72)
     };
-  }
-  if(audioCtx && !ambientState.noiseBuffer){
-    const length = Math.max(1, Math.floor(audioCtx.sampleRate * 2.5));
-    const buffer = audioCtx.createBuffer(1, length, audioCtx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let last = 0;
-    for(let i=0;i<length;i++){
-      const white = Math.random() * 2 - 1;
-      last = (last + (0.035 * white)) / 1.035;
-      data[i] = last * 3.5;
-    }
-    ambientState.noiseBuffer = buffer;
   }
 }
 
 function clearAmbientAudio(){
+  ambientState.swellToken += 1;
+  ambientState.swellTimers.forEach(id=>clearTimeout(id));
+  ambientState.swellTimers = [];
   ambientState.intervals.forEach(id=>clearInterval(id));
   ambientState.intervals = [];
   ambientState.nodes.forEach(node=>{
@@ -2022,6 +2142,12 @@ function clearAmbientAudio(){
     try{ ambientState.masterGain.disconnect(); }catch(e){}
   }
   ambientState.masterGain = null;
+  if(ambientState.track){
+    ambientState.track.pause();
+    ambientState.track.currentTime = 0;
+    ambientState.track = null;
+  }
+  ambientState.currentStage = null;
 }
 
 function createAmbientNoise({ type="lowpass", frequency=800, q=0.0001, gain=0.05, playbackRate=1 } = {}){
@@ -2188,7 +2314,7 @@ function scheduleRareAmbientEvent(stage, minMs, maxMs){
   ambientState.intervals.push(id);
 }
 
-function syncAmbientAudio(){
+function syncProceduralAmbientAudio(){
   clearAmbientAudio();
   if(!audioCtx || isMuted) return;
 
@@ -2286,6 +2412,56 @@ function syncAmbientAudio(){
   }
 }
 
+function rampStageMusic(targetVolume, durationMs, token, onDone){
+  const track = ambientState.track;
+  if(!track || token !== ambientState.swellToken) return;
+  const from = track.volume;
+  const startedAt = performance.now();
+  const step = (now) => {
+    if(!ambientState.track || token !== ambientState.swellToken) return;
+    const progress = Math.min(1, (now - startedAt) / Math.max(1, durationMs));
+    ambientState.track.volume = from + (targetVolume - from) * progress;
+    if(progress < 1) requestAnimationFrame(step);
+    else onDone?.();
+  };
+  requestAnimationFrame(step);
+}
+
+function startMusicSwell(){
+  if(isMuted || !ambientState.track || ambientState.track.paused) return;
+  const token = ++ambientState.swellToken;
+  rampStageMusic(STAGE_MUSIC_SWELL_VOLUME, 600, token, () => {
+    const hold = setTimeout(() => {
+      rampStageMusic(STAGE_MUSIC_BASE_VOLUME, 3000, token);
+    }, 2200);
+    ambientState.swellTimers.push(hold);
+  });
+}
+
+function syncAmbientAudio(){
+  if(isMuted || !hasStarted){
+    clearAmbientAudio();
+    return;
+  }
+  const stage = Math.min(6, Math.max(1, currentStage));
+  const src = STAGE_MUSIC_SOURCES[stage];
+  if(!src) return;
+  if(ambientState.currentStage === stage && ambientState.track){
+    ambientState.track.muted = false;
+    if(ambientState.track.paused) ambientState.track.play().catch(()=>{});
+    return;
+  }
+  clearAmbientAudio();
+  const track = new Audio(src);
+  track.preload = "auto";
+  track.loop = true;
+  track.volume = STAGE_MUSIC_BASE_VOLUME;
+  track.muted = isMuted;
+  ambientState.currentStage = stage;
+  ambientState.track = track;
+  track.play().catch(()=>{});
+}
+
 function tone(type, a, b, d, v){
   if(!audioCtx || isMuted) return;
   const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
@@ -2338,16 +2514,10 @@ function playWaveSound(){ tone("sine",480,760,.18,.03); }
 function playUpgradeSound(){ ensureAudio(); audioAssets.upgrade.play(); }
 function startBossLoop(){
   ensureAudio();
-  if(isMuted || !audioAssets) return;
-  const bossAudio = audioAssets.boss.first;
-  if(bossAudio.paused){
-    bossAudio.currentTime = 0;
-    bossAudio.play().catch(()=>{});
-  }
+  if(isMuted) return;
+  startMusicSwell();
 }
-function stopBossLoop(){
-  if(audioAssets) audioAssets.boss.stop();
-}
+function stopBossLoop(){}
 function syncBossLoop(){
   if(enemies.some(enemy => enemy.type === "boss")) startBossLoop();
   else stopBossLoop();
@@ -2415,12 +2585,17 @@ function getWaveThreatProfile(){
 
 function getDamageMultiplierAgainstEnemy(enemy, projectileType){
   if(!enemy) return 1;
+  let multiplier = 1;
   if(enemy.type === "armored"){
-    if(projectileType === "archer" || projectileType === "hunter") return 0.68;
-    if(projectileType === "mage") return 1.18;
-    if(projectileType === "bomb") return 1.28;
+    if(projectileType === "archer" || projectileType === "hunter") multiplier = 0.68;
+    else if(projectileType === "mage") multiplier = 1.18;
+    else if(projectileType === "bomb") multiplier = 1.28;
   }
-  return 1;
+  return multiplier * getBrittleDamageMultiplier(enemy);
+}
+
+function getBrittleDamageMultiplier(enemy){
+  return 1 + Math.min(5, Math.max(0, enemy?.brittleStacks || 0)) * 0.08;
 }
 
 function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
@@ -2579,10 +2754,11 @@ function castDamageSpell(x, y){
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
     if(distance({x,y}, pos) <= cfg.radius){
-      enemy.hp -= cfg.damage;
+      const finalDamage = cfg.damage * getBrittleDamageMultiplier(enemy);
+      enemy.hp -= finalDamage;
       affected += 1;
       addHitParticles(pos.x, pos.y, 10, "#fb923c");
-      showPopup(pos.x, pos.y - 10, `-${cfg.damage}`, "#fb923c");
+      showPopup(pos.x, pos.y - 10, `-${Math.round(finalDamage)}`, "#fb923c");
     }
   }
   placementEffects.push({x,y,color:"#fb923c",life:.52,maxLife:.52});
@@ -2610,10 +2786,11 @@ function castBombSpell(x, y){
 
   let affected = 0;
   for(const item of inRange){
-    item.enemy.hp -= cfg.damage;
+    const finalDamage = cfg.damage * getBrittleDamageMultiplier(item.enemy);
+    item.enemy.hp -= finalDamage;
     affected += 1;
     addHitParticles(item.pos.x, item.pos.y, 8, "#fde047");
-    showPopup(item.pos.x, item.pos.y - 10, `-${cfg.damage}`, "#fde047");
+    showPopup(item.pos.x, item.pos.y - 10, `-${Math.round(finalDamage)}`, "#fde047");
   }
 
   placementEffects.push({x,y,color:"#fde047",life:.32,maxLife:.32});
@@ -2688,8 +2865,12 @@ function toggleUnitInfoPanel(){
 }
 
 function syncUnitSelectors(){
-  unitButtons.forEach((btn)=>btn.classList.toggle("active", btn.dataset.type===selectedUnitType));
-  unitInfoButtons.forEach((btn)=>btn.classList.toggle("active", btn.dataset.type===selectedUnitType));
+  [...unitButtons, ...unitInfoButtons].forEach((btn)=>{
+    const locked = btn.dataset.type === "cryo" && !hasCryoUnlock();
+    btn.classList.toggle("active", !locked && btn.dataset.type===selectedUnitType);
+    btn.classList.toggle("unit-locked", locked);
+    btn.setAttribute("aria-disabled", locked ? "true" : "false");
+  });
 }
 
 function hideTowerMenu(){
@@ -2942,11 +3123,11 @@ function moveUnitsToReserve(){
 }
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
-  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, ...structuredClone(base) };
+  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, specBrittleStacks:1, cryoTick:0, ...structuredClone(base) };
 }
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
-  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0;
+  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0; unit.specBrittleStacks=1; unit.cryoTick=0;
   return unit;
 }
 function takeReservedUnit(typeKey,c,r){
@@ -3207,7 +3388,7 @@ function applyStage(stageNumber, resetRun=false){
   spellCooldown.bomb = 0;
 
   if(resetRun){
-    reservePool={ archer:[], hunter:[], mage:[], bomb:[] };
+    reservePool={ archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
     money=START_MONEY + leyStartGoldBonus() + (stageNumber-1)*60;
     lives=getMaxLives(); score=0; bonusScore=0; kills=0; wave=1;
     runLeyCrystalsEarned = 0;
@@ -3338,6 +3519,11 @@ function spawnEnemy(){
 
 function placeUnit(c,r){
   if(lives<=0) return;
+  if(selectedUnitType === "cryo" && !hasCryoUnlock()){
+    setMessage("Cryo is locked. Unlock it permanently with 75 Ley Crystals in Ley Attunement.");
+    openLeyOverlay();
+    return;
+  }
   const key=`${c}-${r}`;
   if(pathCells.has(key)){ setMessage("You cannot place towers on the path."); return; }
   if(isBlockedCell(c, r)){ setMessage("You cannot build on this terrain."); return; }
@@ -3861,12 +4047,20 @@ function update(dt){
       enemy.specSlowTimer = Math.max(0, enemy.specSlowTimer - dt);
       if(enemy.specSlowTimer <= 0) enemy.specSlowFactor = 1;
     }
+    if(enemy.cryoSlowTimer){
+      enemy.cryoSlowTimer = Math.max(0, enemy.cryoSlowTimer - dt);
+      if(enemy.cryoSlowTimer <= 0) enemy.cryoSlowFactor = 1;
+    }
+    if(enemy.brittleTimer){
+      enemy.brittleTimer = Math.max(0, enemy.brittleTimer - dt);
+      if(enemy.brittleTimer <= 0) enemy.brittleStacks = 0;
+    }
     if(enemy.freezeLockTimer){
       enemy.freezeLockTimer = Math.max(0, enemy.freezeLockTimer - dt);
     }
     if(enemy.burnTimer){
       enemy.burnTimer = Math.max(0, enemy.burnTimer - dt);
-      const burnDamage = (enemy.burnDps || 0) * dt;
+      const burnDamage = (enemy.burnDps || 0) * dt * getBrittleDamageMultiplier(enemy);
       if(burnDamage > 0){
         enemy.hp -= burnDamage;
       }
@@ -3880,9 +4074,10 @@ function update(dt){
     const spellSlowFactor = enemy.spellSlowTimer > 0 ? (enemy.spellSlowFactor || 1) : 1;
     const auraSlowFactor = enemy.auraSlowTimer > 0 ? (enemy.auraSlowFactor || 1) : 1;
     const specSlowFactor = enemy.specSlowTimer > 0 ? (enemy.specSlowFactor || 1) : 1;
+    const cryoSlowFactor = enemy.cryoSlowTimer > 0 ? (enemy.cryoSlowFactor || 1) : 1;
     const freezeFactor = enemy.freezeTimer > 0 ? 0 : 1;
     const stunFactor = enemy.stunTimer > 0 ? 0 : 1;
-    enemy.progress += enemy.speed * spellSlowFactor * auraSlowFactor * specSlowFactor * freezeFactor * stunFactor * dt;
+    enemy.progress += enemy.speed * spellSlowFactor * auraSlowFactor * specSlowFactor * cryoSlowFactor * freezeFactor * stunFactor * dt;
     if(enemy.type==="boss" && !enemy.abilityUsed){
       const bossStage = enemy.bossStage || currentStage;
       if(!enemy.bossTelegraphShown && enemy.hp < enemy.maxHp * 0.68 && enemy.hp >= enemy.maxHp * 0.55){
@@ -3917,6 +4112,20 @@ function update(dt){
     if((unit.snaredUntil || 0) > performance.now()) continue;
     const stats = getAuraAdjustedStats(unit);
     const unitPos=cellCenter(unit.c,unit.r);
+    if(unit.type === "cryo"){
+      unit.cryoTick = (unit.cryoTick || 0) - dt;
+      if(unit.cryoTick <= 0){
+        unit.cryoTick = unit.cryoTickInterval || 0.20;
+        const chillFactor = unit.specialization === "glacier" ? 0.55 : (unit.cryoChillFactor || 0.70);
+        for(const enemy of enemies){
+          const enemyPos = getPathPosition(enemy.progress);
+          if(distance(unitPos, enemyPos) <= stats.range){
+            enemy.cryoSlowTimer = Math.max(enemy.cryoSlowTimer || 0, unit.cryoSlowDuration || 0.35);
+            enemy.cryoSlowFactor = Math.min(enemy.cryoSlowFactor || 1, chillFactor);
+          }
+        }
+      }
+    }
     let bestTarget=null,bestPriority=-Infinity;
     for(const enemy of enemies){
       const enemyPos=getPathPosition(enemy.progress);
@@ -3931,7 +4140,7 @@ function update(dt){
       const dx=bestTarget.pos.x-unitPos.x, dy=bestTarget.pos.y-unitPos.y;
       unit.aimAngle=Math.atan2(dy,dx);
       if(unit.cooldown<=0){
-        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * (unit.specialization === "tracker" && bestTarget.enemy.type === "fast" ? (unit.specBonusVsFast || 1.35) : 1), speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
+        projectiles.push({ id:idCounter++, x:unitPos.x, y:unitPos.y, px:unitPos.x, py:unitPos.y, angle:unit.aimAngle, targetId:bestTarget.enemy.id, damage:stats.damage * (unit.specialization === "tracker" && bestTarget.enemy.type === "fast" ? (unit.specBonusVsFast || 1.35) : 1), speed:stats.projectileSpeed, color:getProjectileColorByAura(unit, unit.type==="hunter"?"#fcd34d":unit.type==="mage"?"#ddd6fe":unit.type==="bomb"?"#fb7185":unit.type==="cryo"?"#67e8f9":"#e2e8f0"), projectileType:unit.type, splash:stats.splash||0, ownerUnitId:unit.id, ownerAuraType:unit.auraType || null });
         unit.cooldown=stats.fireRate; playShootSound(unit.kind);
       }
     }
@@ -3971,6 +4180,7 @@ function update(dt){
         }
       }
       else {
+        if(owner?.type === "cryo") applyCryoBrittle(target, owner, targetPos);
         const damageMult = getDamageMultiplierAgainstEnemy(target, projectile.projectileType);
         const finalDamage = projectile.damage * damageMult;
         target.hp-=finalDamage;
@@ -5092,7 +5302,38 @@ function drawPlacedUnit(unit){
 
 
   const sprite = towerSprites[unit.type];
-  if(sprite?.complete && sprite.naturalWidth){
+  if(unit.type === "cryo"){
+    const t = performance.now() * 0.004 + unit.id * 0.17;
+    const baseY = pos.y - 6;
+    ctx.save();
+    const field = ctx.createRadialGradient(pos.x, pos.y + 7, 2, pos.x, pos.y + 7, 29);
+    field.addColorStop(0, "rgba(103,232,249,.24)");
+    field.addColorStop(1, "rgba(56,189,248,0)");
+    ctx.fillStyle = field;
+    ctx.beginPath(); ctx.arc(pos.x, pos.y + 7, 29, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = "rgba(103,232,249,.85)";
+    ctx.shadowBlur = 12 + Math.sin(t) * 2;
+    ctx.fillStyle = "rgba(56,189,248,.35)";
+    ctx.beginPath(); ctx.arc(pos.x, baseY + 14, 15, 0, Math.PI * 2); ctx.fill();
+    const crystal = [[0,-34],[11,-6],[0,16],[-11,-6]];
+    ctx.beginPath();
+    crystal.forEach(([x,y],i)=>i ? ctx.lineTo(pos.x+x,baseY+y) : ctx.moveTo(pos.x+x,baseY+y));
+    ctx.closePath();
+    const crystalFill = ctx.createLinearGradient(pos.x-11,baseY-20,pos.x+11,baseY+12);
+    crystalFill.addColorStop(0,"#a5f3fc"); crystalFill.addColorStop(.48,"#38bdf8"); crystalFill.addColorStop(1,"#0369a1");
+    ctx.fillStyle=crystalFill; ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.70)"; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pos.x,baseY-34); ctx.lineTo(pos.x,baseY+16);
+    ctx.strokeStyle="rgba(255,255,255,.36)"; ctx.lineWidth=1; ctx.stroke();
+    for(const sx of [-9,9]){
+      ctx.beginPath();
+      ctx.moveTo(pos.x+sx,baseY-8); ctx.lineTo(pos.x+sx+5,baseY+4);
+      ctx.lineTo(pos.x+sx,baseY+14); ctx.lineTo(pos.x+sx-5,baseY+4); ctx.closePath();
+      ctx.fillStyle="rgba(56,189,248,.74)"; ctx.fill();
+      ctx.strokeStyle="rgba(207,250,254,.46)"; ctx.stroke();
+    }
+    ctx.restore();
+  } else if(sprite?.complete && sprite.naturalWidth){
     ctx.save();
     ctx.translate(pos.x, pos.y);
 
@@ -5319,6 +5560,13 @@ const drawUnits=()=>units.forEach(drawPlacedUnit);
 const ENEMY_SPRITE_CACHE = new Map();
 const ENEMY_WALK_FRAMES = 8;
 const ENEMY_SPRITE_RES = 3; // render at 3x for crisp downscale
+const MOB_ART_DISPLAY_SIZE = {
+  normal: 50,
+  fast: 49,
+  armored: 56,
+  tank: 67,
+  splitter: 52
+};
 
 function enemyPalette(type, enemy){
   const dark = currentStage === 6 && type !== "boss";
@@ -5696,11 +5944,17 @@ function drawEnemy(enemy){
   const ahead = getPathPosition(Math.min(1, enemy.progress + 0.004));
   const dirX = ahead.x - pos.x, dirY = ahead.y - pos.y;
   if(enemy.facing === undefined) enemy.facing = 1;
-  if(Math.abs(dirX) > Math.abs(dirY) * 0.6 && Math.abs(dirX) > 0.01) enemy.facing = dirX >= 0 ? 1 : -1;
+  if(enemy.artView === undefined) enemy.artView = "front";
+  if(Math.abs(dirX) > Math.abs(dirY) * 0.6 && Math.abs(dirX) > 0.01){
+    enemy.facing = dirX >= 0 ? 1 : -1;
+    enemy.artView = "side";
+  } else if(Math.abs(dirY) > 0.01){
+    enemy.artView = dirY < 0 ? "back" : "front";
+  }
 
   // --- walk animation clock (pauses when frozen/stunned, slows when slowed)
   const frozen = (enemy.freezeTimer > 0) || (enemy.stunTimer > 0);
-  const slowed = (enemy.spellSlowTimer > 0) || (enemy.auraSlowTimer > 0) || (enemy.specSlowTimer > 0);
+  const slowed = (enemy.spellSlowTimer > 0) || (enemy.auraSlowTimer > 0) || (enemy.specSlowTimer > 0) || (enemy.cryoSlowTimer > 0);
   if(enemy.animT === undefined){ enemy.animT = enemy.wobble; enemy.animLast = now; }
   const adt = Math.min(0.05, (now - enemy.animLast) / 1000);
   enemy.animLast = now;
@@ -5714,11 +5968,15 @@ function drawEnemy(enemy){
   const pulseT = now * 0.008 + enemy.wobble;
 
   // --- ground shadow
+  const importedArtType = enemy.type === "splitter" ? "splitter" : enemy.type;
+  const importedArtScale = enemy.fragment ? 0.58 : 1;
+  const importedDisplaySize = (MOB_ART_DISPLAY_SIZE[importedArtType] || (40 * scale)) * importedArtScale;
+  const groundOffset = enemy.type === "boss" ? 20 * scale : importedDisplaySize * 0.46;
   ctx.save();
   ctx.globalAlpha = 0.28;
   ctx.fillStyle = "#020617";
   ctx.beginPath();
-  ctx.ellipse(x, pos.y + 20 * scale, 11 * scale, 3.6 * scale, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, pos.y + groundOffset, 11 * scale, 3.6 * scale, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
@@ -5772,18 +6030,36 @@ function drawEnemy(enemy){
     ctx.restore();
   }
 
-  // --- sprite blit (flip horizontally for leftward movement)
-  const sheet = getEnemySpriteSheet(enemy.type === "splitter" && enemy.fragment ? "splitterling" : enemy.type, enemy);
-  const frame = Math.floor((enemy.animT % 1) * ENEMY_WALK_FRAMES) % ENEMY_WALK_FRAMES;
-  ctx.save();
-  if(enemy.facing < 0) ctx.scale(-1, 1);
-  if(enemy.freezeTimer > 0){ ctx.filter = "saturate(0.35) brightness(1.25)"; }
-  ctx.drawImage(
-    sheet.canvas,
-    frame * sheet.cell, 0, sheet.cell, sheet.cell,
-    -sheet.world / 2, -sheet.world / 2, sheet.world, sheet.world
-  );
-  ctx.restore();
+  // --- Godot mob art; procedural sprite remains as a safe boss/loading fallback.
+  const art = enemy.type === "boss" ? null : enemyArt[importedArtType]?.[enemy.artView || "front"];
+  if(art?.complete && art.naturalWidth){
+    const localSize = importedDisplaySize / scale;
+    const stride = frozen ? 0 : Math.sin(enemy.animT * Math.PI * 2);
+    const weight = Math.abs(stride);
+    const lean = enemy.type === "tank" ? 0.012 : enemy.type === "fast" ? 0.025 : 0.017;
+    ctx.save();
+    ctx.translate(stride * 0.35, -weight * (enemy.type === "tank" ? 0.45 : 0.75));
+    ctx.rotate(stride * lean * (enemy.artView === "side" ? enemy.facing : 1));
+    if(enemy.type === "splitter"){
+      ctx.scale(1 + weight * 0.014, 1 - weight * 0.010);
+    }
+    if(enemy.artView === "side" && enemy.facing < 0) ctx.scale(-1, 1);
+    if(enemy.freezeTimer > 0) ctx.filter = "saturate(0.35) brightness(1.25)";
+    ctx.drawImage(art, -localSize / 2, -localSize / 2, localSize, localSize);
+    ctx.restore();
+  } else {
+    const sheet = getEnemySpriteSheet(enemy.type === "splitter" && enemy.fragment ? "splitterling" : enemy.type, enemy);
+    const frame = Math.floor((enemy.animT % 1) * ENEMY_WALK_FRAMES) % ENEMY_WALK_FRAMES;
+    ctx.save();
+    if(enemy.facing < 0) ctx.scale(-1, 1);
+    if(enemy.freezeTimer > 0) ctx.filter = "saturate(0.35) brightness(1.25)";
+    ctx.drawImage(
+      sheet.canvas,
+      frame * sheet.cell, 0, sheet.cell, sheet.cell,
+      -sheet.world / 2, -sheet.world / 2, sheet.world, sheet.world
+    );
+    ctx.restore();
+  }
 
   if(enemy.stunTimer > 0){
     ctx.save();
@@ -5804,7 +6080,8 @@ function drawEnemy(enemy){
   }
   ctx.restore();
 
-  const hpWidth = enemy.type === "boss" ? 46 : 36, hpX = x - hpWidth / 2, hpY = y - (enemy.type === "boss" ? 44 : 28);
+  const mobHpOffset = enemy.type === "tank" ? 40 : enemy.type === "armored" ? 34 : enemy.type === "fast" ? 32 : enemy.type === "normal" ? 31 : 28;
+  const hpWidth = enemy.type === "boss" ? 46 : 36, hpX = x - hpWidth / 2, hpY = y - (enemy.type === "boss" ? 44 : mobHpOffset);
   ctx.fillStyle = "rgba(15,23,42,.95)"; roundRect(hpX, hpY, hpWidth, 6, 4); ctx.fill();
   ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b")) : enemy.type === "tank" ? "#fb7185" : enemy.type === "armored" ? "#94a3b8" : enemy.type === "splitter" ? "#2dd4bf" : enemy.type === "fast" ? "#38bdf8" : "#22c55e";
   roundRect(hpX, hpY, hpWidth * hpPct, 6, 4); ctx.fill();
@@ -5881,6 +6158,23 @@ function drawProjectile(p){
     ctx.beginPath();
     ctx.arc(0,0,8.8 + Math.sin(performance.now()*0.02 + p.id) * 0.8,0,Math.PI*2);
     ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  if(p.projectileType==="cryo"){
+    ctx.save();
+    ctx.translate(p.x,p.y);
+    ctx.rotate(p.angle);
+    const tail = ctx.createLinearGradient(-22,0,5,0);
+    tail.addColorStop(0,"rgba(103,232,249,0)");
+    tail.addColorStop(1,"rgba(165,243,252,.72)");
+    ctx.strokeStyle=tail; ctx.lineWidth=4; ctx.lineCap="round";
+    ctx.beginPath(); ctx.moveTo(-22,0); ctx.lineTo(2,0); ctx.stroke();
+    ctx.shadowColor="#67e8f9"; ctx.shadowBlur=14;
+    ctx.fillStyle="#a5f3fc";
+    ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(-2,-4); ctx.lineTo(-6,0); ctx.lineTo(-2,4); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.82)"; ctx.lineWidth=1; ctx.stroke();
     ctx.restore();
     return;
   }
@@ -6551,7 +6845,7 @@ function getMousePos(event){
 canvas.addEventListener("mousemove",(event)=>{ hoveredCell=getMousePos(event); });
 canvas.addEventListener("mouseleave",()=>{ hoveredCell=null; });
 canvas.addEventListener("click",(event)=>{
-  ensureAudio(); hasStarted=true; if(!isMuted && !ambientState.masterGain) syncAmbientAudio();
+  ensureAudio(); hasStarted=true; if(!isMuted && !ambientState.track) syncAmbientAudio();
   const {x,y,c,r}=getMousePos(event);
 
   if(pendingAuraChoice){
@@ -6599,7 +6893,13 @@ function bindUnitSelectorButtons(buttonList){
   buttonList.forEach(btn=>{
     btn.addEventListener("click",(event)=>{
       event.stopPropagation();
-      selectedUnitType = btn.dataset.type;
+      const nextType = btn.dataset.type;
+      if(nextType === "cryo" && !hasCryoUnlock()){
+        setMessage("Cryo is locked. Unlock it permanently with 75 Ley Crystals.");
+        openLeyOverlay();
+        return;
+      }
+      selectedUnitType = nextType;
       selectedPlacedUnitId = null;
       hideTowerMenu();
       syncUnitSelectors();
@@ -6810,6 +7110,14 @@ document.addEventListener("keydown",(event)=>{
   else if(key === "2"){ selectedUnitType = "hunter"; }
   else if(key === "3"){ selectedUnitType = "mage"; }
   else if(key === "4"){ selectedUnitType = "bomb"; }
+  else if(key === "5"){
+    if(!hasCryoUnlock()){
+      setMessage("Cryo is locked. Unlock it permanently with 75 Ley Crystals.");
+      openLeyOverlay();
+      return;
+    }
+    selectedUnitType = "cryo";
+  }
   else { return; }
 
   syncUnitSelectors();

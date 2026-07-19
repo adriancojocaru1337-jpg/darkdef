@@ -12,7 +12,8 @@ const LEY_NODES = {
   attuned_casting:    { maxRank: 2, costs: [40, 85] },
   second_sight:       { maxRank: 1, costs: [130] },
   crystal_harvest:    { maxRank: 2, costs: [30, 70] },
-  luminous_awakening: { maxRank: 1, costs: [200] }
+  luminous_awakening: { maxRank: 1, costs: [200] },
+  cryo_tower:         { maxRank: 1, costs: [75] }
 };
 
 const MAX_TOTAL_EARNED = 1000000;
