@@ -37,7 +37,6 @@ const audioSettingsPanel = document.getElementById("audioSettingsPanel");
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
 const masterSoundToggle = document.getElementById("masterSoundToggle");
 const musicToggle = document.getElementById("musicToggle");
-const effectsToggle = document.getElementById("effectsToggle");
 const hudToggleBtn = document.getElementById("hudToggleBtn");
 
 const enemyCountStat = document.getElementById("enemyCountStat");
@@ -374,6 +373,22 @@ function loadEnemyRigSheets(){
   });
 }
 loadEnemyRigSheets();
+
+// Godot Bone2D cutout walk sheets for the six campaign bosses, baked to the same
+// 12-frame / 128px format as the regular mobs. One sheet per stage per view.
+const bossRigSheets = {};
+function loadBossRigSheets(){
+  for(let stage = 1; stage <= 6; stage++){
+    bossRigSheets[stage] = {};
+    ["front", "side", "back"].forEach((view) => {
+      const img = new Image();
+      img.decoding = "async";
+      img.src = `assets/enemies/animated/boss${stage}_${view}_walk.png`;
+      bossRigSheets[stage][view] = img;
+    });
+  }
+}
+loadBossRigSheets();
 
 const bossSplashSources = {
   1: "assets/ui/boss-stage1.jpg",
@@ -1007,16 +1022,15 @@ function loadAudioSettings(){
     const stored = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY) || "null");
     return {
       sound: stored?.sound !== false,
-      music: stored?.music !== false,
-      effects: stored?.effects !== false
+      music: stored?.music !== false
     };
   }catch(e){
-    return { sound:true, music:true, effects:true };
+    return { sound:true, music:true };
   }
 }
 let audioSettings = loadAudioSettings();
-function isMusicEnabled(){ return audioSettings.sound && audioSettings.music; }
-function isEffectsEnabled(){ return audioSettings.sound && audioSettings.effects; }
+function isMusicEnabled(){ return audioSettings.music; }
+function isEffectsEnabled(){ return audioSettings.sound; }
 function saveAudioSettings(){
   try{ localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings)); }catch(e){}
 }
@@ -2717,8 +2731,7 @@ function vibrate(pattern){
 function updateAudioSettingsUI(){
   const rows = [
     [masterSoundToggle, audioSettings.sound],
-    [musicToggle, audioSettings.music],
-    [effectsToggle, audioSettings.effects]
+    [musicToggle, audioSettings.music]
   ];
   for(const [row, enabled] of rows){
     if(!row) continue;
@@ -2729,10 +2742,11 @@ function updateAudioSettingsUI(){
   }
 
   if(!settingsToggleBtn) return;
-  const partial = audioSettings.sound && (!audioSettings.music || !audioSettings.effects);
-  settingsToggleBtn.classList.toggle("muted", !audioSettings.sound);
+  const allOff = !audioSettings.sound && !audioSettings.music;
+  const partial = !allOff && (!audioSettings.sound || !audioSettings.music);
+  settingsToggleBtn.classList.toggle("muted", allOff);
   settingsToggleBtn.classList.toggle("partial", partial);
-  const status = !audioSettings.sound ? "sound off" : partial ? "custom audio" : "sound on";
+  const status = allOff ? "audio off" : partial ? "custom audio" : "audio on";
   settingsToggleBtn.setAttribute("aria-label", `Open settings, ${status}`);
   settingsToggleBtn.title = `Settings · ${status}`;
 }
@@ -5646,6 +5660,9 @@ const MOB_ART_DISPLAY_SIZE = {
   tank: 67,
   splitter: 52
 };
+// Bosses render through the Godot cutout rig sheets; the boss transform already
+// applies scale 1.55, so this is the pre-scale content size for the walk frames.
+const BOSS_ART_DISPLAY_SIZE = 78;
 
 function enemyPalette(type, enemy){
   const dark = currentStage === 6 && type !== "boss";
@@ -6110,12 +6127,15 @@ function drawEnemy(enemy){
   }
 
   // --- Godot Bone2D walk sheets; static art and procedural sprites are fallbacks.
-  const rigSheet = enemy.type === "boss" ? null : enemyRigSheets[importedArtType]?.[enemy.artView || "front"];
+  const rigSheet = enemy.type === "boss"
+    ? bossRigSheets[enemy.bossStage]?.[enemy.artView || "front"]
+    : enemyRigSheets[importedArtType]?.[enemy.artView || "front"];
   const art = enemy.type === "boss" ? null : enemyArt[importedArtType]?.[enemy.artView || "front"];
   if(rigSheet?.complete && rigSheet.naturalWidth){
+    const rigDisplaySize = enemy.type === "boss" ? BOSS_ART_DISPLAY_SIZE : importedDisplaySize;
     const frameProgress = ((enemy.animT % 1) + 1) % 1;
     const frame = Math.floor(frameProgress * ENEMY_RIG_FRAME_COUNT) % ENEMY_RIG_FRAME_COUNT;
-    const localSize = (importedDisplaySize / scale) * (ENEMY_RIG_FRAME_SIZE / ENEMY_RIG_CONTENT_SIZE);
+    const localSize = (rigDisplaySize / scale) * (ENEMY_RIG_FRAME_SIZE / ENEMY_RIG_CONTENT_SIZE);
     ctx.save();
     if(enemy.artView === "side" && enemy.facing < 0) ctx.scale(-1, 1);
     if(enemy.freezeTimer > 0) ctx.filter = "saturate(0.35) brightness(1.25)";
@@ -7158,7 +7178,6 @@ settingsToggleBtn?.addEventListener("click",(event)=>{
 settingsCloseBtn?.addEventListener("click",()=>setAudioSettingsPanelOpen(false));
 masterSoundToggle?.addEventListener("click",()=>toggleAudioSetting("sound", "Sound"));
 musicToggle?.addEventListener("click",()=>toggleAudioSetting("music", "Music"));
-effectsToggle?.addEventListener("click",()=>toggleAudioSetting("effects", "Effects"));
 
 document.addEventListener("keydown",(event)=>{
   const activeTag = document.activeElement?.tagName;
