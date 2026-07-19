@@ -217,7 +217,37 @@
         </header>
 
         <div class="canvas-wrap" id="canvasWrap">
-          <button class="audio-toggle" id="audioToggle" aria-label="Audio on" title="Toggle audio">🔊</button>
+          <button class="settings-toggle" id="settingsToggleBtn" type="button" aria-label="Open settings" aria-controls="audioSettingsPanel" aria-expanded="false" title="Settings">⚙</button>
+          <section class="audio-settings-panel hidden" id="audioSettingsPanel" role="dialog" aria-modal="false" aria-labelledby="audioSettingsTitle">
+            <div class="audio-settings-header">
+              <div>
+                <span class="audio-settings-kicker">IN-GAME</span>
+                <h3 id="audioSettingsTitle">Settings</h3>
+              </div>
+              <button class="audio-settings-close" id="settingsCloseBtn" type="button" aria-label="Close settings">×</button>
+            </div>
+
+            <div class="audio-settings-list">
+              <button class="audio-setting-row" id="masterSoundToggle" type="button" aria-pressed="true">
+                <span class="audio-setting-glyph" aria-hidden="true">◉</span>
+                <span class="audio-setting-copy"><strong>Sound</strong><small>Master audio</small></span>
+                <span class="audio-setting-switch" aria-hidden="true"><i></i></span>
+                <span class="audio-setting-state">On</span>
+              </button>
+              <button class="audio-setting-row" id="musicToggle" type="button" aria-pressed="true">
+                <span class="audio-setting-glyph" aria-hidden="true">♫</span>
+                <span class="audio-setting-copy"><strong>Music</strong><small>Stage soundtrack</small></span>
+                <span class="audio-setting-switch" aria-hidden="true"><i></i></span>
+                <span class="audio-setting-state">On</span>
+              </button>
+              <button class="audio-setting-row" id="effectsToggle" type="button" aria-pressed="true">
+                <span class="audio-setting-glyph" aria-hidden="true">✦</span>
+                <span class="audio-setting-copy"><strong>Effects</strong><small>Towers, spells &amp; combat</small></span>
+                <span class="audio-setting-switch" aria-hidden="true"><i></i></span>
+                <span class="audio-setting-state">On</span>
+              </button>
+            </div>
+          </section>
           <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
           <div class="canvas-overlay">

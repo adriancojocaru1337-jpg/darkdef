@@ -32,7 +32,12 @@ const statusPill = document.getElementById("statusPill");
 const waveForecastTag = document.getElementById("waveForecastTag");
 const waveForecastText = document.getElementById("waveForecastText");
 const hintChip = document.getElementById("hintChip");
-const audioToggle = document.getElementById("audioToggle");
+const settingsToggleBtn = document.getElementById("settingsToggleBtn");
+const audioSettingsPanel = document.getElementById("audioSettingsPanel");
+const settingsCloseBtn = document.getElementById("settingsCloseBtn");
+const masterSoundToggle = document.getElementById("masterSoundToggle");
+const musicToggle = document.getElementById("musicToggle");
+const effectsToggle = document.getElementById("effectsToggle");
 const hudToggleBtn = document.getElementById("hudToggleBtn");
 
 const enemyCountStat = document.getElementById("enemyCountStat");
@@ -316,8 +321,8 @@ function loadTowerSprites(){
 }
 loadTowerSprites();
 
-// Directional mob artwork exported from the Godot version. Front is used while
-// moving down, back while moving up, and side while moving horizontally.
+// Directional mob artwork from Godot. The 512px sources are retained as lazy
+// fallbacks; normal rendering uses 12-frame Bone2D exports for each direction.
 const enemyArtSources = {
   normal: {
     front: "assets/enemies/normal_rig_source.png",
@@ -346,17 +351,29 @@ const enemyArtSources = {
   }
 };
 const enemyArt = {};
-function loadEnemyArt(){
+const ENEMY_RIG_FRAME_COUNT = 12;
+const ENEMY_RIG_FRAME_SIZE = 128;
+const ENEMY_RIG_CONTENT_SIZE = 110;
+const enemyRigSheets = {};
+function loadEnemyRigSheets(){
   Object.entries(enemyArtSources).forEach(([type, views]) => {
     enemyArt[type] = {};
-    Object.entries(views).forEach(([view, src]) => {
+    enemyRigSheets[type] = {};
+    Object.entries(views).forEach(([view, fallbackSrc]) => {
       const img = new Image();
-      img.src = src;
-      enemyArt[type][view] = img;
+      img.decoding = "async";
+      img.src = `assets/enemies/animated/${type}_${view}_walk.png`;
+      img.onerror = () => {
+        const fallback = new Image();
+        fallback.decoding = "async";
+        fallback.src = fallbackSrc;
+        enemyArt[type][view] = fallback;
+      };
+      enemyRigSheets[type][view] = img;
     });
   });
 }
-loadEnemyArt();
+loadEnemyRigSheets();
 
 const bossSplashSources = {
   1: "assets/ui/boss-stage1.jpg",
@@ -984,7 +1001,25 @@ let auraBindFxUnitId = null;
 let reservePool = { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
 let view = { scale: 1, minScale: 1, maxScale: 1.7, offsetX: 0, offsetY: 0 };
 let pinchState = null;
-let isMuted = false;
+const AUDIO_SETTINGS_STORAGE_KEY = "sdcAudioSettings";
+function loadAudioSettings(){
+  try{
+    const stored = JSON.parse(localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY) || "null");
+    return {
+      sound: stored?.sound !== false,
+      music: stored?.music !== false,
+      effects: stored?.effects !== false
+    };
+  }catch(e){
+    return { sound:true, music:true, effects:true };
+  }
+}
+let audioSettings = loadAudioSettings();
+function isMusicEnabled(){ return audioSettings.sound && audioSettings.music; }
+function isEffectsEnabled(){ return audioSettings.sound && audioSettings.effects; }
+function saveAudioSettings(){
+  try{ localStorage.setItem(AUDIO_SETTINGS_STORAGE_KEY, JSON.stringify(audioSettings)); }catch(e){}
+}
 let selectedSpell = null;
 const spellCooldown = { slow:0, damage:0, bomb:0 };
 const spellConfig = {
@@ -2088,7 +2123,7 @@ function createAudioPool(src, size, volume, loop=false){
   let index = 0;
   return {
     play(restart=true){
-      if(isMuted) return;
+      if(!isEffectsEnabled()) return;
       const audio = items[index % items.length];
       index += 1;
       if(restart) audio.currentTime = 0;
@@ -2124,6 +2159,7 @@ function ensureAudio(){
       mage: createAudioPool("mage_shot.mp3", 8, 0.55),
       upgrade: createAudioPool("upgrade.mp3", 4, 0.72)
     };
+    Object.values(audioAssets).forEach((pool)=>pool.setMuted(!isEffectsEnabled()));
   }
 }
 
@@ -2189,7 +2225,7 @@ function createAmbientOsc({ type="sine", frequency=110, gain=0.02 } = {}){
 }
 
 function ambientPulse(freq=220, duration=0.2, peak=0.03, type="sine"){
-  if(!audioCtx || isMuted || !ambientState.masterGain) return;
+  if(!audioCtx || !isMusicEnabled() || !ambientState.masterGain) return;
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const gainNode = audioCtx.createGain();
@@ -2206,7 +2242,7 @@ function ambientPulse(freq=220, duration=0.2, peak=0.03, type="sine"){
 }
 
 function ambientNoiseBurst({ type="bandpass", frequency=1200, q=0.8, duration=0.6, peak=0.02, playbackRate=1 } = {}){
-  if(!audioCtx || isMuted || !ambientState.masterGain || !ambientState.noiseBuffer) return;
+  if(!audioCtx || !isMusicEnabled() || !ambientState.masterGain || !ambientState.noiseBuffer) return;
   const now = audioCtx.currentTime;
   const src = audioCtx.createBufferSource();
   src.buffer = ambientState.noiseBuffer;
@@ -2229,7 +2265,7 @@ function ambientNoiseBurst({ type="bandpass", frequency=1200, q=0.8, duration=0.
 }
 
 function ambientSweep(startFreq=500, endFreq=200, duration=1.1, peak=0.01, type="triangle"){
-  if(!audioCtx || isMuted || !ambientState.masterGain) return;
+  if(!audioCtx || !isMusicEnabled() || !ambientState.masterGain) return;
   const now = audioCtx.currentTime;
   const osc = audioCtx.createOscillator();
   const filter = audioCtx.createBiquadFilter();
@@ -2251,7 +2287,7 @@ function ambientSweep(startFreq=500, endFreq=200, duration=1.1, peak=0.01, type=
 }
 
 function playRareAmbientEvent(stage=currentStage){
-  if(!audioCtx || isMuted || !ambientState.masterGain || stage !== currentStage) return;
+  if(!audioCtx || !isMusicEnabled() || !ambientState.masterGain || stage !== currentStage) return;
   const roll = Math.random();
   if(stage === 1){
     if(roll < 0.55){
@@ -2304,10 +2340,10 @@ function playRareAmbientEvent(stage=currentStage){
 }
 
 function scheduleRareAmbientEvent(stage, minMs, maxMs){
-  if(!audioCtx || isMuted || !ambientState.masterGain || stage !== currentStage) return;
+  if(!audioCtx || !isMusicEnabled() || !ambientState.masterGain || stage !== currentStage) return;
   const wait = Math.floor(minMs + Math.random() * Math.max(0, maxMs - minMs));
   const id = setTimeout(()=>{
-    if(!audioCtx || isMuted || stage !== currentStage || !ambientState.masterGain) return;
+    if(!audioCtx || !isMusicEnabled() || stage !== currentStage || !ambientState.masterGain) return;
     playRareAmbientEvent(stage);
     scheduleRareAmbientEvent(stage, minMs, maxMs);
   }, wait);
@@ -2316,7 +2352,7 @@ function scheduleRareAmbientEvent(stage, minMs, maxMs){
 
 function syncProceduralAmbientAudio(){
   clearAmbientAudio();
-  if(!audioCtx || isMuted) return;
+  if(!audioCtx || !isMusicEnabled()) return;
 
   ambientState.currentStage = currentStage;
   ambientState.masterGain = audioCtx.createGain();
@@ -2341,7 +2377,7 @@ function syncProceduralAmbientAudio(){
       ambientState.nodes.push(lfo, lfoGain);
     }
     ambientState.intervals.push(setInterval(()=>{
-      if(isMuted || currentStage !== 1) return;
+      if(!isMusicEnabled() || currentStage !== 1) return;
       ambientPulse(660 + Math.random()*120, 0.12 + Math.random()*0.08, 0.008, "sine");
     }, 9000));
     scheduleRareAmbientEvent(1, 14000, 26000);
@@ -2350,7 +2386,7 @@ function syncProceduralAmbientAudio(){
     createAmbientNoise({ type:"lowpass", frequency:380, gain:0.05, playbackRate:0.82 });
     createAmbientOsc({ type:"sawtooth", frequency:55, gain:0.006 });
     ambientState.intervals.push(setInterval(()=>{
-      if(isMuted || currentStage !== 2) return;
+      if(!isMusicEnabled() || currentStage !== 2) return;
       ambientPulse(170 + Math.random()*40, 0.08, 0.01, "square");
       setTimeout(()=>ambientPulse(120 + Math.random()*35, 0.18, 0.006, "triangle"), 110);
     }, 7500));
@@ -2361,7 +2397,7 @@ function syncProceduralAmbientAudio(){
     createAmbientOsc({ type:"triangle", frequency:74, gain:0.010 });
     createAmbientOsc({ type:"sine", frequency:111, gain:0.0045 });
     ambientState.intervals.push(setInterval(()=>{
-      if(isMuted || currentStage !== 3) return;
+      if(!isMusicEnabled() || currentStage !== 3) return;
       ambientPulse(240 + Math.random()*40, 0.45, 0.008, "triangle");
       setTimeout(()=>ambientPulse(310 + Math.random()*60, 0.25, 0.005, "sine"), 180);
     }, 6200));
@@ -2372,7 +2408,7 @@ function syncProceduralAmbientAudio(){
     createAmbientNoise({ type:"bandpass", frequency:1900, q:1.2, gain:0.009, playbackRate:1.3 });
     createAmbientOsc({ type:"triangle", frequency:92, gain:0.006 });
     ambientState.intervals.push(setInterval(()=>{
-      if(isMuted || currentStage !== 4) return;
+      if(!isMusicEnabled() || currentStage !== 4) return;
       ambientPulse(520 + Math.random()*90, 0.04, 0.007, "square");
       setTimeout(()=>ambientPulse(250 + Math.random()*20, 0.05, 0.004, "square"), 80);
     }, 6800));
@@ -2382,7 +2418,7 @@ function syncProceduralAmbientAudio(){
     createAmbientNoise({ type:"lowpass", frequency:300, gain:0.045, playbackRate:0.76 });
     createAmbientOsc({ type:"sine", frequency:58, gain:0.008 });
     ambientState.intervals.push(setInterval(()=>{
-      if(isMuted || currentStage !== 5) return;
+      if(!isMusicEnabled() || currentStage !== 5) return;
       ambientPulse(480 + Math.random()*120, 0.09, 0.012, "sine");
       setTimeout(()=>ambientPulse(180 + Math.random()*40, 0.12, 0.005, "triangle"), 260);
     }, 5400));
@@ -2404,7 +2440,7 @@ function syncProceduralAmbientAudio(){
       ambientState.nodes.push(lfo, lfoGain);
     });
     ambientState.intervals.push(setInterval(()=>{
-      if(isMuted || currentStage !== 6) return;
+      if(!isMusicEnabled() || currentStage !== 6) return;
       ambientPulse(700 + Math.random()*220, 0.14, 0.010, "triangle");
       setTimeout(()=>ambientPulse(360 + Math.random()*140, 0.22, 0.006, "sine"), 120);
     }, 4100));
@@ -2428,7 +2464,7 @@ function rampStageMusic(targetVolume, durationMs, token, onDone){
 }
 
 function startMusicSwell(){
-  if(isMuted || !ambientState.track || ambientState.track.paused) return;
+  if(!isMusicEnabled() || !ambientState.track || ambientState.track.paused) return;
   const token = ++ambientState.swellToken;
   rampStageMusic(STAGE_MUSIC_SWELL_VOLUME, 600, token, () => {
     const hold = setTimeout(() => {
@@ -2439,7 +2475,7 @@ function startMusicSwell(){
 }
 
 function syncAmbientAudio(){
-  if(isMuted || !hasStarted){
+  if(!isMusicEnabled() || !hasStarted){
     clearAmbientAudio();
     return;
   }
@@ -2456,14 +2492,14 @@ function syncAmbientAudio(){
   track.preload = "auto";
   track.loop = true;
   track.volume = STAGE_MUSIC_BASE_VOLUME;
-  track.muted = isMuted;
+  track.muted = !isMusicEnabled();
   ambientState.currentStage = stage;
   ambientState.track = track;
   track.play().catch(()=>{});
 }
 
 function tone(type, a, b, d, v){
-  if(!audioCtx || isMuted) return;
+  if(!audioCtx || !isEffectsEnabled()) return;
   const n=audioCtx.currentTime,o=audioCtx.createOscillator(),g=audioCtx.createGain();
   o.type=type; o.frequency.setValueAtTime(a,n); o.frequency.exponentialRampToValueAtTime(Math.max(40,b),n+d);
   g.gain.setValueAtTime(.0001,n); g.gain.exponentialRampToValueAtTime(v,n+Math.min(d*.25,.02)); g.gain.exponentialRampToValueAtTime(.0001,n+d);
@@ -2476,7 +2512,7 @@ function playShootSound(kind="arrow"){
 }
 function playHitSound(){ tone("square",220,120,.06,.012); }
 function noiseBurst(duration, volume, filterFreq){
-  if(!audioCtx || isMuted) return;
+  if(!audioCtx || !isEffectsEnabled()) return;
   const n = audioCtx.currentTime;
   const len = Math.max(1, Math.floor(audioCtx.sampleRate * duration));
   const buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
@@ -2514,7 +2550,7 @@ function playWaveSound(){ tone("sine",480,760,.18,.03); }
 function playUpgradeSound(){ ensureAudio(); audioAssets.upgrade.play(); }
 function startBossLoop(){
   ensureAudio();
-  if(isMuted) return;
+  if(!isMusicEnabled()) return;
   startMusicSwell();
 }
 function stopBossLoop(){}
@@ -2678,12 +2714,55 @@ function vibrate(pattern){
   }catch(e){}
 }
 
-function updateAudioToggle(){
-  if(!audioToggle) return;
-  audioToggle.textContent = isMuted ? "🔇" : "🔊";
-  audioToggle.classList.toggle("muted", isMuted);
-  audioToggle.setAttribute("aria-label", isMuted ? "Audio off" : "Audio on");
-  audioToggle.title = isMuted ? "Audio off" : "Audio on";
+function updateAudioSettingsUI(){
+  const rows = [
+    [masterSoundToggle, audioSettings.sound],
+    [musicToggle, audioSettings.music],
+    [effectsToggle, audioSettings.effects]
+  ];
+  for(const [row, enabled] of rows){
+    if(!row) continue;
+    row.setAttribute("aria-pressed", String(enabled));
+    row.classList.toggle("off", !enabled);
+    const state = row.querySelector(".audio-setting-state");
+    if(state) state.textContent = enabled ? "On" : "Off";
+  }
+
+  if(!settingsToggleBtn) return;
+  const partial = audioSettings.sound && (!audioSettings.music || !audioSettings.effects);
+  settingsToggleBtn.classList.toggle("muted", !audioSettings.sound);
+  settingsToggleBtn.classList.toggle("partial", partial);
+  const status = !audioSettings.sound ? "sound off" : partial ? "custom audio" : "sound on";
+  settingsToggleBtn.setAttribute("aria-label", `Open settings, ${status}`);
+  settingsToggleBtn.title = `Settings · ${status}`;
+}
+
+function setAudioSettingsPanelOpen(open){
+  if(!audioSettingsPanel || !settingsToggleBtn) return;
+  audioSettingsPanel.classList.toggle("hidden", !open);
+  settingsToggleBtn.classList.toggle("active", open);
+  settingsToggleBtn.setAttribute("aria-expanded", String(open));
+}
+
+function applyAudioSettings({ persist=true } = {}){
+  if(persist) saveAudioSettings();
+  if(audioAssets){
+    Object.values(audioAssets).forEach((pool)=>pool.setMuted(!isEffectsEnabled()));
+  }
+  if(!isMusicEnabled()){
+    stopBossLoop();
+    clearAmbientAudio();
+  }else if(hasStarted){
+    syncAmbientAudio();
+  }
+  updateAudioSettingsUI();
+}
+
+function toggleAudioSetting(key, label){
+  ensureAudio();
+  audioSettings[key] = !audioSettings[key];
+  applyAudioSettings();
+  setMessage(`${label} ${audioSettings[key] ? "on" : "off"}.`);
 }
 
 
@@ -6030,9 +6109,23 @@ function drawEnemy(enemy){
     ctx.restore();
   }
 
-  // --- Godot mob art; procedural sprite remains as a safe boss/loading fallback.
+  // --- Godot Bone2D walk sheets; static art and procedural sprites are fallbacks.
+  const rigSheet = enemy.type === "boss" ? null : enemyRigSheets[importedArtType]?.[enemy.artView || "front"];
   const art = enemy.type === "boss" ? null : enemyArt[importedArtType]?.[enemy.artView || "front"];
-  if(art?.complete && art.naturalWidth){
+  if(rigSheet?.complete && rigSheet.naturalWidth){
+    const frameProgress = ((enemy.animT % 1) + 1) % 1;
+    const frame = Math.floor(frameProgress * ENEMY_RIG_FRAME_COUNT) % ENEMY_RIG_FRAME_COUNT;
+    const localSize = (importedDisplaySize / scale) * (ENEMY_RIG_FRAME_SIZE / ENEMY_RIG_CONTENT_SIZE);
+    ctx.save();
+    if(enemy.artView === "side" && enemy.facing < 0) ctx.scale(-1, 1);
+    if(enemy.freezeTimer > 0) ctx.filter = "saturate(0.35) brightness(1.25)";
+    ctx.drawImage(
+      rigSheet,
+      frame * ENEMY_RIG_FRAME_SIZE, 0, ENEMY_RIG_FRAME_SIZE, ENEMY_RIG_FRAME_SIZE,
+      -localSize / 2, -localSize / 2, localSize, localSize
+    );
+    ctx.restore();
+  } else if(art?.complete && art.naturalWidth){
     const localSize = importedDisplaySize / scale;
     const stride = frozen ? 0 : Math.sin(enemy.animT * Math.PI * 2);
     const weight = Math.abs(stride);
@@ -6845,7 +6938,7 @@ function getMousePos(event){
 canvas.addEventListener("mousemove",(event)=>{ hoveredCell=getMousePos(event); });
 canvas.addEventListener("mouseleave",()=>{ hoveredCell=null; });
 canvas.addEventListener("click",(event)=>{
-  ensureAudio(); hasStarted=true; if(!isMuted && !ambientState.track) syncAmbientAudio();
+  ensureAudio(); hasStarted=true; if(isMusicEnabled() && !ambientState.track) syncAmbientAudio();
   const {x,y,c,r}=getMousePos(event);
 
   if(pendingAuraChoice){
@@ -6983,7 +7076,7 @@ restartFromGameOverBtn.addEventListener("click",()=>{
   } else {
     applyStage(currentStage, true);
   }
-  if(hasStarted && !isMuted) syncAmbientAudio();
+  if(hasStarted && isMusicEnabled()) syncAmbientAudio();
 });
 
 returnToMenuBtn?.addEventListener("click",()=>{
@@ -7011,7 +7104,7 @@ backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
 window.addEventListener("resize", syncEndlessUnlockArtworkBounds);
 endlessUnlockArtworkImage?.addEventListener("load", syncEndlessUnlockArtworkBounds);
 
-updateAudioToggle();
+updateAudioSettingsUI();
 applyHudVisibility();
 applyStage(1,true);
 loadPanelUserSession();
@@ -7030,6 +7123,8 @@ requestAnimationFrame(gameLoop);
 document.addEventListener("click",(event)=>{
   const clickedInsideTowerMenu = !!(towerMenu && towerMenu.contains(event.target));
   const clickedInsideUnitPanel = !!(unitInfoPanel && unitInfoPanel.contains(event.target));
+  const clickedInsideAudioSettings = !!(audioSettingsPanel && audioSettingsPanel.contains(event.target));
+  const clickedSettingsToggle = !!(settingsToggleBtn && settingsToggleBtn.contains(event.target));
   const clickedCanvas = event.target === canvas;
   const clickedMapUnit = !!event.target.closest(".map-unit-btn");
   const clickedViewBtn = event.target === resetCameraBtn || !!event.target.closest("#resetCameraBtn");
@@ -7043,6 +7138,10 @@ document.addEventListener("click",(event)=>{
   if(!clickedInsideUnitPanel && !clickedMapUnit && !clickedViewBtn){
     hideUnitInfoPanel();
   }
+
+  if(!clickedInsideAudioSettings && !clickedSettingsToggle){
+    setAudioSettingsPanelOpen(false);
+  }
 });
 
 
@@ -7051,18 +7150,15 @@ hudToggleBtn?.addEventListener("click",(event)=>{
   toggleHudVisibility();
 });
 
-audioToggle?.addEventListener("click",(event)=>{
+settingsToggleBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  ensureAudio();
-  isMuted = !isMuted;
-  if(audioAssets){
-    Object.values(audioAssets).forEach((pool)=>pool.setMuted(isMuted));
-  }
-  if(isMuted){ stopBossLoop(); clearAmbientAudio(); }
-  else { syncAmbientAudio(); }
-  updateAudioToggle();
-  setMessage(isMuted ? "Audio off." : "Audio on.");
+  setAudioSettingsPanelOpen(audioSettingsPanel?.classList.contains("hidden"));
 });
+
+settingsCloseBtn?.addEventListener("click",()=>setAudioSettingsPanelOpen(false));
+masterSoundToggle?.addEventListener("click",()=>toggleAudioSetting("sound", "Sound"));
+musicToggle?.addEventListener("click",()=>toggleAudioSetting("music", "Music"));
+effectsToggle?.addEventListener("click",()=>toggleAudioSetting("effects", "Effects"));
 
 document.addEventListener("keydown",(event)=>{
   const activeTag = document.activeElement?.tagName;
@@ -7098,6 +7194,11 @@ document.addEventListener("keydown",(event)=>{
   }
 
   if(event.key === "Escape"){
+    if(audioSettingsPanel && !audioSettingsPanel.classList.contains("hidden")){
+      setAudioSettingsPanelOpen(false);
+      settingsToggleBtn?.focus();
+      return;
+    }
     selectedPlacedUnitId = null;
     hideTowerMenu();
     hideUnitInfoPanel();
