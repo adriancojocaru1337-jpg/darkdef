@@ -4198,3 +4198,85 @@ kbd {
 .leaderboard-table-body-glow.daily .wow-row:hover{
   background:rgba(251,146,60,.07);
 }
+
+/* ===== Resume overlay — centered over the battlefield ===== */
+.resume-overlay{
+  position:absolute;
+  inset:0;
+  z-index:999;
+  display:grid;
+  place-items:center;
+  pointer-events:auto;
+  background:radial-gradient(ellipse at center, rgba(4,7,12,.42) 0%, rgba(4,7,12,.72) 100%);
+  backdrop-filter:blur(1.5px);
+  -webkit-backdrop-filter:blur(1.5px);
+  animation:resumeFadeIn .35s ease both;
+}
+/* THE FIX: display:grid above would otherwise tie-break against the global
+   .hidden{display:none} (same specificity, later in file wins). This rule
+   is more specific, so hiding the overlay actually hides it. */
+.resume-overlay.hidden{
+  display:none;
+}
+@keyframes resumeFadeIn{
+  from{ opacity:0; }
+  to{ opacity:1; }
+}
+.resume-card{
+  position:relative;
+  z-index:2;
+  pointer-events:auto;
+  text-align:center;
+  padding:26px 34px 24px;
+  background:rgba(9,13,20,.82);
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:18px;
+  box-shadow:0 24px 64px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.05);
+  max-width:min(420px, calc(100% - 32px));
+  animation:resumeCardIn .4s cubic-bezier(.22,1,.36,1) both;
+}
+@keyframes resumeCardIn{
+  from{ opacity:0; transform:translateY(14px) scale(.97); }
+  to{ opacity:1; transform:translateY(0) scale(1); }
+}
+.resume-kicker{
+  font-size:.72rem; font-weight:700; letter-spacing:.22em; text-transform:uppercase;
+  color:#8b9bb5; margin-bottom:6px;
+}
+.resume-title{
+  margin:0 0 8px;
+  font-family:"Cinzel", Georgia, serif;
+  font-size:1.6rem;
+  color:#f1f5f9;
+}
+.resume-details{
+  margin:0 0 18px;
+  font-size:.9rem;
+  color:#aab8cf;
+}
+.resume-actions{
+  display:flex;
+  gap:12px;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+.resume-btn-main{
+  background:linear-gradient(180deg,#2dd4bf,#0f766e); color:#04211d;
+  border:1px solid rgba(94,234,212,.55);
+  font-weight:800;
+  padding:12px 26px;
+  box-shadow:0 0 18px rgba(45,212,191,.3), inset 0 1px 0 rgba(255,255,255,.22);
+}
+.resume-btn-main:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+.resume-btn-new{
+  background:rgba(15,20,30,.85); color:#cbd5e1;
+  border:1px solid rgba(148,163,184,.3);
+  padding:12px 22px;
+}
+.resume-btn-new:hover{ border-color:rgba(203,213,225,.5); color:#f1f5f9; transform:translateY(-1px); }
+@media (max-width:700px){
+  .resume-card{ padding:20px 18px 18px; }
+  .resume-title{ font-size:1.3rem; }
+  .resume-actions{ gap:8px; }
+  .resume-btn-main, .resume-btn-new{ padding:11px 18px; }
+}

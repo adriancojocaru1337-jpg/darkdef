@@ -13,7 +13,11 @@ const LEY_NODES = {
   second_sight:       { maxRank: 1, costs: [130] },
   crystal_harvest:    { maxRank: 2, costs: [30, 70] },
   luminous_awakening: { maxRank: 1, costs: [200] },
-  cryo_tower:         { maxRank: 1, costs: [75] }
+  cryo_tower:         { maxRank: 1, costs: [150] },
+  cryo_chill:         { maxRank: 4, costs: [300, 600, 1000, 1600] },
+  cryo_reach:         { maxRank: 4, costs: [300, 600, 1000, 1600] },
+  cryo_power:         { maxRank: 4, costs: [300, 600, 1000, 1600] },
+  cryo_brittle:       { maxRank: 4, costs: [300, 600, 1000, 1600] }
 };
 
 const MAX_TOTAL_EARNED = 1000000;

@@ -103,6 +103,10 @@ const dailyStreakChip = document.getElementById("dailyStreakChip");
 const speedBtn = document.getElementById("speedBtn");
 const gameOverDailyBoard = document.getElementById("gameOverDailyBoard");
 const gameOverDailyBoardList = document.getElementById("gameOverDailyBoardList");
+const resumeRunBtn = document.getElementById("resumeRunBtn");
+const resumeOverlay = document.getElementById("resumeOverlay");
+const resumeDetails = document.getElementById("resumeDetails");
+const startNewRunBtn = document.getElementById("startNewRunBtn");
 const restartFromGameOverBtn = document.getElementById("restartFromGameOverBtn");
 const returnToMenuBtn = document.getElementById("returnToMenuBtn");
 const gameOverText = document.getElementById("gameOverText");
@@ -1992,6 +1996,7 @@ function resolveBossWaveCompletion(){
   }
   isPaused = false;
   armWaveCallBonus();
+  saveRunState();
   updateUI();
 }
 
@@ -3364,6 +3369,7 @@ function enterEndlessModeFromUnlock(){
   setMessage("Endless Mode begins. Your defenses hold the Dark Portal. Re-place your reserve towers for free.");
   isPaused = false;
   updateUI();
+  saveRunState();
 }
 
 // Save the best wave reached for today's challenge. Called as waves advance
@@ -3381,6 +3387,7 @@ function maybeSaveDailyChallengeWave(){
 // (escalating waves, dual bosses every 10) but on the challenge's chosen map
 // and with its modifiers applied. A fresh run every time — no reserve carryover.
 function startDailyChallenge(){
+  clearSavedRun();
   const challenge = getDailyChallenge();
   activeDailyChallenge = challenge;
   dailyChallengeActive = true;
@@ -3552,28 +3559,200 @@ function maybeSaveBestEndlessRun(){
   }catch(e){}
 }
 
-/* ===== Leave guard + tab auto-pause =====
-   Closing or reloading the page mid-run asks for confirmation (the browser
-   shows its own standard wording). Switching tabs pauses the game so nothing
-   is lost while the player is away; they resume manually. */
+/* ===== Run Save / Resume =====
+   The full run state is snapshotted at safe points (between waves, after
+   stage transitions, on tab switch) so a closed tab never costs the player
+   their run. Enemies/projectiles are intentionally NOT saved — a resume
+   always lands in the calm build phase before the next wave. */
+const RUN_SAVE_KEY = "sdcSavedRun";
+const RUN_SAVE_VERSION = 2;
+
+function serializeRunState(){
+  return {
+    v: RUN_SAVE_VERSION,
+    savedAt: Date.now(),
+    mode: currentMode,
+    stage: currentStage,
+    wave, stageWave,
+    money, lives, score, bonusScore, kills,
+    stageStartLives,
+    idCounter,
+    endlessUnlocked,
+    endlessMusicStage: (typeof endlessMusicStage !== "undefined") ? endlessMusicStage : 1,
+    runLeyCrystalsEarned,
+    runEndlessBossPairsDefeated,
+    comboBest,
+    achievements: { ...achievements },
+    spellCooldown: { ...spellCooldown },
+    units: structuredClone(units),
+    reservePool: structuredClone(reservePool),
+    daily: dailyChallengeActive && activeDailyChallenge
+      ? { id: activeDailyChallenge.id, dateKey: activeDailyChallenge.dateKey }
+      : null,
+    leaderboardRun: leaderboardRun.runId ? { ...leaderboardRun } : null
+  };
+}
+
+function saveRunState(){
+  if(!hasStarted || lives <= 0) return;
+  // Never snapshot mid-wave or mid-boss-resolution — resumed state must be clean.
+  if(waveActive || pendingAuraChoice || pendingBossResolution) return;
+  try{
+    localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(serializeRunState()));
+  }catch(e){}
+}
+
+function clearSavedRun(){
+  try{ localStorage.removeItem(RUN_SAVE_KEY); }catch(e){}
+}
+
+function loadSavedRun(){
+  try{
+    const raw = localStorage.getItem(RUN_SAVE_KEY);
+    if(!raw) return null;
+    const save = JSON.parse(raw);
+    if(!save || save.v !== RUN_SAVE_VERSION) return null;
+    if(!STAGES[save.stage]) return null;
+    if(typeof save.lives !== "number" || save.lives <= 0) return null;
+    // A saved daily run is only valid on the day it was played.
+    if(save.daily && save.daily.dateKey !== getTodayKey()) return null;
+    return save;
+  }catch(e){ return null; }
+}
+
+function isResumeOverlayOpen(){
+  return !!(resumeOverlay && !resumeOverlay.classList.contains("hidden"));
+}
+
+// Restore the saved run into live game state. The run stays idle so the
+// restored battlefield renders behind the resume overlay.
+function restoreRunState(save){
+  if(save.daily){
+    activeDailyChallenge = getDailyChallenge(save.daily.dateKey);
+    dailyChallengeActive = true;
+  } else {
+    exitDailyChallenge();
+  }
+
+  applyStage(save.stage, true);
+
+  currentMode = save.mode === "endless" ? "endless" : "campaign";
+  wave = Math.max(1, save.wave|0);
+  stageWave = Math.max(1, save.stageWave|0);
+  money = Math.max(0, save.money|0);
+  lives = Math.max(1, save.lives|0);
+  score = Math.max(0, save.score|0);
+  bonusScore = Math.max(0, save.bonusScore|0);
+  kills = Math.max(0, save.kills|0);
+  stageStartLives = Math.max(1, save.stageStartLives|0) || lives;
+  idCounter = Math.max(idCounter, (save.idCounter|0) || 1);
+  runLeyCrystalsEarned = Math.max(0, save.runLeyCrystalsEarned|0);
+  runEndlessBossPairsDefeated = Math.max(0, save.runEndlessBossPairsDefeated|0);
+  comboBest = Math.max(0, save.comboBest|0);
+  if(typeof endlessMusicStage !== "undefined") endlessMusicStage = save.endlessMusicStage || 1;
+  if(save.endlessUnlocked) endlessUnlocked = true;
+  if(save.achievements) Object.keys(achievements).forEach(k=>{ achievements[k] = !!save.achievements[k]; });
+  if(save.spellCooldown){
+    spellCooldown.slow = Math.max(0, Number(save.spellCooldown.slow)||0);
+    spellCooldown.damage = Math.max(0, Number(save.spellCooldown.damage)||0);
+    spellCooldown.bomb = Math.max(0, Number(save.spellCooldown.bomb)||0);
+  }
+  units = Array.isArray(save.units) ? save.units : [];
+  units.forEach(u => { u.snareTimer = 0; u.cooldown = 0; delete u.snaredUntil; });
+  reservePool = save.reservePool && typeof save.reservePool === "object"
+    ? { archer:[], hunter:[], mage:[], bomb:[], cryo:[], ...save.reservePool }
+    : { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
+
+  // Reuse the anti-cheat run token when still valid so a resumed run keeps
+  // its original server start time; otherwise request a fresh one.
+  if(save.leaderboardRun && save.leaderboardRun.runId && save.leaderboardRun.expiresAt > Date.now() + 60_000){
+    leaderboardRun = { ...save.leaderboardRun };
+  } else {
+    prewarmLeaderboardRun(save.daily ? "daily" : currentMode);
+  }
+  updateUI();
+}
+
+// At boot: if a valid save exists, restore it, skip the start menu, and show
+// the resume overlay centered over the restored battlefield.
+function maybeShowResumeOverlay(){
+  if(!resumeOverlay) return false;
+  const save = loadSavedRun();
+  if(!save) return false;
+  try{
+    restoreRunState(save);
+  }catch(e){
+    console.warn("[Dark Defense] Saved run could not be restored:", e);
+    clearSavedRun();
+    return false;
+  }
+  const modeLabel = save.daily
+    ? `${activeDailyChallenge?.emoji || "🗓️"} ${activeDailyChallenge?.name || "Daily Challenge"}`
+    : (save.mode === "endless" ? "♾️ Endless" : `🗺️ Stage ${currentStage} · ${STAGES[currentStage].name}`);
+  if(resumeDetails) resumeDetails.textContent = `${modeLabel} · Wave ${stageWave} · ❤️ ${lives} · 💰 ${money}`;
+  startOverlay?.classList.add("hidden");
+  resumeOverlay.classList.remove("hidden");
+  return true;
+}
+
+function finishResumeRun(){
+  resumeOverlay?.classList.add("hidden");
+  hasStarted = true;
+  isPaused = false;
+  ensureAudio();
+  syncAmbientAudio();
+  loadProgressNotice();
+  loadBonusLeaderboard();
+  hideEndlessUnlockOverlay();
+  resetCamera();
+  if(dailyChallengeActive && activeDailyChallenge){
+    setMessage(`Run resumed — ${activeDailyChallenge.emoji} ${activeDailyChallenge.name}, Wave ${stageWave}. Your towers are on the field.`);
+  } else {
+    setMessage(`Run resumed — ${currentMode === "endless" ? "Endless" : `Stage ${currentStage}`}, Wave ${stageWave}. Your towers are on the field.`);
+  }
+  pushNotification("stage","Run resumed","Welcome back. The line held while you were away.");
+  refreshDailyChallengeUI();
+  updateUI();
+}
+
+function startNewRunFromResume(){
+  clearSavedRun();
+  resumeOverlay?.classList.add("hidden");
+  exitDailyChallenge();
+  applyStage(1, true);
+  prewarmLeaderboardRun("campaign");
+  hasStarted = true;
+  isPaused = false;
+  ensureAudio();
+  syncAmbientAudio();
+  loadProgressNotice();
+  loadBonusLeaderboard();
+  showHintChip();
+  resetCamera();
+  setMessage("New run started. Place towers, start the wave, and hold the line.");
+  updateUI();
+}
+
 function isRunInProgress(){
   return hasStarted && lives > 0;
 }
 
-window.addEventListener("beforeunload",(event)=>{
-  if(!isRunInProgress()) return;
-  event.preventDefault();
-  event.returnValue = "";
-});
-
+// Tab switch: snapshot the run (between waves) and auto-pause so nothing is
+// lost while the player is away; they resume manually.
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState !== "hidden") return;
-  if(!isRunInProgress() || isPaused) return;
-  if(pendingAuraChoice || pendingBossResolution) return;
+  if(!isRunInProgress()) return;
+  if(!waveActive && !pendingAuraChoice && !pendingBossResolution) saveRunState();
+  if(isPaused || pendingAuraChoice || pendingBossResolution) return;
   isPaused = true;
   cancelSpellSelection();
   setMessage("Game paused — you switched tabs. Press Pause or Space to resume.");
   updateUI();
+});
+
+// Closing the page mid-build also snapshots the run.
+window.addEventListener("beforeunload",()=>{
+  if(isRunInProgress() && !waveActive && !pendingAuraChoice && !pendingBossResolution) saveRunState();
 });
 
 function saveProgress(){
@@ -3775,7 +3954,7 @@ function applyStage(stageNumber, resetRun=false){
   console.log("[Dark Defense] New stage started — Auto Play disabled.");
   updateUI();
 }
-const resetGame=()=>{ exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
+const resetGame=()=>{ clearSavedRun(); exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
 
 function startWave(autoTriggered=false){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
@@ -4492,6 +4671,7 @@ function update(dt){
       if(lives<=0 && !gameOverTriggered){
         gameOverTriggered = true;
         waveActive=false;
+        clearSavedRun();
         setGameSpeed(1);
         openGameOverOverlay();
         saveProgress();
@@ -4698,6 +4878,7 @@ function update(dt){
     maybeSaveDailyChallengeWave();
     if(dailyChallengeActive) registerDailyStreakPlay();
     armWaveCallBonus();
+    saveRunState();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
     updateUI();
   }
@@ -7470,6 +7651,8 @@ resetCameraBtn?.addEventListener("click",(event)=>{
 });
 
 startGameBtn.addEventListener("click",()=>{
+  // A fresh Play always starts a new run — any old snapshot is discarded.
+  clearSavedRun();
   // If a daily challenge was previously active, drop back to a clean campaign.
   if(dailyChallengeActive || currentMode !== "campaign"){
     exitDailyChallenge();
@@ -7482,6 +7665,9 @@ startGameBtn.addEventListener("click",()=>{
   setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
 });
 
+
+resumeRunBtn?.addEventListener("click",()=>{ finishResumeRun(); });
+startNewRunBtn?.addEventListener("click",()=>{ startNewRunFromResume(); });
 
 speedBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
@@ -7528,7 +7714,7 @@ updateAutoPlayUI();
 updateSpeedUI();
 applyHudVisibility();
 applyStage(1,true);
-try{ localStorage.removeItem("sdcSavedRun"); }catch(e){}
+maybeShowResumeOverlay();
 loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
@@ -7599,6 +7785,15 @@ musicVolumeSlider?.addEventListener("input",(e)=>{
 document.addEventListener("keydown",(event)=>{
   const activeTag = document.activeElement?.tagName;
   if(activeTag === "INPUT" || activeTag === "TEXTAREA") return;
+
+  // While the resume screen is up, Space/Enter resumes; everything else waits.
+  if(isResumeOverlayOpen()){
+    if(event.key === " " || event.key === "Enter"){
+      event.preventDefault();
+      finishResumeRun();
+    }
+    return;
+  }
 
   const key = event.key.toLowerCase();
 
