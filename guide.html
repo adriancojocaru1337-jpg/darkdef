@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Defense — Complete Guide: Towers, Enemies, Bosses & Strategy</title>
+  <meta name="description" content="The complete Dark Defense guide: how to play, every tower and upgrade, all enemy types, all six bosses with their abilities, Ascension progression, Endless mode, and advanced high-score strategy." />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <link rel="canonical" href="https://darkdefense.netlify.app/guide.html" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="/crest.js"></script>
+  <script src="/account-bar.js" defer></script>
+  <style>
+    /* Guide-specific layout for image cards — scoped so it doesn't affect the game UI */
+    .guide-toc{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    .guide-toc a{font-size:13px;padding:7px 13px;border-radius:999px;background:rgba(148,163,184,.12);
+      border:1px solid rgba(148,163,184,.2);color:#cbd5e1;text-decoration:none;transition:all .15s}
+    .guide-toc a:hover{background:rgba(56,189,248,.16);border-color:rgba(56,189,248,.4);color:#e0f2fe}
+    .unit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:6px}
+    .unit-card{background:var(--surface-2,rgba(15,23,42,.5));border:1px solid rgba(148,163,184,.16);
+      border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+    .unit-card .unit-head{display:flex;align-items:center;gap:12px}
+    .unit-card img{width:64px;height:64px;object-fit:contain;flex-shrink:0;
+      background:radial-gradient(circle at 50% 40%,rgba(56,189,248,.12),transparent 70%);border-radius:10px}
+    .unit-card .unit-name{font-family:'Cinzel',serif;font-size:17px;font-weight:600;color:#f1f5f9;line-height:1.2}
+    .unit-card .unit-cost{font-size:12px;color:#94a3b8;margin-top:2px}
+    .unit-stats{display:flex;flex-wrap:wrap;gap:6px}
+    .unit-stats span{font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(148,163,184,.1);color:#cbd5e1}
+    .unit-desc{font-size:13px;color:#b6c2d4;line-height:1.5}
+    .spec-row{display:flex;gap:8px;margin-top:4px}
+    .spec-chip{flex:1;background:rgba(148,163,184,.08);border-radius:8px;padding:8px 10px}
+    .spec-chip b{display:block;font-size:12.5px;color:#e2e8f0;margin-bottom:2px}
+    .spec-chip small{font-size:11px;color:#93a3b8;line-height:1.4}
+    .boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:6px}
+    .boss-card{background:var(--surface-2,rgba(15,23,42,.5));border:1px solid rgba(148,163,184,.16);
+      border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+    .boss-card .boss-portrait{width:100%;aspect-ratio:1/1;object-fit:cover;object-position:center 22%;
+      border-bottom:1px solid rgba(148,163,184,.14)}
+    .boss-card .boss-body{padding:13px 15px;display:flex;flex-direction:column;gap:7px}
+    .boss-card .boss-name{font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:#f8fafc;line-height:1.2}
+    .boss-card .boss-meta{font-size:12px;color:#94a3b8}
+    .boss-card .boss-ability{font-size:13px;color:#c7d2e0;line-height:1.5}
+    .boss-card .boss-ability b{color:#fca5a5}
+    .enemy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:6px}
+    .enemy-card{background:var(--surface-2,rgba(15,23,42,.5));border:1px solid rgba(148,163,184,.16);
+      border-radius:14px;padding:14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
+    .enemy-card img{height:76px;object-fit:contain;image-rendering:auto}
+    .enemy-card .enemy-name{font-family:'Cinzel',serif;font-size:15px;font-weight:600;color:#f1f5f9}
+    .enemy-card .enemy-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
+    .enemy-card .enemy-tags span{font-size:10.5px;padding:2px 7px;border-radius:5px;background:rgba(148,163,184,.1);color:#cbd5e1}
+    .enemy-card .enemy-desc{font-size:12px;color:#a8b5c6;line-height:1.45}
+    .tip-callout{background:rgba(56,189,248,.08);border-left:3px solid rgba(56,189,248,.5);
+      border-radius:8px;padding:11px 14px;font-size:13.5px;color:#c7dced;line-height:1.55;margin-top:10px}
+  </style>
+</head>
+<body>
+  <main class="page-content">
+
+    <section class="glass content-hero">
+      <div class="panel-kicker">Complete Guide</div>
+      <h1>Everything you need to master Dark Defense</h1>
+      <p>One page for the whole game: the basics, every tower and its upgrades, all enemy types, all six bosses and their abilities, Ascension progression, Endless mode, and the advanced strategy that separates a quick loss from a high-score run.</p>
+      <nav class="guide-toc" aria-label="Guide sections">
+        <a href="#basics">Basics</a>
+        <a href="#towers">Towers</a>
+        <a href="#enemies">Enemies</a>
+        <a href="#bosses">Bosses</a>
+        <a href="#ascension">Ascension</a>
+        <a href="#endless">Endless</a>
+        <a href="#strategy">Advanced Strategy</a>
+      </nav>
+      <div class="cta-row" style="margin-top:16px">
+        <a href="/index.html" class="btn btn-primary">Play Dark Defense</a>
+      </div>
+    </section>
+
+    <section class="glass content-card" id="basics">
+      <div class="panel-kicker">Getting Started</div>
+      <h2>The basics</h2>
+      <p>Dark Defense is a tower defense game: enemies walk a fixed path toward your gate, and you place towers alongside it to destroy them before they cross. Each kill earns gold; each leak costs a life. Survive every wave in a stage to win — or push as far as you can in Endless.</p>
+      <ul class="guide-list">
+        <li><strong>Place towers</strong> on buildable ground next to the path. Tap a spot, pick a tower, confirm.</li>
+        <li><strong>Earn gold</strong> from kills and wave clears; spend it on new towers or upgrades.</li>
+        <li><strong>Start each wave</strong> with the Start button — tap once for a single wave, or double-tap it to toggle Auto (waves start on their own).</li>
+        <li><strong>Upgrade your best towers</strong> instead of spreading gold thin — a well-placed upgraded tower beats several weak ones.</li>
+        <li><strong>Protect your lives</strong>: a flawless wave earns bonus score, and lives carry your run's momentum.</li>
+      </ul>
+      <div class="tip-callout">Pausing freezes the field — you can inspect towers, but you can't place new ones until you resume.</div>
+    </section>
+
+    <section class="glass content-card" id="towers">
+      <div class="panel-kicker">Your Arsenal</div>
+      <h2>Towers &amp; upgrades</h2>
+      <p>Five towers, each with a role. Base stats below are at placement (level 1). Every gold upgrade raises damage, range and attack speed; at level 2 you instead choose one of two <em>specializations</em> that define the tower's identity.</p>
+
+      <div class="unit-grid">
+
+        <div class="unit-card">
+          <div class="unit-head">
+            <img src="assets/towers/archer.png" alt="Archer tower" loading="lazy" />
+            <div><div class="unit-name">Archer</div><div class="unit-cost">90 gold · cheap starter</div></div>
+          </div>
+          <div class="unit-stats"><span>DMG 30</span><span>Range 122</span><span>Rate 0.72s</span><span>Single-target</span></div>
+          <div class="unit-desc">Fast, affordable, reliable. Your opening pick and backbone of any early layout.</div>
+          <div class="spec-row">
+            <div class="spec-chip"><b>Rapid Shot</b><small>Much faster fire, slightly less damage — melts fast swarms.</small></div>
+            <div class="spec-chip"><b>Heavy Arrows</b><small>+38% damage, a bit slower — punches through tanks.</small></div>
+          </div>
+        </div>
+
+        <div class="unit-card">
+          <div class="unit-head">
+            <img src="assets/towers/hunter.png" alt="Hunter tower" loading="lazy" />
+            <div><div class="unit-name">Hunter</div><div class="unit-cost">190 gold · long range</div></div>
+          </div>
+          <div class="unit-stats"><span>DMG 76</span><span>Range 186</span><span>Rate 1.24s</span><span>Single-target</span></div>
+          <div class="unit-desc">Longest reach in the game. Covers long lanes and picks off priority targets early.</div>
+          <div class="spec-row">
+            <div class="spec-chip"><b>Sniper</b><small>+20% range, +25% damage — an elite killer for bosses.</small></div>
+            <div class="spec-chip"><b>Tracker</b><small>Faster projectiles, +35% vs fast enemies — never misses runners.</small></div>
+          </div>
+        </div>
+
+        <div class="unit-card">
+          <div class="unit-head">
+            <img src="assets/towers/mage.png" alt="Mage tower" loading="lazy" />
+            <div><div class="unit-name">Mage</div><div class="unit-cost">235 gold · splash</div></div>
+          </div>
+          <div class="unit-stats"><span>DMG 54</span><span>Range 156</span><span>Rate 1.08s</span><span>Splash 52</span></div>
+          <div class="unit-desc">Area damage that softens groups. Excellent against clustered waves and splitters.</div>
+          <div class="spec-row">
+            <div class="spec-chip"><b>Frost Mage</b><small>Slows enemies on hit — adds control to its splash.</small></div>
+            <div class="spec-chip"><b>Arc Mage</b><small>Chains to a nearby target — more coverage per shot.</small></div>
+          </div>
+        </div>
+
+        <div class="unit-card">
+          <div class="unit-head">
+            <img src="assets/towers/bomb.png" alt="Bomb tower" loading="lazy" />
+            <div><div class="unit-name">Bomb Tower</div><div class="unit-cost">305 gold · heavy AoE</div></div>
+          </div>
+          <div class="unit-stats"><span>DMG 104</span><span>Range 145</span><span>Rate 1.70s</span><span>Splash 68</span></div>
+          <div class="unit-desc">Slow but devastating burst. The strongest single hit and the best wave-clearer when placed on a choke.</div>
+          <div class="spec-row">
+            <div class="spec-chip"><b>Demolition</b><small>Bigger splash and damage — clears dense packs.</small></div>
+            <div class="spec-chip"><b>Shock Bomb</b><small>Chance to stun on hit — control plus burst.</small></div>
+          </div>
+        </div>
+
+        <div class="unit-card">
+          <div class="unit-head">
+            <div style="width:64px;height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:34px;background:radial-gradient(circle at 50% 40%,rgba(56,189,248,.2),transparent 70%);border-radius:10px;color:#7dd3fc">❄</div>
+            <div><div class="unit-name">Cryo</div><div class="unit-cost">160 gold · unlock 150 ✦ · one at a time</div></div>
+          </div>
+          <div class="unit-stats"><span>DMG 22</span><span>Range 150</span><span>Rate 1.0s</span><span>Chill 70%</span><span>+Brittle</span></div>
+          <div class="unit-desc">A control tower, not a damage dealer. Its field slows every enemy in range and stacks <em>Brittle</em>, which makes targets take more damage from all your other towers. Only one can be active at a time — sell it to reposition.</div>
+          <div class="spec-row">
+            <div class="spec-chip"><b>Glacier</b><small>Deeper chill, wider field — maximum slow.</small></div>
+            <div class="spec-chip"><b>Shatter</b><small>More Brittle per hit, +damage — amplifies your whole defense.</small></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tip-callout"><strong>Upgrade values:</strong> each gold upgrade multiplies damage by ×1.40 (Bomb ×1.50), range by ×1.10, and attack speed by ×0.95 (faster), with the cost rising ×1.65 per level. Upgrades stay strong but no longer let a single maxed tower dominate — so keep expanding your coverage.</div>
+    </section>
+
+    <section class="glass content-card" id="enemies">
+      <div class="panel-kicker">Know Your Foes</div>
+      <h2>Enemy types</h2>
+      <p>Every wave mixes these enemies. Each has a different mix of health and speed, so your ideal answer changes with what's coming.</p>
+
+      <div class="enemy-grid">
+
+        <div class="enemy-card">
+          <img src="assets/guide/mob_normal.png" alt="Normal enemy" loading="lazy" />
+          <div class="enemy-name">Skeleton</div>
+          <div class="enemy-tags"><span>Baseline HP</span><span>Medium speed</span><span>+20 gold</span></div>
+          <div class="enemy-desc">The standard foot soldier. Balanced and predictable — the yardstick every other enemy is measured against.</div>
+        </div>
+
+        <div class="enemy-card">
+          <img src="assets/guide/mob_fast.png" alt="Fast enemy" loading="lazy" />
+          <div class="enemy-name">Runner</div>
+          <div class="enemy-tags"><span>Low HP</span><span>Very fast</span><span>+16 gold</span></div>
+          <div class="enemy-desc">Rushes the gate before slow towers can react. Cover the whole path or lean on fast/tracking towers and slows.</div>
+        </div>
+
+        <div class="enemy-card">
+          <img src="assets/guide/mob_tank.png" alt="Tank enemy" loading="lazy" />
+          <div class="enemy-name">Tank</div>
+          <div class="enemy-tags"><span>2× HP</span><span>Slow</span><span>+28 gold</span></div>
+          <div class="enemy-desc">A slow damage sponge. Focus fire and single-target burst (Hunter, Bomb) beat it faster than spreading shots.</div>
+        </div>
+
+        <div class="enemy-card">
+          <img src="assets/guide/mob_armored.png" alt="Armored enemy" loading="lazy" />
+          <div class="enemy-name">Armored</div>
+          <div class="enemy-tags"><span>~1.5× HP</span><span>Steady</span><span>+26 gold</span></div>
+          <div class="enemy-desc">Arrives in clusters at the front of waves. High effective health — Brittle stacks from Cryo make it melt much faster.</div>
+        </div>
+
+        <div class="enemy-card">
+          <img src="assets/guide/mob_splitter.png" alt="Splitter enemy" loading="lazy" />
+          <div class="enemy-name">Splitter</div>
+          <div class="enemy-tags"><span>~1.3× HP</span><span>Medium</span><span>Splits on death</span></div>
+          <div class="enemy-desc">Appears from stage 3. Bursts into smaller enemies when killed — splash towers (Mage, Bomb) handle the fragments cleanly.</div>
+        </div>
+
+      </div>
+      <div class="tip-callout">In <strong>Endless</strong>, every non-boss enemy has <strong>double health</strong>, and health also climbs with each wave. Control tools (slows, Brittle) scale better than raw damage over a long run.</div>
+    </section>
+
+    <section class="glass content-card" id="bosses">
+      <div class="panel-kicker">The Six Bosses</div>
+      <h2>Bosses &amp; their abilities</h2>
+      <p>Each campaign stage ends with a unique boss that has a huge health pool and a special ability. In Endless, bosses arrive in pairs every tenth wave — now escorted by a full horde — and get tougher each cycle.</p>
+
+      <div class="boss-grid">
+
+        <div class="boss-card">
+          <img class="boss-portrait" src="assets/ui/boss-stage1.jpg" alt="Ancient Treant Skull" loading="lazy" />
+          <div class="boss-body">
+            <div class="boss-name">Ancient Treant Skull</div>
+            <div class="boss-meta">Stage 1 · Forest · difficulty ×1.0</div>
+            <div class="boss-ability"><b>Root Grasp</b> — snares one of your towers, briefly disabling it. Keep a backup tower covering the same lane.</div>
+          </div>
+        </div>
+
+        <div class="boss-card">
+          <img class="boss-portrait" src="assets/ui/boss-stage2.jpg" alt="Ruin Warden" loading="lazy" />
+          <div class="boss-body">
+            <div class="boss-name">Ruin Warden</div>
+            <div class="boss-meta">Stage 2 · Ruins · difficulty ×1.35</div>
+            <div class="boss-ability"><b>Blood Rage</b> — surges into a burst of speed. Have a slow spell ready to blunt the charge.</div>
+          </div>
+        </div>
+
+        <div class="boss-card">
+          <img class="boss-portrait" src="assets/ui/boss-stage3.jpg" alt="Grave Necromancer" loading="lazy" />
+          <div class="boss-body">
+            <div class="boss-name">Grave Necromancer</div>
+            <div class="boss-meta">Stage 3 · Graveyard · difficulty ×1.7</div>
+            <div class="boss-ability"><b>Grave Summons</b> — spawns extra minions on the road mid-fight. Splash towers keep the adds from overwhelming you.</div>
+          </div>
+        </div>
+
+        <div class="boss-card">
+          <img class="boss-portrait" src="assets/ui/boss-stage4.jpg" alt="Iron Castellan" loading="lazy" />
+          <div class="boss-body">
+            <div class="boss-name">Iron Castellan</div>
+            <div class="boss-meta">Stage 4 · Castle · difficulty ×2.15</div>
+            <div class="boss-ability"><b>Void Bulwark</b> — forms a defensive shell that absorbs damage. Save burst and spells for after it drops.</div>
+          </div>
+        </div>
+
+        <div class="boss-card">
+          <img class="boss-portrait" src="assets/ui/boss-stage5.jpg" alt="Catacomb Devourer" loading="lazy" />
+          <div class="boss-body">
+            <div class="boss-name">Catacomb Devourer</div>
+            <div class="boss-meta">Stage 5 · Catacombs · difficulty ×2.55</div>
+            <div class="boss-ability"><b>Blood Rage</b> — a faster, deadlier surge than stage 2. Layered kill zones and a ready slow are essential.</div>
+          </div>
+        </div>
+
+        <div class="boss-card">
+          <img class="boss-portrait" src="assets/ui/boss-stage6.jpg" alt="Dark Portal Overlord" loading="lazy" />
+          <div class="boss-body">
+            <div class="boss-name">Dark Portal Overlord</div>
+            <div class="boss-meta">Stage 6 · Dark Portal · difficulty ×3.0</div>
+            <div class="boss-ability"><b>Void Bulwark</b> — the final boss shields itself at the worst moments. Maximum single-target uptime plus saved spells win the run.</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <section class="glass content-card" id="ascension">
+      <div class="panel-kicker">Permanent Progression</div>
+      <h2>Ascension &amp; Crystals</h2>
+      <p>Every run — win or lose — earns <strong>Crystals</strong>. Spend them in <strong>Ascension</strong> on permanent upgrades that carry into every future run, so you grow stronger the more you play. Progress saves locally and syncs to your account when signed in.</p>
+      <ul class="guide-list">
+        <li><strong>🔆 Radiance</strong> — raw firepower: more tower damage, faster attacks, extra range, empowered ley stones.</li>
+        <li><strong>🛡️ Bastion</strong> — economy and survival: bonus starting gold and lives, more gold per kill, stronger stage-clear healing.</li>
+        <li><strong>🔮 Arcana</strong> — spells and drafts: shorter spell cooldowns, aura rerolls, more Crystals earned, wider boss aura choices.</li>
+        <li><strong>❄ Special Towers</strong> — unlock Cryo (150 Crystals), then its four upgrades: <em>Deep Frost</em> (stronger chill), <em>Glacial Reach</em> (range &amp; field), <em>Frostbite</em> (damage), <em>Shatterpoint</em> (extra Brittle) — each with four ranks at 300 / 600 / 1000 / 1600.</li>
+      </ul>
+      <div class="tip-callout">Node costs rise with each rank, so early attunements are cheap catch-up power, while the deepest upgrades — especially the Cryo tree — are long-term goals worth grinding toward.</div>
+    </section>
+
+    <section class="glass content-card" id="endless">
+      <div class="panel-kicker">Survival Mode</div>
+      <h2>Endless mode</h2>
+      <p>After you clear the campaign, Endless pits you against unlimited waves that scale forever. It's where high scores and leaderboard runs are made.</p>
+      <ul class="guide-list">
+        <li><strong>Doubled enemy health</strong> — every non-boss mob has 2× HP, and health keeps rising each wave.</li>
+        <li><strong>Boss pairs with a horde</strong> — every tenth wave sends two bosses, now preceded by a full wave of mobs, not just the pair alone.</li>
+        <li><strong>Rotating soundtrack</strong> — after each boss pair falls, the music rerolls to a random stage theme.</li>
+        <li><strong>Fewer Crystals than campaign</strong> — Endless rewards are deliberately leaner, so it's about the score, not the farm.</li>
+        <li><strong>Leaderboard runs</strong> — reach as high a wave as you can; your bonus score is submitted globally at game over.</li>
+      </ul>
+    </section>
+
+    <section class="glass content-card" id="strategy">
+      <div class="panel-kicker">Play Like a High-Score Run</div>
+      <h2>Advanced strategy</h2>
+
+      <h3>Positioning — use route geometry, not random placement</h3>
+      <p>The strongest layouts are built around repeated exposure. Place towers where enemies stay in range longest — around turns, along long lanes, and in overlapping coverage pockets. A mediocre tower in the right place usually beats a better tower placed badly. Let splash towers soften groups while longer-range towers finish priority targets before they cross the final third of the map.</p>
+
+      <h3>Boss prep — plan waves before they start</h3>
+      <ul class="guide-list">
+        <li>Save gold before boss waves instead of making weak filler buys.</li>
+        <li>Favor high single-target uptime for bosses (Hunter → Sniper, upgraded Bomb).</li>
+        <li>Keep at least one spell ready as insurance against a surge or shield drop.</li>
+        <li>Upgrade proven towers instead of panic-building new ones.</li>
+        <li>Protect lives to preserve bonus score and future momentum.</li>
+      </ul>
+
+      <h3>Economy — upgrade efficiency wins long runs</h3>
+      <p>Overspending on new towers too early is the classic mistake. Upgrades often create more value because they add damage to positions that already work. Expand only when coverage breaks down or a new route segment matters. In Endless, efficient gold conversion matters even more: stable waves create safer score submissions, better bonus accumulation, and room to exploit aura synergies later.</p>
+
+      <h3>Endless — how to survive longer</h3>
+      <p>Long runs are about discipline: keep a clean frontline, avoid unnecessary leaks, and treat every spell as a recovery tool for pressure spikes. If your layout only works while spells are up, it's too fragile. The simplest endless plan wins: stack reliable damage first, add splash for control, layer in Cryo's Brittle to amplify everything, and reinforce boss answers before greed takes over.</p>
+
+      <div class="cta-row" style="margin-top:18px">
+        <a href="/index.html" class="btn btn-primary">Play Dark Defense</a>
+        <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
+        <a href="/about.html" class="btn btn-secondary">About</a>
+      </div>
+    </section>
+
+  </main>
+  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+</body>
+</html>

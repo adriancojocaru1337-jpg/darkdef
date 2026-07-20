@@ -73,7 +73,6 @@ const towerSellBtn = document.getElementById("towerSellBtn");
 const towerSpecializationPanel = document.getElementById("towerSpecializationPanel");
 
 const startWaveBtn = document.getElementById("startWaveBtn");
-const autoPlayBtn = document.getElementById("autoPlayBtn");
 const pauseBtn = document.getElementById("pauseBtn");
 const resetBtn = document.getElementById("resetBtn");
 const resetCameraBtn = document.getElementById("resetCameraBtn");
@@ -1978,14 +1977,14 @@ async function loadBonusLeaderboard(){
       bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
       return;
     }
-    bonusLeaderboardList.innerHTML = rows.slice(0,3).map((row, index) => {
+    bonusLeaderboardList.innerHTML = rows.slice(0,1).map((row, index) => {
       const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
       const crest = window.DarkDefenseCrest?.markup(row.player_name || "Anonim", "dd-crest-sm", row.profile_crest_id || null) || "";
       const bonus = Number(row.bonus_score || 0);
       const waveReached = Number(row.wave_reached || 0);
       return `
         <div class="leaderboard-row">
-          <div class="leaderboard-rank">${index + 1}</div>
+          <div class="leaderboard-rank">👑</div>
           <div class="leaderboard-main">
             <span class="leaderboard-name">${crest}${safeName}</span>
             <span class="leaderboard-meta">Wave ${waveReached}</span>
@@ -3214,6 +3213,7 @@ function enterEndlessModeFromUnlock(){
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
   endlessMusicStage = 1;
+  prewarmLeaderboardRun("endless");
   syncAmbientAudio();
   saveProgress();
   setMessage("Endless Mode begins. Your defenses hold the Dark Portal. Re-place your reserve towers for free.");
@@ -3266,6 +3266,7 @@ function startDailyChallenge(){
 
   hasStarted = true;
   ensureAudio();
+  prewarmLeaderboardRun("endless");
   syncAmbientAudio();
   startOverlay?.classList.add("hidden");
   hideEndlessUnlockOverlay();
@@ -3651,10 +3652,12 @@ let autoPlay = (()=>{ try{ return localStorage.getItem("sdcAutoPlay") === "1"; }
 const AUTO_PLAY_DELAY = 1.5; // seconds of idle before the next wave auto-starts
 let autoPlayTimer = AUTO_PLAY_DELAY;
 function updateAutoPlayUI(){
-  if(!autoPlayBtn) return;
-  autoPlayBtn.classList.toggle("active", autoPlay);
-  autoPlayBtn.setAttribute("aria-pressed", String(autoPlay));
-  autoPlayBtn.title = autoPlay ? "Auto Play: ON — waves start automatically" : "Auto Play: OFF";
+  if(!startWaveBtn) return;
+  startWaveBtn.classList.toggle("auto-active", autoPlay);
+  startWaveBtn.setAttribute("aria-pressed", String(autoPlay));
+  startWaveBtn.title = autoPlay
+    ? "Auto ON — waves auto-start · double-tap to stop"
+    : "Start Wave · double-tap for Auto";
 }
 function toggleAutoPlay(){
   autoPlay = !autoPlay;
@@ -7168,8 +7171,20 @@ towerSpecializationPanel?.addEventListener("click",(event)=>{
   event.stopPropagation();
   applySpecializationToSelectedUnit(btn.dataset.specId);
 });
-startWaveBtn.addEventListener("click",startWave);
-autoPlayBtn?.addEventListener("click",toggleAutoPlay);
+let lastStartTapMs = 0;
+const DOUBLE_TAP_MS = 320;
+startWaveBtn.addEventListener("click",()=>{
+  const now = performance.now();
+  if(now - lastStartTapMs <= DOUBLE_TAP_MS){
+    // Quick second tap → toggle Auto Play. (The first tap already tried to start a
+    // wave; if one started that's fine — auto-play would have anyway.)
+    lastStartTapMs = 0;
+    toggleAutoPlay();
+    return;
+  }
+  lastStartTapMs = now;
+  startWave();
+});
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
 
