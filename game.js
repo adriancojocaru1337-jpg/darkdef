@@ -3601,6 +3601,11 @@ function applyStage(stageNumber, resetRun=false){
   resetCamera();
   setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.`);
   prepareBannerTimer = PREPARE_BANNER_DURATION;
+  // New stage → always cancel Auto Play so the player can build calmly.
+  autoPlay = false;
+  autoPlayTimer = AUTO_PLAY_DELAY;
+  updateAutoPlayUI();
+  console.log("[Dark Defense] New stage started — Auto Play disabled.");
   updateUI();
 }
 const resetGame=()=>{ exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
