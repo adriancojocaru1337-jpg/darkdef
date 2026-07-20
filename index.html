@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=20260720b" />
+  <link rel="stylesheet" href="style.css?v=r5" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
   <script type="application/ld+json">
@@ -418,12 +418,12 @@
           </div>
           <div class="resume-overlay hidden" id="resumeOverlay">
             <div class="resume-card">
-              <div class="resume-kicker">Dark Defense</div>
+              <div class="resume-kicker">Dark Defense · <span id="resumeBuildTag">build r5</span></div>
               <h2 class="resume-title">Welcome back</h2>
               <p class="resume-details" id="resumeDetails"></p>
               <div class="resume-actions">
-                <button class="btn resume-btn-main" id="resumeRunBtn" type="button">▶ Resume</button>
-                <button class="btn resume-btn-new" id="startNewRunBtn" type="button">Start New</button>
+                <button class="btn resume-btn-main" id="resumeRunBtn" type="button" onclick="window.__ddResume && window.__ddResume()">▶ Resume</button>
+                <button class="btn resume-btn-new" id="startNewRunBtn" type="button" onclick="window.__ddStartNew && window.__ddStartNew()">Start New</button>
               </div>
             </div>
           </div>
@@ -520,7 +520,7 @@
     </section>
   </main>
 
-  <script src="game.js?v=20260720b"></script>
+  <script src="game.js?v=r5"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>

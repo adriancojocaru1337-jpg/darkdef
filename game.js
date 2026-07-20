@@ -778,6 +778,7 @@ const FONT_DISPLAY = '"Cinzel", Georgia, "Times New Roman", serif';
 let currentStage = 1, path = STAGES[currentStage].route, pathCells = buildPathCells(path);
 let units = [], enemies = [], projectiles = [], particles = [], popups = [], placementEffects = [], upgradeEffects = [], impactBursts = [], screenFlashes = [];
 let money = START_MONEY, lives = START_LIVES, score = 0, bonusScore = 0, kills = 0;
+let gameOverTriggered = false;
 let wave = 1, stageWave = 1, waveActive = false, spawnLeft = 0, selectedUnitType = "archer", selectedPlacedUnitId = null;
 let isHudManuallyHidden = false, isPlacementHudAutoHidden = false;
 let spawnTimer = 0, idCounter = 1, lastTime = 0, hoveredCell = null, isPaused = false, hasStarted = false, bossBannerTimer = 0, stageStartLives = START_LIVES;
@@ -3445,11 +3446,11 @@ function moveUnitsToReserve(){
 }
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
-  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snaredUntil:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, specBrittleStacks:1, cryoTick:0, ...structuredClone(base) };
+  return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snareTimer:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, specBrittleStacks:1, cryoTick:0, ...structuredClone(base) };
 }
 function createFreshUnitForPlacement(typeKey,c,r){
   const unit=createPlacedUnit(c,r,typeKey);
-  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.snaredUntil=0; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0; unit.specBrittleStacks=1; unit.cryoTick=0;
+  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snareTimer=0; unit.level=1; unit.totalSpent=UNIT_TYPES[typeKey].cost; unit.nextUpgradeCost=UNIT_TYPES[typeKey].upgradeCost; unit.specialization=null; unit.specSlowFactor=1; unit.specSlowDuration=0; unit.specChainTargets=0; unit.specChainDamageFactor=0; unit.specBonusVsFast=1; unit.specStunChance=0; unit.specStunDuration=0; unit.specBrittleStacks=1; unit.cryoTick=0;
   if(typeKey==="cryo") applyCryoPermanentUpgrades(unit);
   return unit;
 }
@@ -3473,7 +3474,7 @@ function takeReservedUnit(typeKey,c,r){
     return (b.nextUpgradeCost || 0) - (a.nextUpgradeCost || 0);
   });
   const unit=reservePool[typeKey].shift();
-  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snaredUntil=0;
+  unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snareTimer=0;
   return unit;
 }
 
@@ -3733,6 +3734,20 @@ function startNewRunFromResume(){
   updateUI();
 }
 
+// Global handlers for the resume screen. The HTML buttons call these via
+// inline onclick, which is immune to any listener-registration or layering
+// issue. Errors are surfaced with alert() so problems are visible without
+// opening the console.
+const DD_BUILD_TAG = "r5";
+window.__ddResume = function(){
+  try{ finishResumeRun(); }
+  catch(e){ alert("Resume failed: " + (e && e.message ? e.message : e)); console.error(e); }
+};
+window.__ddStartNew = function(){
+  try{ startNewRunFromResume(); }
+  catch(e){ alert("Start New failed: " + (e && e.message ? e.message : e)); console.error(e); }
+};
+
 // Save between waves even if the tab closes mid-build (purchases included).
 function trySaveOnLeave(){
   if(hasStarted && lives > 0 && !waveActive && !pendingAuraChoice && !pendingBossResolution){
@@ -3895,6 +3910,7 @@ function updateUI(){
 
 function resetAchievementsUI(){}
 function applyStage(stageNumber, resetRun=false){
+  gameOverTriggered = false;
   currentStage=stageNumber;
   path=STAGES[currentStage].route;
   pathCells=buildPathCells(path);
@@ -4520,7 +4536,7 @@ function triggerBossAbility(enemy){
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained a shield!`,"#93c5fd");
   }
   if(ability==="roots"){
-    const activeUnits = units.filter(unit => (unit.snaredUntil || 0) <= performance.now());
+    const activeUnits = units.filter(unit => (unit.snareTimer || 0) <= 0);
     if(activeUnits.length){
       let rootedUnit = null;
       let bestDistance = Infinity;
@@ -4534,7 +4550,7 @@ function triggerBossAbility(enemy){
         }
       }
       if(rootedUnit){
-        rootedUnit.snaredUntil = performance.now() + 3500;
+        rootedUnit.snareTimer = 3.5;
         rootedUnit.cooldown = Math.max(rootedUnit.cooldown || 0, 0.35);
         const rootedPos = cellCenter(rootedUnit.c, rootedUnit.r);
         bossFxType = "roots";
@@ -4666,7 +4682,8 @@ function update(dt){
       if(enemy.type==="boss") syncBossLoop();
       breakCombo(false);
       lives=Math.max(0,lives-(enemy.type==="boss"?3:1));
-      if(lives<=0){
+      if(lives<=0 && !gameOverTriggered){
+        gameOverTriggered = true;
         waveActive=false;
         clearSavedRun();
         setGameSpeed(1);
@@ -4683,7 +4700,9 @@ function update(dt){
 
   for(const unit of units){
     unit.cooldown=Math.max(0,unit.cooldown-dt);
-    if((unit.snaredUntil || 0) > performance.now()) continue;
+    if(unit.wealthSurgeTimer) unit.wealthSurgeTimer = Math.max(0, unit.wealthSurgeTimer - dt);
+    if(unit.snareTimer) unit.snareTimer = Math.max(0, unit.snareTimer - dt);
+    if((unit.snareTimer || 0) > 0) continue;
     const stats = getAuraAdjustedStats(unit);
     const unitPos=cellCenter(unit.c,unit.r);
     if(unit.type === "cryo"){
@@ -6056,7 +6075,7 @@ function drawPlacedUnit(unit){
     ctx.restore();
   }
 
-  const isSnared = (unit.snaredUntil || 0) > performance.now();
+  const isSnared = (unit.snareTimer || 0) > 0;
   if(isSnared){
     ctx.save();
     ctx.strokeStyle = "rgba(74,222,128,.95)";
@@ -7419,7 +7438,7 @@ function drawBossAbilityFx(){
     ctx.globalAlpha = 0.20 * alpha;
     ctx.fillStyle = "#22c55e";
     for(const unit of units){
-      if((unit.snaredUntil || 0) > performance.now()){
+      if((unit.snareTimer || 0) > 0){
         const pos = cellCenter(unit.c, unit.r);
         ctx.beginPath();
         ctx.arc(pos.x, pos.y, 34 + Math.sin(performance.now() * 0.012 + unit.id) * 3, 0, Math.PI * 2);
@@ -7723,6 +7742,7 @@ updateAutoPlayUI();
 updateSpeedUI();
 applyHudVisibility();
 applyStage(1,true);
+console.log("[Dark Defense] build", DD_BUILD_TAG, "— resume handlers:", typeof window.__ddResume);
 maybeShowResumeOverlay();
 loadPanelUserSession();
 loadBonusLeaderboard();
