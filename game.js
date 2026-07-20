@@ -3074,8 +3074,11 @@ function showTowerMenu(unit){
     <div class="tower-stat-row"><span>Sell</span><strong>${Math.round(unit.totalSpent * unit.sellFactor)}</strong></div>
   `;
   if(towerSpecializationPanel) towerSpecializationPanel.classList.add("hidden");
-  towerUpgradeBtn.textContent = canChooseSpecialization(unit) ? "✨ Specialize" : "⬆ Upgrade";
-  towerUpgradeBtn.disabled = money < nextCost;
+  const canUpgradeNow = waveActive;
+  towerUpgradeBtn.textContent = !canUpgradeNow
+    ? "⬆ Upgrade (during wave)"
+    : (canChooseSpecialization(unit) ? "✨ Specialize" : "⬆ Upgrade");
+  towerUpgradeBtn.disabled = !canUpgradeNow || money < nextCost;
 
   if(towerSpecializationPanel){
     if(canChooseSpecialization(unit)) {
@@ -3574,6 +3577,7 @@ function applyStage(stageNumber, resetRun=false){
     reservePool={ archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
     money=START_MONEY + leyStartGoldBonus() + (stageNumber-1)*60;
     lives=getMaxLives(); score=0; bonusScore=0; kills=0; wave=1;
+    autoPlay = false; updateAutoPlayUI();
     runLeyCrystalsEarned = 0;
     runEndlessBossPairsDefeated = 0;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
@@ -3597,6 +3601,7 @@ function applyStage(stageNumber, resetRun=false){
   stageStartLives=lives;
   resetCamera();
   setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.`);
+  pushNotification("stage", "Prepare Defenses", "Build phase — place your towers now, then press Start when ready.");
   updateUI();
 }
 const resetGame=()=>{ exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
@@ -3648,7 +3653,7 @@ function togglePause(){
   updateUI();
 }
 
-let autoPlay = (()=>{ try{ return localStorage.getItem("sdcAutoPlay") === "1"; }catch(e){ return false; } })();
+let autoPlay = false; // always starts OFF each session; enable per-run via double-click on Start
 const AUTO_PLAY_DELAY = 1.5; // seconds of idle before the next wave auto-starts
 let autoPlayTimer = AUTO_PLAY_DELAY;
 function updateAutoPlayUI(){
@@ -3661,7 +3666,7 @@ function updateAutoPlayUI(){
 }
 function toggleAutoPlay(){
   autoPlay = !autoPlay;
-  try{ localStorage.setItem("sdcAutoPlay", autoPlay ? "1" : "0"); }catch(e){}
+  try{ localStorage.removeItem("sdcAutoPlay"); }catch(e){}
   setMessage(autoPlay ? "Auto Play on — waves will start automatically." : "Auto Play off.");
   updateAutoPlayUI();
   updateUI();
@@ -3735,6 +3740,7 @@ function placeUnit(c,r){
   const existing=units.find(t=>t.c===c && t.r===r);
   if(existing){ selectedPlacedUnitId=existing.id; setPlacementHudAutoHide(false); setMessage(`You selected ${existing.name}.`); updateUI(); return; }
 
+  if(waveActive){ setMessage("You can only build between waves — the wave is already advancing."); return; }
   if(isPaused){ setMessage("You cannot place towers while the game is paused. Press play to resume."); return; }
 
   if(selectedUnitType === "cryo" && units.some(t=>t.type === "cryo")){
@@ -3797,6 +3803,7 @@ function applySpecializationToSelectedUnit(specId){
 
 function upgradeSelectedUnit(){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit) return;
+  if(!waveActive){ setMessage("Upgrades are only available once the wave begins."); return; }
   if(canChooseSpecialization(unit)){
     if(towerSpecializationPanel?.classList.contains("hidden")) showTowerMenu(unit);
     setMessage(`Choose a specialization for ${unit.name}.`);
@@ -4519,6 +4526,7 @@ function update(dt){
     maybeSaveDailyChallengeWave();
     armWaveCallBonus();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
+    pushNotification("stage", "Prepare Defenses", "Build phase — place your towers now. You can't build once the wave starts.");
     updateUI();
   }
 }
