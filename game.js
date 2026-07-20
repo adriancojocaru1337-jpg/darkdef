@@ -7171,19 +7171,22 @@ towerSpecializationPanel?.addEventListener("click",(event)=>{
   event.stopPropagation();
   applySpecializationToSelectedUnit(btn.dataset.specId);
 });
-let lastStartTapMs = 0;
-const DOUBLE_TAP_MS = 320;
+let startTapTimer = null;
+const DOUBLE_TAP_MS = 280;
 startWaveBtn.addEventListener("click",()=>{
-  const now = performance.now();
-  if(now - lastStartTapMs <= DOUBLE_TAP_MS){
-    // Quick second tap → toggle Auto Play. (The first tap already tried to start a
-    // wave; if one started that's fine — auto-play would have anyway.)
-    lastStartTapMs = 0;
+  if(startTapTimer){
+    // Second click within the window → this was a double-click: toggle Auto Play only,
+    // and cancel the pending single-click wave start so a wave doesn't also fire.
+    clearTimeout(startTapTimer);
+    startTapTimer = null;
     toggleAutoPlay();
     return;
   }
-  lastStartTapMs = now;
-  startWave();
+  // First click → wait briefly to see if a second click makes it a double-click.
+  startTapTimer = setTimeout(()=>{
+    startTapTimer = null;
+    startWave();
+  }, DOUBLE_TAP_MS);
 });
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
