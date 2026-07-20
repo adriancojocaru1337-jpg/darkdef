@@ -1990,7 +1990,7 @@ function resolveBossWaveCompletion(){
       rollEndlessMusicStage();
       syncAmbientAudio();
     }
-    maybeSaveBestEndlessRun();
+    if(!dailyChallengeActive) maybeSaveBestEndlessRun();
     maybeSaveDailyChallengeWave();
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
@@ -3796,8 +3796,8 @@ function checkAchievements(){
   if(units.length>=5) unlockAchievement("builder");
   if(money>=500) unlockAchievement("rich");
   if(wave>=10) unlockAchievement("wave_master");
-  if(currentMode === "endless" && stageWave >= 20) unlockAchievement("endless_wave_20");
-  if(currentMode === "endless" && stageWave >= 30) unlockAchievement("endless_wave_30");
+  if(currentMode === "endless" && !dailyChallengeActive && stageWave >= 20) unlockAchievement("endless_wave_20");
+  if(currentMode === "endless" && !dailyChallengeActive && stageWave >= 30) unlockAchievement("endless_wave_30");
 }
 
 function updateSelectedPanel(){
@@ -3815,7 +3815,7 @@ function getRunSpentGold(){
 
 function openGameOverOverlay(){
   if(gameOverDailyBoard) gameOverDailyBoard.classList.toggle("hidden", !dailyChallengeActive);
-  if(currentMode === "endless") maybeSaveBestEndlessRun();
+  if(currentMode === "endless" && !dailyChallengeActive) maybeSaveBestEndlessRun();
   if(dailyChallengeActive) maybeSaveDailyChallengeWave();
   if(gameOverStageLabel) gameOverStageLabel.textContent = currentMode === "campaign" ? "Stage" : (dailyChallengeActive ? "Challenge" : "Mode");
   if(gameOverStageStat) gameOverStageStat.textContent = currentMode === "campaign" ? String(currentStage) : (dailyChallengeActive ? (activeDailyChallenge?.name || "Daily") : "Endless");
@@ -4131,6 +4131,7 @@ function placeUnit(c,r){
 
 function applySpecializationToSelectedUnit(specId){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit || !canChooseSpecialization(unit)) return;
+  if(isPaused){ setMessage("You cannot specialize towers while paused — that would be cheating. Resume first."); return; }
   const choice = TOWER_SPECIALIZATIONS[unit.type]?.[specId];
   if(!choice) return;
   const cost = getSpecializationCost(unit);
@@ -4148,6 +4149,7 @@ function applySpecializationToSelectedUnit(specId){
 
 function upgradeSelectedUnit(){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit) return;
+  if(isPaused){ setMessage("You cannot upgrade towers while paused — that would be cheating. Resume first."); return; }
   if(canChooseSpecialization(unit)){
     if(towerSpecializationPanel?.classList.contains("hidden")) showTowerMenu(unit);
     setMessage(`Choose a specialization for ${unit.name}.`);
@@ -4861,7 +4863,7 @@ function update(dt){
           unlockAchievement("stage6_clear");
           pendingBossResolution = { type:"unlock-endless" };
         } else {
-          unlockAchievement("first_endless_boss_pair");
+          if(!dailyChallengeActive) unlockAchievement("first_endless_boss_pair");
           pendingBossResolution = { type:"endless-next" };
         }
         queueBossAuraReward();
