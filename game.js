@@ -970,6 +970,8 @@ let bossCastColor = "#f8fafc";
 let waveIntroTimer = 0;
 let waveIntroText = "";
 let waveIntroSubtext = "";
+let prepareBannerTimer = 0; // big centered "Prepare Defenses" banner at stage start
+const PREPARE_BANNER_DURATION = 3.4;
 let bossDefeatIntroTimer = 0;
 let bossDefeatRewardDelayTimer = 0;
 let bossDefeatIntroText = "";
@@ -3074,11 +3076,8 @@ function showTowerMenu(unit){
     <div class="tower-stat-row"><span>Sell</span><strong>${Math.round(unit.totalSpent * unit.sellFactor)}</strong></div>
   `;
   if(towerSpecializationPanel) towerSpecializationPanel.classList.add("hidden");
-  const canUpgradeNow = waveActive;
-  towerUpgradeBtn.textContent = !canUpgradeNow
-    ? "⬆ Upgrade (during wave)"
-    : (canChooseSpecialization(unit) ? "✨ Specialize" : "⬆ Upgrade");
-  towerUpgradeBtn.disabled = !canUpgradeNow || money < nextCost;
+  towerUpgradeBtn.textContent = canChooseSpecialization(unit) ? "✨ Specialize" : "⬆ Upgrade";
+  towerUpgradeBtn.disabled = money < nextCost;
 
   if(towerSpecializationPanel){
     if(canChooseSpecialization(unit)) {
@@ -3601,7 +3600,7 @@ function applyStage(stageNumber, resetRun=false){
   stageStartLives=lives;
   resetCamera();
   setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.`);
-  pushNotification("stage", "Prepare Defenses", "Build phase — place your towers now, then press Start when ready.");
+  prepareBannerTimer = PREPARE_BANNER_DURATION;
   updateUI();
 }
 const resetGame=()=>{ exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
@@ -3620,6 +3619,7 @@ function startWave(){
     pushNotification("gold","Early call",`Wave called early: +${callGold} gold.`);
   }
   waveCallBonus = 0;
+  prepareBannerTimer = 0;
   spawnLeft=getWaveEnemyTotal();
   spawnTimer=0; waveActive=true;
   if(isCurrentWaveBoss()) bossBannerTimer = currentMode === "endless" ? 3.2 : 2.2;
@@ -3740,8 +3740,7 @@ function placeUnit(c,r){
   const existing=units.find(t=>t.c===c && t.r===r);
   if(existing){ selectedPlacedUnitId=existing.id; setPlacementHudAutoHide(false); setMessage(`You selected ${existing.name}.`); updateUI(); return; }
 
-  if(waveActive){ setMessage("You can only build between waves — the wave is already advancing."); return; }
-  if(isPaused){ setMessage("You cannot place towers while the game is paused. Press play to resume."); return; }
+  if(isPaused){ setMessage("You cannot place towers while paused — that would be cheating. Resume to build."); return; }
 
   if(selectedUnitType === "cryo" && units.some(t=>t.type === "cryo")){
     setMessage("Only one Cryo tower can be active at a time. Sell it to place another.");
@@ -3803,7 +3802,6 @@ function applySpecializationToSelectedUnit(specId){
 
 function upgradeSelectedUnit(){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit) return;
-  if(!waveActive){ setMessage("Upgrades are only available once the wave begins."); return; }
   if(canChooseSpecialization(unit)){
     if(towerSpecializationPanel?.classList.contains("hidden")) showTowerMenu(unit);
     setMessage(`Choose a specialization for ${unit.name}.`);
@@ -4225,6 +4223,7 @@ function update(dt){
     autoPlayTimer = AUTO_PLAY_DELAY;
   }
   bossBannerTimer=Math.max(0,bossBannerTimer-dt);
+  prepareBannerTimer=Math.max(0,prepareBannerTimer-dt);
   bossFxTimer=Math.max(0,bossFxTimer-dt);
   bossTelegraphTimer=Math.max(0,bossTelegraphTimer-dt);
   bossCastTimer=Math.max(0,bossCastTimer-dt);
@@ -4526,7 +4525,6 @@ function update(dt){
     maybeSaveDailyChallengeWave();
     armWaveCallBonus();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
-    pushNotification("stage", "Prepare Defenses", "Build phase — place your towers now. You can't build once the wave starts.");
     updateUI();
   }
 }
@@ -6813,6 +6811,47 @@ function drawBossBanner(){
   ctx.restore();
 }
 
+function drawPrepareBanner(){
+  if(prepareBannerTimer<=0) return;
+  const total = PREPARE_BANNER_DURATION;
+  const t = prepareBannerTimer;
+  const progress = 1 - (t / total);
+  const fadeIn = Math.min(1, progress / 0.12);
+  const fadeOut = Math.min(1, t / 0.6);
+  const alpha = Math.min(fadeIn, fadeOut);
+  const cx = canvas.width/2;
+  const cy = canvas.height/2 - 40;
+  const pulse = 1 + Math.sin(progress * Math.PI * 4) * 0.02;
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  // Panel
+  const w = 460, h = 132;
+  ctx.translate(cx, cy);
+  ctx.scale(pulse, pulse);
+  ctx.fillStyle = "rgba(8,17,31,.82)";
+  roundRect(-w/2, -h/2, w, h, 22);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(56,189,248,.55)";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Glow accent line
+  ctx.strokeStyle = "rgba(56,189,248,.25)";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#7dd3fc";
+  ctx.font = `700 13px ${FONT_UI}`;
+  ctx.fillText("⚔  BUILD PHASE  ⚔", 0, -34);
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = `700 40px ${FONT_DISPLAY}`;
+  ctx.fillText("Prepare Defenses", 0, 6);
+  ctx.fillStyle = "rgba(226,232,240,.82)";
+  ctx.font = `600 14px ${FONT_UI}`;
+  ctx.fillText("Place your towers, then press Start when ready", 0, 38);
+  ctx.restore();
+}
 function drawWaveIntro(){
   if(waveIntroTimer<=0) return;
   const total = 1.8;
@@ -7074,6 +7113,7 @@ function draw(){
   drawBossCastBanner();
   drawBossBanner();
   drawWaveIntro();
+  drawPrepareBanner();
   drawBossDefeatIntro();
   drawAuraBindFx();
   drawStageQuoteCinematic();
