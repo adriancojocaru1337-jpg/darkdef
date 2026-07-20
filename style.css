@@ -1371,33 +1371,30 @@ body::after {
   line-height:1;
 }
 
-.map-btn-auto{
-  width:78px;
-  height:58px;
-  min-height:58px;
-  border-radius:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-.map-btn-auto::before{ content:""; }
-.map-btn-auto .btn-label{
-  font-size:12px;
-  letter-spacing:.08em;
-  text-transform:uppercase;
-  font-weight:800;
-  opacity:.85;
-}
-.map-btn-auto.active{
+/* Auto Play active state, shown on the Start button (toggled via double-tap) */
+.map-btn-start.auto-active{
   color:#d9fff0;
-  border-color:rgba(56,189,248,.5);
-  background:rgba(56,189,248,.12);
+  border-color:rgba(56,189,248,.55);
+  background:rgba(56,189,248,.14);
   box-shadow:
-    0 12px 30px rgba(56,189,248,.22),
+    0 12px 30px rgba(56,189,248,.24),
     0 10px 24px rgba(0,0,0,.32),
-    inset 0 0 0 1px rgba(56,189,248,.14);
+    inset 0 0 0 1px rgba(56,189,248,.16);
 }
-.map-btn-auto.active .btn-label{ opacity:1; }
+.map-btn-start.auto-active::before{ content:"Auto"; color:#7dd3fc; }
+.map-btn-start.auto-active::after{
+  content:"";
+  position:absolute;
+  top:6px;
+  right:6px;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#38bdf8;
+  box-shadow:0 0 8px rgba(56,189,248,.9);
+  animation:autoPulse 1.4s ease-in-out infinite;
+}
+@keyframes autoPulse{ 0%,100%{ opacity:.4; } 50%{ opacity:1; } }
 
 @media (max-width:700px){
   .canvas-top-hud{
