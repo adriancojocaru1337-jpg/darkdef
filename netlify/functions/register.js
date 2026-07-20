@@ -8,7 +8,9 @@ const {
   validateEmail,
   validatePassword,
   hashPassword,
-  createSession
+  createSession,
+  memoryRateLimited,
+  getClientIp
 } = require("./auth-utils");
 
 exports.handler = async function handler(event) {
@@ -19,6 +21,10 @@ exports.handler = async function handler(event) {
   const origin = getOrigin(event);
   if (!isAllowedOrigin(origin)) {
     return json(403, { error: "Origin not allowed" });
+  }
+
+  if (memoryRateLimited("register:" + getClientIp(event), 5, 60 * 60 * 1000)) {
+    return json(429, { error: "Too many accounts created from this connection. Try again later." });
   }
 
   try {

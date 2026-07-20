@@ -5,7 +5,10 @@ const {
   isAllowedOrigin,
   normalizeEmail,
   verifyPassword,
-  createSession
+  createSession,
+  memoryRateLimited,
+  TIMING_PAD_HASH,
+  getClientIp
 } = require("./auth-utils");
 
 exports.handler = async function handler(event) {
@@ -16,6 +19,10 @@ exports.handler = async function handler(event) {
   const origin = getOrigin(event);
   if (!isAllowedOrigin(origin)) {
     return json(403, { error: "Origin not allowed" });
+  }
+
+  if (memoryRateLimited("login:" + getClientIp(event), 10, 10 * 60 * 1000)) {
+    return json(429, { error: "Too many sign-in attempts. Try again in a few minutes." });
   }
 
   try {
@@ -35,6 +42,9 @@ exports.handler = async function handler(event) {
     `;
     const user = rows[0];
     if (!user) {
+      // Burn the same scrypt cost as a real check so response timing does
+      // not reveal whether the account exists.
+      await verifyPassword(password, TIMING_PAD_HASH);
       return json(401, { error: "Invalid credentials." });
     }
 

@@ -93,6 +93,22 @@ function createSessionToken() {
   return crypto.randomBytes(32).toString("hex");
 }
 
+// Best-effort in-memory rate limiter (per warm function instance). Not a
+// substitute for the DB-backed limits, but stops casual brute force cheaply.
+const memoryRateBuckets = new Map();
+function memoryRateLimited(key, maxRequests, windowMs) {
+  const now = Date.now();
+  const recent = (memoryRateBuckets.get(key) || []).filter((ts) => now - ts < windowMs);
+  recent.push(now);
+  memoryRateBuckets.set(key, recent);
+  if (memoryRateBuckets.size > 5000) memoryRateBuckets.clear();
+  return recent.length > maxRequests;
+}
+
+// Valid-format scrypt hash used to equalize response timing when the user
+// does not exist (prevents account-enumeration via timing).
+const TIMING_PAD_HASH = "scrypt$f232e596c0da0fd1411053271ab5004a$8f8fa17e83bfc813893d5b2d732ffd3dc02da9734d100e6d703d5eaa808a125abec0a0335b943666d52339e8456b8441f25c425661c6cb58473b363bf4229f5a";
+
 function sha256(value) {
   return crypto.createHash("sha256").update(String(value || "")).digest("hex");
 }
@@ -194,6 +210,8 @@ async function deleteSession(event) {
 module.exports = {
   sql,
   json,
+  memoryRateLimited,
+  TIMING_PAD_HASH,
   getOrigin,
   isAllowedOrigin,
   normalizeEmail,

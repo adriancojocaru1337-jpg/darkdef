@@ -3508,7 +3508,13 @@ function pushNotification(type,title,text){
 
   const item=document.createElement("div");
   item.className=`notification-item ${type}`;
-  item.innerHTML=`<div class="notification-title">${title}</div><div class="notification-meta">${text}</div>`;
+  const titleEl=document.createElement("div");
+  titleEl.className="notification-title";
+  titleEl.textContent=title;
+  const metaEl=document.createElement("div");
+  metaEl.className="notification-meta";
+  metaEl.textContent=text;
+  item.append(titleEl, metaEl);
   notificationFeed.prepend(item);
 
   while(notificationFeed.children.length>8) notificationFeed.removeChild(notificationFeed.lastElementChild);
