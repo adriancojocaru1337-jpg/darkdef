@@ -7660,13 +7660,23 @@ startGameBtn.addEventListener("click",()=>{
   setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
 });
 
-resumeRunBtn?.addEventListener("click",()=>{
-  finishResumeRun();
-});
-
-startNewRunBtn?.addEventListener("click",()=>{
-  startNewRunFromResume();
-});
+// Resume-screen buttons use capture-phase delegation on document: the click
+// is caught before any other layer or handler can swallow it, and it works
+// no matter where the overlay sits in the DOM.
+document.addEventListener("click",(event)=>{
+  if(!isResumeOverlayOpen()) return;
+  const target = event.target instanceof Element ? event.target : null;
+  if(!target) return;
+  if(target.closest("#resumeRunBtn")){
+    event.preventDefault();
+    event.stopPropagation();
+    finishResumeRun();
+  } else if(target.closest("#startNewRunBtn")){
+    event.preventDefault();
+    event.stopPropagation();
+    startNewRunFromResume();
+  }
+}, true);
 
 speedBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();

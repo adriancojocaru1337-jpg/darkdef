@@ -4102,9 +4102,10 @@ kbd {
 .resume-overlay{
   position:absolute;
   inset:0;
-  z-index:60;
+  z-index:999;
   display:grid;
   place-items:center;
+  pointer-events:auto;
   background:radial-gradient(ellipse at center, rgba(4,7,12,.42) 0%, rgba(4,7,12,.72) 100%);
   backdrop-filter:blur(1.5px);
   -webkit-backdrop-filter:blur(1.5px);
@@ -4115,6 +4116,9 @@ kbd {
   to{ opacity:1; }
 }
 .resume-card{
+  position:relative;
+  z-index:2;
+  pointer-events:auto;
   text-align:center;
   padding:26px 34px 24px;
   background:rgba(9,13,20,.82);
@@ -4255,4 +4259,18 @@ kbd {
   background:rgba(94,234,212,.08);
   border-radius:10px;
   outline:1px solid rgba(94,234,212,.3);
+}
+
+/* ===== Daily Challenge leaderboard card ===== */
+.leaderboard-card-daily{
+  grid-column:1 / -1;
+  border-color:rgba(251,146,60,.22);
+}
+.leaderboard-glow-badge.daily{
+  background:rgba(251,146,60,.15);
+  border-color:rgba(251,146,60,.32);
+  color:#fed7aa;
+}
+.leaderboard-table-body-glow.daily .wow-row:hover{
+  background:rgba(251,146,60,.07);
 }

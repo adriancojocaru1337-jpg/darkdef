@@ -29,30 +29,6 @@
       </div>
     </section>
 
-    <section class="glass leaderboard-podium-preview">
-      <div class="leaderboard-podium-head">
-        <div>
-          <div class="panel-kicker">Featured Legends</div>
-          <h2>Current board leaders</h2>
-        </div>
-        <div class="leaderboard-podium-copy">Top spots get crown glow, podium treatment, and instant bragging rights.</div>
-      </div>
-      <div class="leaderboard-podium-grid">
-        <div class="leaderboard-podium-column">
-          <div class="leaderboard-podium-label">Endless champion</div>
-          <div id="endlessPodium" class="leaderboard-podium-cards">
-            <div class="leaderboard-podium-card placeholder">Loading podium...</div>
-          </div>
-        </div>
-        <div class="leaderboard-podium-column">
-          <div class="leaderboard-podium-label">Story champion</div>
-          <div id="storyPodium" class="leaderboard-podium-cards">
-            <div class="leaderboard-podium-card placeholder">Loading podium...</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <section class="leaderboard-wow-grid">
       <article class="glass leaderboard-wow-card leaderboard-card-endless">
         <div class="leaderboard-card-topline">
@@ -99,16 +75,39 @@
           </div>
         </div>
       </article>
+
+      <article class="glass leaderboard-wow-card leaderboard-card-daily">
+        <div class="leaderboard-card-topline">
+          <div>
+            <div class="panel-kicker">Challenge of the Day</div>
+            <h2>Today's challenge ladder</h2>
+          </div>
+          <div class="leaderboard-glow-badge daily">🗓️ Daily</div>
+        </div>
+        <p class="leaderboard-card-copy" id="dailyBoardCopy">Ranked by deepest wave survived, then bonus score — best run per player. Resets every day at midnight with a fresh challenge.</p>
+        <div class="leaderboard-table-shell">
+          <div class="leaderboard-table leaderboard-table-header">
+            <div>#</div>
+            <div>Player</div>
+            <div>Wave</div>
+            <div>Bonus</div>
+            <div>Kills</div>
+          </div>
+          <div id="dailyLeaderboardRows" class="leaderboard-table-body leaderboard-table-body-glow daily">
+            <div class="leaderboard-empty wow-empty">Loading today's challenge leaderboard...</div>
+          </div>
+        </div>
+      </article>
     </section>
 
     <section class="glass leaderboard-detail-strip">
       <div class="leaderboard-detail-card">
         <span>Live rankings</span>
-        <strong>Top 10 Endless + Story</strong>
+        <strong>Endless + Story + Daily</strong>
       </div>
       <div class="leaderboard-detail-card">
-        <span>Best for now</span>
-        <strong>No resets yet</strong>
+        <span>Daily ladder</span>
+        <strong>Fresh challenge every midnight</strong>
       </div>
       <div class="leaderboard-detail-card">
         <span>Goal</span>
@@ -132,9 +131,39 @@
   <script>
     const endlessRowsEl = document.getElementById("endlessLeaderboardRows");
     const storyRowsEl = document.getElementById("storyLeaderboardRows");
-    const endlessPodiumEl = document.getElementById("endlessPodium");
-    const storyPodiumEl = document.getElementById("storyPodium");
+    const dailyRowsEl = document.getElementById("dailyLeaderboardRows");
+    const dailyBoardCopyEl = document.getElementById("dailyBoardCopy");
     const refreshLeaderboardsBtn = document.getElementById("refreshLeaderboardsBtn");
+
+    // Mirrors the deterministic daily pick from game.js so the page can show
+    // today's challenge name without loading the whole game script.
+    const DAILY_CHALLENGE_NAMES = [
+      { emoji: "🪙", name: "Iron Purse" },
+      { emoji: "💨", name: "Swift Tide" },
+      { emoji: "🛡️", name: "Stone Skin" },
+      { emoji: "💔", name: "Glass Gate" },
+      { emoji: "💰", name: "Gold Rush" },
+      { emoji: "🔮", name: "Arcane Flood" },
+      { emoji: "⚔️", name: "Last Stand" },
+      { emoji: "🏰", name: "Frugal Fortress" }
+    ];
+    function hashStringToInt(str) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+      }
+      return h >>> 0;
+    }
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+    function getTodayChallengeLabel() {
+      const idx = hashStringToInt("dark-defense-cotd::" + getTodayKey()) % DAILY_CHALLENGE_NAMES.length;
+      const c = DAILY_CHALLENGE_NAMES[idx];
+      return `${c.emoji} ${c.name}`;
+    }
 
     function escapeHtml(value) {
       return String(value || "Anonymous").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
@@ -161,29 +190,6 @@
       return { label: `#${index + 1}`, crown: "", medal: "" };
     }
 
-    function renderPodium(target, rows, type) {
-      if (!Array.isArray(rows) || rows.length === 0) {
-        target.innerHTML = '<div class="leaderboard-podium-card placeholder">No scores yet.</div>';
-        return;
-      }
-
-      const topThree = rows.slice(0, 3);
-      target.innerHTML = topThree.map((row, index) => {
-        const name = buildProfileLink(row);
-        const rank = getRankMeta(index);
-        const primary = type === "story" ? `Stage ${formatNumber(row.wave_reached)}` : `Wave ${formatNumber(row.wave_reached)}`;
-        const secondary = type === "story" ? `${formatNumber(row.score_total)} total` : `+${formatNumber(row.bonus_score)} bonus`;
-        return `
-          <div class="leaderboard-podium-card ${rank.medal} ${type}">
-            <div class="leaderboard-podium-rank">${rank.crown} ${rank.label}</div>
-            <div class="leaderboard-podium-player">${name}</div>
-            <span>${primary}</span>
-            <small>${secondary}</small>
-          </div>
-        `;
-      }).join("");
-    }
-
     function renderRows(target, rows, type) {
       if (!Array.isArray(rows) || rows.length === 0) {
         target.innerHTML = '<div class="leaderboard-empty wow-empty">No scores yet. Be the first to claim this board.</div>';
@@ -205,6 +211,17 @@
             </div>
           `;
         }
+        if (type === "daily") {
+          return `
+            <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
+              <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
+              <div class="leaderboard-player-cell">${name}</div>
+              <div>${formatNumber(row.wave_reached)}</div>
+              <div>+${formatNumber(row.bonus_score)}</div>
+              <div>${formatNumber(row.kills)}</div>
+            </div>
+          `;
+        }
         return `
           <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
             <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
@@ -218,25 +235,40 @@
     }
 
     async function loadLeaderboards() {
-      try {
-        const response = await fetch("/.netlify/functions/get-leaderboards", { cache: "no-store" });
-        if (!response.ok) throw new Error("leaderboards unavailable");
-        const data = await response.json();
-        renderRows(endlessRowsEl, data.endless || [], "endless");
-        renderRows(storyRowsEl, data.story || [], "story");
-        renderPodium(endlessPodiumEl, data.endless || [], "endless");
-        renderPodium(storyPodiumEl, data.story || [], "story");
-      } catch (error) {
-        const message = '<div class="leaderboard-empty wow-empty">Leaderboards are temporarily unavailable.</div>';
-        endlessRowsEl.innerHTML = message;
-        storyRowsEl.innerHTML = message;
-        endlessPodiumEl.innerHTML = '<div class="leaderboard-podium-card placeholder">Podium unavailable.</div>';
-        storyPodiumEl.innerHTML = '<div class="leaderboard-podium-card placeholder">Podium unavailable.</div>';
-      } finally {
-        if (refreshLeaderboardsBtn) {
-          refreshLeaderboardsBtn.disabled = false;
-          refreshLeaderboardsBtn.textContent = "Refresh Rankings";
+      if (dailyBoardCopyEl) {
+        dailyBoardCopyEl.textContent = `Today: ${getTodayChallengeLabel()} — ranked by deepest wave survived, then bonus score. Best run per player, fresh challenge every midnight.`;
+      }
+      const mainBoards = (async () => {
+        try {
+          const response = await fetch("/.netlify/functions/get-leaderboards", { cache: "no-store" });
+          if (!response.ok) throw new Error("leaderboards unavailable");
+          const data = await response.json();
+          renderRows(endlessRowsEl, data.endless || [], "endless");
+          renderRows(storyRowsEl, data.story || [], "story");
+        } catch (error) {
+          const message = '<div class="leaderboard-empty wow-empty">Leaderboards are temporarily unavailable.</div>';
+          endlessRowsEl.innerHTML = message;
+          storyRowsEl.innerHTML = message;
         }
+      })();
+      const dailyBoard = (async () => {
+        try {
+          const response = await fetch(`/.netlify/functions/get-daily-leaderboard?day=${encodeURIComponent(getTodayKey())}`, { cache: "no-store" });
+          if (!response.ok) throw new Error("daily unavailable");
+          const rows = await response.json();
+          if (!Array.isArray(rows) || rows.length === 0) {
+            dailyRowsEl.innerHTML = '<div class="leaderboard-empty wow-empty">No runs submitted today yet — play the Challenge of the Day and claim #1.</div>';
+          } else {
+            renderRows(dailyRowsEl, rows, "daily");
+          }
+        } catch (error) {
+          dailyRowsEl.innerHTML = '<div class="leaderboard-empty wow-empty">Daily leaderboard is temporarily unavailable.</div>';
+        }
+      })();
+      await Promise.all([mainBoards, dailyBoard]);
+      if (refreshLeaderboardsBtn) {
+        refreshLeaderboardsBtn.disabled = false;
+        refreshLeaderboardsBtn.textContent = "Refresh Rankings";
       }
     }
 
