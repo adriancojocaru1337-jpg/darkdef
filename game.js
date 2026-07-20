@@ -2147,11 +2147,16 @@ async function submitDailyLeaderboardScore(){
         elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
       })
     });
-    if(!response.ok) throw new Error("submit failed");
+    if(!response.ok){
+      let serverError = "";
+      try{ serverError = (await response.json())?.error || ""; }catch(e){}
+      throw new Error(serverError || "submit failed");
+    }
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"daily" };
     pushNotification("achievement", "Daily leaderboard submitted", `${playerName} reached Wave ${stageWave} in today's challenge.`);
   }catch(error){
-    pushNotification("stage", "Leaderboard offline", "Today's challenge score could not be submitted right now.");
+    const detail = error && error.message && error.message !== "submit failed" ? ` (${error.message})` : "";
+    pushNotification("stage", "Leaderboard offline", `Today's challenge score could not be submitted right now.${detail}`);
   }
   loadDailyLeaderboardIntoGameOver();
 }
@@ -2192,7 +2197,14 @@ async function loadDailyLeaderboardIntoGameOver(){
 }
 
 async function submitBonusLeaderboardScore(){
-  if(currentMode !== "endless" || bonusScore <= 0) return;
+  if(currentMode !== "endless") return;
+  // Wave 1 deaths are not board-worthy (and would fail the server's minimum
+  // runtime check anyway) — but everything past that gets submitted even
+  // with 0 bonus. Last place on the board beats not existing on it.
+  if(stageWave < 2){
+    pushNotification("stage", "Not submitted", "Endless runs need to reach Wave 2 to enter the leaderboard.");
+    return;
+  }
   let playerName = "";
   try{
     playerName = localStorage.getItem("sdcPlayerName") || "";
@@ -2222,12 +2234,17 @@ async function submitBonusLeaderboardScore(){
         elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
       })
     });
-    if(!response.ok) throw new Error("submit failed");
+    if(!response.ok){
+      let serverError = "";
+      try{ serverError = (await response.json())?.error || ""; }catch(e){}
+      throw new Error(serverError || "submit failed");
+    }
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"endless" };
     await loadBonusLeaderboard();
-    pushNotification("achievement", "Leaderboard submitted", `${playerName} submitted bonus +${bonusScore} to the global leaderboard.`);
+    pushNotification("achievement", "Leaderboard submitted", `${playerName} — Wave ${stageWave}, bonus +${bonusScore} sent to the global leaderboard.`);
   }catch(error){
-    pushNotification("stage", "Leaderboard offline", "The global score could not be submitted right now.");
+    const detail = error && error.message && error.message !== "submit failed" ? ` (${error.message})` : "";
+    pushNotification("stage", "Leaderboard offline", `The global score could not be submitted right now.${detail}`);
   }
 }
 
