@@ -4097,3 +4097,78 @@ kbd {
   margin:0; z-index:1; white-space:nowrap;
 }
 .panel-header-lead .daily-challenge-btn{ margin-top:0; }
+
+/* ===== Resume Run button ===== */
+.btn-resume{
+  background:linear-gradient(180deg,#2dd4bf,#0f766e); color:#04211d;
+  border:1px solid rgba(94,234,212,.55);
+  box-shadow:0 0 18px rgba(45,212,191,.28), inset 0 1px 0 rgba(255,255,255,.22);
+  display:inline-flex; align-items:center; gap:8px;
+  animation:resumePulse 2.4s ease-in-out infinite;
+}
+.btn-resume:hover{ filter:brightness(1.08); }
+.btn-resume .resume-chip{
+  font-size:.72rem; font-weight:700; letter-spacing:.02em;
+  background:rgba(4,33,29,.35); color:#ccfbf1;
+  border:1px solid rgba(204,251,241,.35);
+  border-radius:999px; padding:2px 8px; white-space:nowrap;
+}
+@keyframes resumePulse{
+  0%,100%{ box-shadow:0 0 14px rgba(45,212,191,.22), inset 0 1px 0 rgba(255,255,255,.22); }
+  50%{ box-shadow:0 0 26px rgba(45,212,191,.45), inset 0 1px 0 rgba(255,255,255,.22); }
+}
+
+/* ===== Game speed button ===== */
+.map-btn-speed{
+  font-weight:800; font-size:.86rem; letter-spacing:.02em;
+  color:#cbd5e1;
+}
+.map-btn-speed.speed-x2{
+  color:#5eead4; border-color:rgba(94,234,212,.55);
+  box-shadow:0 0 12px rgba(94,234,212,.25);
+}
+.map-btn-speed.speed-x3{
+  color:#fbbf24; border-color:rgba(251,191,36,.6);
+  box-shadow:0 0 14px rgba(251,191,36,.32);
+  animation:speedGlow 1.1s ease-in-out infinite;
+}
+@keyframes speedGlow{
+  0%,100%{ box-shadow:0 0 10px rgba(251,191,36,.22); }
+  50%{ box-shadow:0 0 18px rgba(251,191,36,.45); }
+}
+
+/* ===== Daily streak chip ===== */
+.daily-streak-chip{
+  position:absolute; top:-8px; right:-6px;
+  font-size:.7rem; font-weight:800;
+  background:linear-gradient(180deg,#fb923c,#c2410c); color:#fff7ed;
+  border:1px solid rgba(255,237,213,.5);
+  border-radius:999px; padding:2px 7px;
+  box-shadow:0 2px 8px rgba(0,0,0,.45), 0 0 12px rgba(251,146,60,.35);
+  pointer-events:none; z-index:2;
+}
+.daily-streak-chip.streak-at-risk{ animation:streakBlink 1.6s ease-in-out infinite; }
+@keyframes streakBlink{
+  0%,100%{ opacity:1; }
+  50%{ opacity:.55; }
+}
+.daily-challenge-btn{ position:relative; }
+
+/* ===== Game over — daily leaderboard board ===== */
+.gameover-daily-board{
+  margin:14px auto 2px; max-width:420px; width:100%;
+  background:rgba(10,12,18,.55);
+  border:1px solid rgba(148,163,184,.22);
+  border-radius:14px; padding:10px 12px;
+  text-align:left;
+}
+.gameover-daily-board-title{
+  font-size:.78rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:#94a3b8; margin-bottom:8px; text-align:center;
+}
+.gameover-daily-board-list .leaderboard-row{ padding:5px 6px; }
+.gameover-daily-board-list .leaderboard-row-own{
+  background:rgba(94,234,212,.08);
+  border-radius:10px;
+  outline:1px solid rgba(94,234,212,.3);
+}

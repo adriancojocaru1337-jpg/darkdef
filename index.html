@@ -69,6 +69,7 @@
         </div>
       </div>
       <div class="overlay-actions">
+        <button class="btn btn-resume hidden" id="resumeRunBtn">Resume Run</button>
         <button class="btn btn-primary" id="startGameBtn">Play</button>
         <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ascension <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
         <a href="/about.html" class="btn btn-secondary">About</a>
@@ -95,6 +96,10 @@
         <div class="gameover-stat"><span>Score</span><strong id="gameOverScoreStat">0</strong></div>
         <div class="gameover-stat"><span>Best Combo</span><strong id="gameOverComboStat">x0</strong></div>
         <div class="gameover-stat gameover-stat-ley"><span>Crystals</span><strong id="gameOverCrystalsStat">+0 ✦</strong></div>
+      </div>
+      <div class="gameover-daily-board hidden" id="gameOverDailyBoard">
+        <div class="gameover-daily-board-title">🗓️ Today's Challenge — Top Defenders</div>
+        <div class="gameover-daily-board-list" id="gameOverDailyBoardList"></div>
       </div>
       <div class="overlay-actions gameover-actions two-buttons">
         <button class="btn btn-primary" id="restartFromGameOverBtn">Rise Again</button>
@@ -196,6 +201,7 @@
             <div class="panel-kicker">Battlefield</div>
             <button class="daily-challenge-btn" id="dailyChallengeBtn" type="button" title="Play today's Challenge of the Day">
               <span class="daily-challenge-emoji" id="dailyChallengeEmoji" aria-hidden="true">🗓️</span>
+              <span class="daily-streak-chip hidden" id="dailyStreakChip"></span>
               <span class="daily-challenge-copy">
                 <span class="daily-challenge-kicker">Challenge of the Day</span>
                 <span class="daily-challenge-name" id="dailyChallengeName">Loading…</span>
@@ -268,6 +274,7 @@
           <div class="map-controls" id="mapControls">
             <button class="map-btn map-btn-start" id="startWaveBtn" title="Start Wave · double-tap for Auto">✦</button>
             <button class="map-btn map-btn-pause" id="pauseBtn" title="Pause"><span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span></button>
+            <button class="map-btn map-btn-speed" id="speedBtn" title="Game speed ×1 · click or press F to change">×1</button>
             <button class="map-btn map-btn-reset" id="resetBtn" title="Reset Run">✕</button>
             <button class="map-btn map-btn-camera" id="resetCameraBtn" title="Reset Camera">◉</button>
           </div>

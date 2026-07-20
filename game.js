@@ -99,6 +99,11 @@ const dailyChallengeBtn = document.getElementById("dailyChallengeBtn");
 const dailyChallengeEmoji = document.getElementById("dailyChallengeEmoji");
 const dailyChallengeName = document.getElementById("dailyChallengeName");
 const dailyChallengeBest = document.getElementById("dailyChallengeBest");
+const dailyStreakChip = document.getElementById("dailyStreakChip");
+const resumeRunBtn = document.getElementById("resumeRunBtn");
+const speedBtn = document.getElementById("speedBtn");
+const gameOverDailyBoard = document.getElementById("gameOverDailyBoard");
+const gameOverDailyBoardList = document.getElementById("gameOverDailyBoardList");
 const restartFromGameOverBtn = document.getElementById("restartFromGameOverBtn");
 const returnToMenuBtn = document.getElementById("returnToMenuBtn");
 const gameOverText = document.getElementById("gameOverText");
@@ -895,6 +900,57 @@ function saveDailyBestWave(dateKey, waveReached){
   } catch(e){ return waveReached; }
 }
 
+/* ===== Daily Streak =====
+   Playing the Challenge of the Day (at least one wave cleared) counts as
+   today's participation. Consecutive days build a streak with escalating
+   Crystal rewards; missing a day resets it to 1. */
+const DAILY_STREAK_KEY = "sdcDailyStreak";
+
+function getYesterdayKey(){
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function getDailyStreak(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(DAILY_STREAK_KEY) || "null");
+    if(!raw || typeof raw.count !== "number" || !raw.last) return { last:"", count:0 };
+    return { last:String(raw.last), count:Math.max(0, raw.count|0) };
+  }catch(e){ return { last:"", count:0 }; }
+}
+
+// The streak shown in the UI: still "alive" if last play was today or yesterday.
+function getDisplayedStreak(){
+  const s = getDailyStreak();
+  if(s.count > 0 && (s.last === getTodayKey() || s.last === getYesterdayKey())) return s.count;
+  return 0;
+}
+
+function getStreakCrystalReward(streakCount){
+  return Math.min(4 + streakCount * 2, 20);
+}
+
+// Called once per day, the first time a wave is cleared in a daily run.
+function registerDailyStreakPlay(){
+  const today = getTodayKey();
+  const s = getDailyStreak();
+  if(s.last === today) return; // already counted today
+  const nextCount = s.last === getYesterdayKey() ? s.count + 1 : 1;
+  try{ localStorage.setItem(DAILY_STREAK_KEY, JSON.stringify({ last: today, count: nextCount })); }catch(e){}
+  const reward = getStreakCrystalReward(nextCount);
+  awardLeyCrystals(reward, `Daily streak — day ${nextCount}`);
+  if(nextCount > 1){
+    pushNotification("achievement", `🔥 Streak: ${nextCount} days`, `You played the Challenge of the Day ${nextCount} days in a row. +${reward} ✦ Crystals.`);
+  } else {
+    pushNotification("achievement", "🔥 Streak started", `Daily streak day 1. Come back tomorrow to grow it. +${reward} ✦ Crystals.`);
+  }
+  refreshDailyChallengeUI();
+}
+
 // Convenience accessors used by the gameplay hooks. They return neutral
 // values (1 / 0) unless a daily-challenge run is currently active.
 function dcEnemyHpMult(){ return dailyChallengeActive && activeDailyChallenge?.mods.enemyHpMult ? activeDailyChallenge.mods.enemyHpMult : 1; }
@@ -916,6 +972,20 @@ function refreshDailyChallengeUI(){
     } else {
       dailyChallengeBest.textContent = "Not attempted today";
       dailyChallengeBest.classList.remove("has-best");
+    }
+  }
+  if(dailyStreakChip){
+    const streak = getDisplayedStreak();
+    if(streak > 0){
+      dailyStreakChip.textContent = `🔥 ${streak}`;
+      dailyStreakChip.classList.remove("hidden");
+      const playedToday = getDailyStreak().last === getTodayKey();
+      dailyStreakChip.title = playedToday
+        ? `Daily streak: ${streak} day${streak === 1 ? "" : "s"} — secured for today.`
+        : `Daily streak: ${streak} day${streak === 1 ? "" : "s"} — play today's challenge to keep it alive!`;
+      dailyStreakChip.classList.toggle("streak-at-risk", !playedToday);
+    } else {
+      dailyStreakChip.classList.add("hidden");
     }
   }
 }
@@ -1922,6 +1992,7 @@ function resolveBossWaveCompletion(){
   }
   isPaused = false;
   armWaveCallBonus();
+  saveRunState();
   updateUI();
 }
 
@@ -1932,7 +2003,7 @@ async function requestLeaderboardRun(modeHint=currentMode){
     const response = await fetch("/.netlify/functions/start-run", {
       method:"POST",
       headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ mode: modeHint === "endless" ? "endless" : "campaign" })
+      body: JSON.stringify({ mode: ["endless","daily"].includes(modeHint) ? modeHint : "campaign" })
     });
     if(!response.ok) throw new Error("run token unavailable");
     const data = await response.json();
@@ -2040,6 +2111,79 @@ async function submitStoryLeaderboardScore(finalStage=currentStage){
     pushNotification("achievement", "Story leaderboard submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
   }catch(error){
     pushNotification("stage", "Story leaderboard offline", "The campaign score could not be submitted right now.");
+  }
+}
+
+/* ===== Daily Challenge Leaderboard ===== */
+async function submitDailyLeaderboardScore(){
+  if(!dailyChallengeActive || !activeDailyChallenge) return;
+  let playerName = "";
+  try{ playerName = localStorage.getItem("sdcPlayerName") || ""; }catch(e){}
+  if(!playerName){
+    playerName = await requestLeaderboardName("Daily Challenge", "Choose the name that will appear on today's challenge leaderboard.");
+  }
+  playerName = playerName.trim().slice(0, 20);
+  if(!playerName){ loadDailyLeaderboardIntoGameOver(); return; }
+  try{ localStorage.setItem("sdcPlayerName", playerName); }catch(e){}
+  try{
+    await ensureLeaderboardRun("daily");
+    const response = await fetch("/.netlify/functions/submit-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: playerName,
+        score: totalScore(),
+        bonusScore: bonusScore,
+        wave: stageWave,
+        kills: kills,
+        dailyKey: activeDailyChallenge.dateKey,
+        runId: leaderboardRun.runId,
+        runToken: leaderboardRun.runToken,
+        clientStartedAt: leaderboardRun.clientStartedAt,
+        elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
+      })
+    });
+    if(!response.ok) throw new Error("submit failed");
+    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"daily" };
+    pushNotification("achievement", "Daily leaderboard submitted", `${playerName} reached Wave ${stageWave} in today's challenge.`);
+  }catch(error){
+    pushNotification("stage", "Leaderboard offline", "Today's challenge score could not be submitted right now.");
+  }
+  loadDailyLeaderboardIntoGameOver();
+}
+
+async function loadDailyLeaderboardIntoGameOver(){
+  if(!gameOverDailyBoard || !gameOverDailyBoardList) return;
+  gameOverDailyBoard.classList.remove("hidden");
+  gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">Loading today\'s top defenders...</div>';
+  try{
+    const dayKey = activeDailyChallenge?.dateKey || getTodayKey();
+    const response = await fetch(`/.netlify/functions/get-daily-leaderboard?day=${encodeURIComponent(dayKey)}`, { cache:"no-store" });
+    if(!response.ok) throw new Error("unavailable");
+    const rows = await response.json();
+    if(!Array.isArray(rows) || rows.length === 0){
+      gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">No runs submitted today yet — yours could be first.</div>';
+      return;
+    }
+    let ownName = "";
+    try{ ownName = (localStorage.getItem("sdcPlayerName") || "").toLowerCase(); }catch(e){}
+    gameOverDailyBoardList.innerHTML = rows.slice(0, 5).map((row, index) => {
+      const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+      const isOwn = ownName && String(row.player_name || "").toLowerCase() === ownName;
+      const waveReached = Number(row.wave_reached || 0);
+      const bonus = Number(row.bonus_score || 0);
+      return `
+        <div class="leaderboard-row${isOwn ? " leaderboard-row-own" : ""}">
+          <div class="leaderboard-rank">${index === 0 ? "👑" : `#${index + 1}`}</div>
+          <div class="leaderboard-main">
+            <span class="leaderboard-name">${safeName}</span>
+            <span class="leaderboard-meta">Wave ${waveReached}</span>
+          </div>
+          <div class="leaderboard-score">+${bonus}</div>
+        </div>`;
+    }).join("");
+  }catch(error){
+    gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">Daily leaderboard unavailable right now.</div>';
   }
 }
 
@@ -3238,6 +3382,7 @@ function maybeSaveDailyChallengeWave(){
 // (escalating waves, dual bosses every 10) but on the challenge's chosen map
 // and with its modifiers applied. A fresh run every time — no reserve carryover.
 function startDailyChallenge(){
+  clearSavedRun();
   const challenge = getDailyChallenge();
   activeDailyChallenge = challenge;
   dailyChallengeActive = true;
@@ -3268,7 +3413,7 @@ function startDailyChallenge(){
 
   hasStarted = true;
   ensureAudio();
-  prewarmLeaderboardRun("endless");
+  prewarmLeaderboardRun("daily");
   syncAmbientAudio();
   startOverlay?.classList.add("hidden");
   hideEndlessUnlockOverlay();
@@ -3407,6 +3552,156 @@ function maybeSaveBestEndlessRun(){
   }catch(e){}
 }
 
+/* ===== Run Save / Resume =====
+   The full run state is snapshotted at safe points (between waves, after
+   stage transitions) so a closed tab never costs the player their run.
+   Enemies/projectiles are intentionally NOT saved — a resume always lands
+   in the calm build phase before the next wave. */
+const RUN_SAVE_KEY = "sdcSavedRun";
+const RUN_SAVE_VERSION = 1;
+
+function serializeRunState(){
+  return {
+    v: RUN_SAVE_VERSION,
+    savedAt: Date.now(),
+    mode: currentMode,
+    stage: currentStage,
+    wave, stageWave,
+    money, lives, score, bonusScore, kills,
+    stageStartLives,
+    idCounter,
+    endlessUnlocked,
+    endlessMusicStage: (typeof endlessMusicStage !== "undefined") ? endlessMusicStage : 1,
+    runLeyCrystalsEarned,
+    runEndlessBossPairsDefeated,
+    comboBest,
+    achievements: { ...achievements },
+    spellCooldown: { ...spellCooldown },
+    units: structuredClone(units),
+    reservePool: structuredClone(reservePool),
+    daily: dailyChallengeActive && activeDailyChallenge
+      ? { id: activeDailyChallenge.id, dateKey: activeDailyChallenge.dateKey }
+      : null,
+    leaderboardRun: leaderboardRun.runId
+      ? { ...leaderboardRun }
+      : null
+  };
+}
+
+function saveRunState(){
+  if(!hasStarted || lives <= 0) return;
+  // Never snapshot mid-wave or mid-boss-resolution — resumed state must be clean.
+  if(waveActive || pendingAuraChoice || pendingBossResolution) return;
+  try{
+    localStorage.setItem(RUN_SAVE_KEY, JSON.stringify(serializeRunState()));
+  }catch(e){}
+}
+
+function clearSavedRun(){
+  try{ localStorage.removeItem(RUN_SAVE_KEY); }catch(e){}
+  updateResumeRunUI();
+}
+
+function loadSavedRun(){
+  try{
+    const raw = localStorage.getItem(RUN_SAVE_KEY);
+    if(!raw) return null;
+    const save = JSON.parse(raw);
+    if(!save || save.v !== RUN_SAVE_VERSION) return null;
+    if(!STAGES[save.stage]) return null;
+    if(typeof save.lives !== "number" || save.lives <= 0) return null;
+    // A saved daily run is only valid on the day it was played.
+    if(save.daily && save.daily.dateKey !== getTodayKey()) return null;
+    return save;
+  }catch(e){ return null; }
+}
+
+function updateResumeRunUI(){
+  if(!resumeRunBtn) return;
+  const save = loadSavedRun();
+  if(!save){
+    resumeRunBtn.classList.add("hidden");
+    return;
+  }
+  const modeLabel = save.daily ? "Daily Challenge" : (save.mode === "endless" ? "Endless" : `Stage ${save.stage}`);
+  resumeRunBtn.classList.remove("hidden");
+  resumeRunBtn.innerHTML = `Resume Run <span class="resume-chip">${modeLabel} · Wave ${save.stageWave}</span>`;
+}
+
+function resumeSavedRun(){
+  const save = loadSavedRun();
+  if(!save){ updateResumeRunUI(); return; }
+
+  // Daily context must be restored BEFORE applyStage so its mods stay coherent.
+  if(save.daily){
+    activeDailyChallenge = getDailyChallenge(save.daily.dateKey);
+    dailyChallengeActive = true;
+  } else {
+    exitDailyChallenge();
+  }
+
+  applyStage(save.stage, true);
+
+  currentMode = save.mode === "endless" ? "endless" : "campaign";
+  wave = Math.max(1, save.wave|0);
+  stageWave = Math.max(1, save.stageWave|0);
+  money = Math.max(0, save.money|0);
+  lives = Math.max(1, save.lives|0);
+  score = Math.max(0, save.score|0);
+  bonusScore = Math.max(0, save.bonusScore|0);
+  kills = Math.max(0, save.kills|0);
+  stageStartLives = Math.max(1, save.stageStartLives|0) || lives;
+  idCounter = Math.max(idCounter, (save.idCounter|0) || 1);
+  runLeyCrystalsEarned = Math.max(0, save.runLeyCrystalsEarned|0);
+  runEndlessBossPairsDefeated = Math.max(0, save.runEndlessBossPairsDefeated|0);
+  comboBest = Math.max(0, save.comboBest|0);
+  if(typeof endlessMusicStage !== "undefined") endlessMusicStage = save.endlessMusicStage || 1;
+  if(save.endlessUnlocked) endlessUnlocked = true;
+  if(save.achievements) Object.keys(achievements).forEach(k=>{ achievements[k] = !!save.achievements[k]; });
+  if(save.spellCooldown){
+    spellCooldown.slow = Math.max(0, Number(save.spellCooldown.slow)||0);
+    spellCooldown.damage = Math.max(0, Number(save.spellCooldown.damage)||0);
+    spellCooldown.bomb = Math.max(0, Number(save.spellCooldown.bomb)||0);
+  }
+  units = Array.isArray(save.units) ? save.units : [];
+  reservePool = save.reservePool && typeof save.reservePool === "object"
+    ? { archer:[], hunter:[], mage:[], bomb:[], cryo:[], ...save.reservePool }
+    : { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
+
+  // Reuse the anti-cheat run token when it is still valid so a resumed run
+  // keeps its original server start time; otherwise request a fresh one.
+  if(save.leaderboardRun && save.leaderboardRun.runId && save.leaderboardRun.expiresAt > Date.now() + 60_000){
+    leaderboardRun = { ...save.leaderboardRun };
+  } else {
+    prewarmLeaderboardRun(save.daily ? "daily" : currentMode);
+  }
+
+  hasStarted = true;
+  isPaused = false;
+  ensureAudio();
+  syncAmbientAudio();
+  startOverlay?.classList.add("hidden");
+  hideEndlessUnlockOverlay();
+  resetCamera();
+  if(dailyChallengeActive && activeDailyChallenge){
+    setMessage(`Run resumed — ${activeDailyChallenge.emoji} ${activeDailyChallenge.name}, Wave ${stageWave}. Your towers are on the field.`);
+  } else {
+    setMessage(`Run resumed — ${currentMode === "endless" ? "Endless" : `Stage ${currentStage}`}, Wave ${stageWave}. Your towers are on the field.`);
+  }
+  pushNotification("stage","Run resumed","Welcome back. The line held while you were away.");
+  refreshDailyChallengeUI();
+  updateUI();
+}
+
+// Save between waves even if the tab closes mid-build (purchases included).
+function trySaveOnLeave(){
+  if(hasStarted && lives > 0 && !waveActive && !pendingAuraChoice && !pendingBossResolution){
+    saveRunState();
+  }
+}
+window.addEventListener("beforeunload", trySaveOnLeave);
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState === "hidden") trySaveOnLeave(); });
+
 function saveProgress(){
   try{
     const best=Math.max(totalScore(), Number(localStorage.getItem("sdcBestScore")||0));
@@ -3466,6 +3761,7 @@ function getRunSpentGold(){
 }
 
 function openGameOverOverlay(){
+  if(gameOverDailyBoard) gameOverDailyBoard.classList.toggle("hidden", !dailyChallengeActive);
   if(currentMode === "endless") maybeSaveBestEndlessRun();
   if(dailyChallengeActive) maybeSaveDailyChallengeWave();
   if(gameOverStageLabel) gameOverStageLabel.textContent = currentMode === "campaign" ? "Stage" : (dailyChallengeActive ? "Challenge" : "Mode");
@@ -3485,7 +3781,10 @@ function openGameOverOverlay(){
   if(dailyChallengeActive && activeDailyChallenge) {
     const todayBest = getDailyBestWave(activeDailyChallenge.dateKey);
     gameOverText.textContent = `${activeDailyChallenge.emoji} ${activeDailyChallenge.name} — you reached Wave ${stageWave}. Today's best: Wave ${todayBest}.`;
-    if(gameOverQuote) gameOverQuote.textContent = `Come back tomorrow for a new Challenge of the Day.`;
+    const streak = getDisplayedStreak();
+    if(gameOverQuote) gameOverQuote.textContent = streak > 1
+      ? `🔥 Streak: ${streak} days. Tomorrow's challenge keeps it alive — day ${streak + 1} pays +${getStreakCrystalReward(streak + 1)} ✦.`
+      : `Come back tomorrow for a new Challenge of the Day — streaks pay growing Crystal rewards.`;
   } else if(currentMode === "endless") {
     gameOverText.textContent = `You survived ${stageWave} Endless Waves. Boss pairs defeated: ${runEndlessBossPairsDefeated}. Best Endless Wave: ${bestEndlessWave}.`;
     if(gameOverQuote) gameOverQuote.textContent = `The abyss marked ${runEndlessBossPairsDefeated} boss waves this run. Best boss-pair record: ${bestEndlessBossPairs}.`;
@@ -3577,6 +3876,7 @@ function applyStage(stageNumber, resetRun=false){
     money=START_MONEY + leyStartGoldBonus() + (stageNumber-1)*60;
     lives=getMaxLives(); score=0; bonusScore=0; kills=0; wave=1;
     autoPlay = false; updateAutoPlayUI();
+    setGameSpeed(1);
     runLeyCrystalsEarned = 0;
     runEndlessBossPairsDefeated = 0;
     Object.keys(achievements).forEach(k=>achievements[k]=false);
@@ -3608,7 +3908,7 @@ function applyStage(stageNumber, resetRun=false){
   console.log("[Dark Defense] New stage started — Auto Play disabled.");
   updateUI();
 }
-const resetGame=()=>{ exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
+const resetGame=()=>{ clearSavedRun(); exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
 
 function startWave(){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
@@ -4328,9 +4628,12 @@ function update(dt){
       lives=Math.max(0,lives-(enemy.type==="boss"?3:1));
       if(lives<=0){
         waveActive=false;
+        clearSavedRun();
+        setGameSpeed(1);
         openGameOverOverlay();
         saveProgress();
-        if(currentMode==="endless") submitBonusLeaderboardScore();
+        if(dailyChallengeActive) submitDailyLeaderboardScore();
+        else if(currentMode==="endless") submitBonusLeaderboardScore();
         if(currentMode==="campaign") submitStoryLeaderboardScore(currentStage);
         setMessage("Game over. The skeletons broke through the gate.");
       }
@@ -4528,7 +4831,9 @@ function update(dt){
     bonusScore += 20;
     const waveCrystals = awardLeyCrystals(currentMode === "endless" ? 1 : 2, "Wave cleared", { silent:true });
     maybeSaveDailyChallengeWave();
+    if(dailyChallengeActive) registerDailyStreakPlay();
     armWaveCallBonus();
+    saveRunState();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
     updateUI();
   }
@@ -7123,11 +7428,36 @@ function draw(){
   drawAuraBindFx();
   drawStageQuoteCinematic();
 }
+/* ===== Game Speed (x1 / x2 / x3) =====
+   The simulation runs `gameSpeed` fixed sub-steps per frame instead of
+   scaling dt, so projectile hit detection stays stable at high speed. */
+let gameSpeed = 1;
+const GAME_SPEED_STEPS = [1, 2, 3];
+function updateSpeedUI(){
+  if(!speedBtn) return;
+  speedBtn.textContent = `×${gameSpeed}`;
+  speedBtn.classList.toggle("speed-x2", gameSpeed === 2);
+  speedBtn.classList.toggle("speed-x3", gameSpeed === 3);
+  speedBtn.title = `Game speed ×${gameSpeed} · click or press F to change`;
+}
+function cycleGameSpeed(){
+  const idx = GAME_SPEED_STEPS.indexOf(gameSpeed);
+  gameSpeed = GAME_SPEED_STEPS[(idx + 1) % GAME_SPEED_STEPS.length];
+  updateSpeedUI();
+  setMessage(`Game speed ×${gameSpeed}.`);
+}
+function setGameSpeed(value){
+  gameSpeed = GAME_SPEED_STEPS.includes(value) ? value : 1;
+  updateSpeedUI();
+}
+
 function gameLoop(timestamp){
   if(!lastTime) lastTime=timestamp;
   const dt=Math.min((timestamp-lastTime)/1000,.033);
   lastTime=timestamp;
-  update(dt); draw(); requestAnimationFrame(gameLoop);
+  const steps = (waveActive && !isPaused && lives > 0) ? gameSpeed : 1;
+  for(let i=0;i<steps;i++) update(dt);
+  draw(); requestAnimationFrame(gameLoop);
 }
 function getMousePos(event){
   const rect=canvas.getBoundingClientRect();
@@ -7276,6 +7606,8 @@ resetCameraBtn?.addEventListener("click",(event)=>{
 });
 
 startGameBtn.addEventListener("click",()=>{
+  // A fresh Play always starts a new run — any old snapshot is discarded.
+  clearSavedRun();
   // If a daily challenge was previously active, drop back to a clean campaign.
   if(dailyChallengeActive || currentMode !== "campaign"){
     exitDailyChallenge();
@@ -7286,6 +7618,18 @@ startGameBtn.addEventListener("click",()=>{
   loadProgressNotice();
   loadBonusLeaderboard();
   setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
+});
+
+resumeRunBtn?.addEventListener("click",()=>{
+  resumeSavedRun();
+  loadProgressNotice();
+  loadBonusLeaderboard();
+});
+
+speedBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!hasStarted || lives <= 0) return;
+  cycleGameSpeed();
 });
 restartFromGameOverBtn.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
@@ -7324,8 +7668,10 @@ endlessUnlockArtworkImage?.addEventListener("load", syncEndlessUnlockArtworkBoun
 
 updateAudioSettingsUI();
 updateAutoPlayUI();
+updateSpeedUI();
 applyHudVisibility();
 applyStage(1,true);
+updateResumeRunUI();
 loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
@@ -7423,6 +7769,11 @@ document.addEventListener("keydown",(event)=>{
 
   if(key === "h"){
     toggleHudVisibility();
+    return;
+  }
+
+  if(key === "f"){
+    if(hasStarted && lives > 0) cycleGameSpeed();
     return;
   }
 
