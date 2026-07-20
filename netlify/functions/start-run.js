@@ -18,7 +18,7 @@ function json(statusCode, payload) {
 }
 
 function sanitizeMode(mode) {
-  return mode === "endless" ? "endless" : "campaign";
+  return ["endless", "daily"].includes(mode) ? mode : "campaign";
 }
 
 function getOrigin(event) {

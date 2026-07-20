@@ -101,6 +101,9 @@ const dailyChallengeName = document.getElementById("dailyChallengeName");
 const dailyChallengeBest = document.getElementById("dailyChallengeBest");
 const dailyStreakChip = document.getElementById("dailyStreakChip");
 const resumeRunBtn = document.getElementById("resumeRunBtn");
+const resumeOverlay = document.getElementById("resumeOverlay");
+const resumeDetails = document.getElementById("resumeDetails");
+const startNewRunBtn = document.getElementById("startNewRunBtn");
 const speedBtn = document.getElementById("speedBtn");
 const gameOverDailyBoard = document.getElementById("gameOverDailyBoard");
 const gameOverDailyBoardList = document.getElementById("gameOverDailyBoardList");
@@ -3599,7 +3602,6 @@ function saveRunState(){
 
 function clearSavedRun(){
   try{ localStorage.removeItem(RUN_SAVE_KEY); }catch(e){}
-  updateResumeRunUI();
 }
 
 function loadSavedRun(){
@@ -3616,22 +3618,14 @@ function loadSavedRun(){
   }catch(e){ return null; }
 }
 
-function updateResumeRunUI(){
-  if(!resumeRunBtn) return;
-  const save = loadSavedRun();
-  if(!save){
-    resumeRunBtn.classList.add("hidden");
-    return;
-  }
-  const modeLabel = save.daily ? "Daily Challenge" : (save.mode === "endless" ? "Endless" : `Stage ${save.stage}`);
-  resumeRunBtn.classList.remove("hidden");
-  resumeRunBtn.innerHTML = `Resume Run <span class="resume-chip">${modeLabel} · Wave ${save.stageWave}</span>`;
+function isResumeOverlayOpen(){
+  return !!(resumeOverlay && !resumeOverlay.classList.contains("hidden"));
 }
 
-function resumeSavedRun(){
-  const save = loadSavedRun();
-  if(!save){ updateResumeRunUI(); return; }
-
+// Restore the saved run into live game state. The run stays "idle" (no wave
+// active, hasStarted=false) so the restored battlefield renders behind the
+// resume overlay until the player picks Resume or Start New.
+function restoreRunState(save){
   // Daily context must be restored BEFORE applyStage so its mods stay coherent.
   if(save.daily){
     activeDailyChallenge = getDailyChallenge(save.daily.dateKey);
@@ -3675,12 +3669,40 @@ function resumeSavedRun(){
   } else {
     prewarmLeaderboardRun(save.daily ? "daily" : currentMode);
   }
+  updateUI();
+}
 
+// At boot: if a valid save exists, restore it, skip the start menu, and show
+// the resume overlay centered over the (real, restored) battlefield.
+function maybeShowResumeOverlay(){
+  if(!resumeOverlay) return false;
+  const save = loadSavedRun();
+  if(!save) return false;
+  try{
+    restoreRunState(save);
+  }catch(e){
+    // A corrupted save must never brick the boot — drop it and start normally.
+    console.warn("[Dark Defense] Saved run could not be restored:", e);
+    clearSavedRun();
+    return false;
+  }
+  const modeLabel = save.daily
+    ? `${activeDailyChallenge?.emoji || "🗓️"} ${activeDailyChallenge?.name || "Daily Challenge"}`
+    : (save.mode === "endless" ? "♾️ Endless" : `🗺️ Stage ${currentStage} · ${STAGES[currentStage].name}`);
+  if(resumeDetails) resumeDetails.textContent = `${modeLabel} · Wave ${stageWave} · ❤️ ${lives} · 💰 ${money}`;
+  startOverlay?.classList.add("hidden");
+  resumeOverlay.classList.remove("hidden");
+  return true;
+}
+
+function finishResumeRun(){
+  resumeOverlay?.classList.add("hidden");
   hasStarted = true;
   isPaused = false;
   ensureAudio();
   syncAmbientAudio();
-  startOverlay?.classList.add("hidden");
+  loadProgressNotice();
+  loadBonusLeaderboard();
   hideEndlessUnlockOverlay();
   resetCamera();
   if(dailyChallengeActive && activeDailyChallenge){
@@ -3690,6 +3712,24 @@ function resumeSavedRun(){
   }
   pushNotification("stage","Run resumed","Welcome back. The line held while you were away.");
   refreshDailyChallengeUI();
+  updateUI();
+}
+
+function startNewRunFromResume(){
+  clearSavedRun();
+  resumeOverlay?.classList.add("hidden");
+  exitDailyChallenge();
+  applyStage(1, true);
+  prewarmLeaderboardRun("campaign");
+  hasStarted = true;
+  isPaused = false;
+  ensureAudio();
+  syncAmbientAudio();
+  loadProgressNotice();
+  loadBonusLeaderboard();
+  showHintChip();
+  resetCamera();
+  setMessage("New run started. Place towers, start the wave, and hold the line.");
   updateUI();
 }
 
@@ -7621,9 +7661,11 @@ startGameBtn.addEventListener("click",()=>{
 });
 
 resumeRunBtn?.addEventListener("click",()=>{
-  resumeSavedRun();
-  loadProgressNotice();
-  loadBonusLeaderboard();
+  finishResumeRun();
+});
+
+startNewRunBtn?.addEventListener("click",()=>{
+  startNewRunFromResume();
 });
 
 speedBtn?.addEventListener("click",(event)=>{
@@ -7671,7 +7713,7 @@ updateAutoPlayUI();
 updateSpeedUI();
 applyHudVisibility();
 applyStage(1,true);
-updateResumeRunUI();
+maybeShowResumeOverlay();
 loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
@@ -7742,6 +7784,15 @@ musicVolumeSlider?.addEventListener("input",(e)=>{
 document.addEventListener("keydown",(event)=>{
   const activeTag = document.activeElement?.tagName;
   if(activeTag === "INPUT" || activeTag === "TEXTAREA") return;
+
+  // While the resume screen is up, Space/Enter resumes; everything else waits.
+  if(isResumeOverlayOpen()){
+    if(event.key === " " || event.key === "Enter"){
+      event.preventDefault();
+      finishResumeRun();
+    }
+    return;
+  }
 
   const key = event.key.toLowerCase();
 

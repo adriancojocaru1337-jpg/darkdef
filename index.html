@@ -69,7 +69,6 @@
         </div>
       </div>
       <div class="overlay-actions">
-        <button class="btn btn-resume hidden" id="resumeRunBtn">Resume Run</button>
         <button class="btn btn-primary" id="startGameBtn">Play</button>
         <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ascension <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
         <a href="/about.html" class="btn btn-secondary">About</a>
@@ -259,7 +258,19 @@
             </div>
           </section>
           <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
+          <button class="speed-toggle" id="speedBtn" type="button" aria-label="Game speed" title="Game speed ×1 · click or press F to change">×1</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
+          <div class="resume-overlay hidden" id="resumeOverlay">
+            <div class="resume-card">
+              <div class="resume-kicker">Dark Defense</div>
+              <h2 class="resume-title">Welcome back</h2>
+              <p class="resume-details" id="resumeDetails"></p>
+              <div class="resume-actions">
+                <button class="btn resume-btn-main" id="resumeRunBtn" type="button">▶ Resume</button>
+                <button class="btn resume-btn-new" id="startNewRunBtn" type="button">Start New</button>
+              </div>
+            </div>
+          </div>
           <div class="canvas-overlay">
             <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
             <div class="canvas-top-hud single-row">
@@ -274,7 +285,6 @@
           <div class="map-controls" id="mapControls">
             <button class="map-btn map-btn-start" id="startWaveBtn" title="Start Wave · double-tap for Auto">✦</button>
             <button class="map-btn map-btn-pause" id="pauseBtn" title="Pause"><span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span></button>
-            <button class="map-btn map-btn-speed" id="speedBtn" title="Game speed ×1 · click or press F to change">×1</button>
             <button class="map-btn map-btn-reset" id="resetBtn" title="Reset Run">✕</button>
             <button class="map-btn map-btn-camera" id="resetCameraBtn" title="Reset Camera">◉</button>
           </div>

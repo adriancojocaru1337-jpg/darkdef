@@ -78,7 +78,20 @@ function computeMaxScore(mode, wave, kills, bonus) {
   if (mode === "campaign") {
     return 2500 + wave * 4000 + kills * 260 + bonus;
   }
+  // endless and daily share the survival loop and its scoring shape
   return 1200 + wave * 1800 + kills * 260 + bonus;
+}
+
+const DAILY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function sanitizeDailyKey(value) {
+  const key = String(value || "").trim();
+  if (!DAILY_KEY_RE.test(key)) return null;
+  const parsed = new Date(`${key}T00:00:00Z`).getTime();
+  if (!Number.isFinite(parsed)) return null;
+  // Accept keys within ±48h of server time (client uses its local date).
+  if (Math.abs(Date.now() - parsed) > 48 * 60 * 60 * 1000) return null;
+  return key;
 }
 
 async function logSubmissionAttempt({
@@ -251,8 +264,16 @@ exports.handler = async function handler(event) {
       return reject({ statusCode: 409, error: "Run already used", ipHash, playerName, runId, payload, suspicious: true, runDbId });
     }
 
-    if (!["endless", "campaign"].includes(run.mode)) {
+    if (!["endless", "campaign", "daily"].includes(run.mode)) {
       return reject({ statusCode: 400, error: "Unsupported run mode", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+    }
+
+    let dailyKey = null;
+    if (run.mode === "daily") {
+      dailyKey = sanitizeDailyKey(body.dailyKey);
+      if (!dailyKey) {
+        return reject({ statusCode: 400, error: "Invalid daily key", ipHash, playerName, runId, payload, runDbId });
+      }
     }
 
     const fingerprintMismatch = run.ip_hash !== ipHash || run.user_agent_hash !== uaHash;
@@ -303,9 +324,9 @@ exports.handler = async function handler(event) {
 
       await sql`
         insert into leaderboard_scores
-        (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash, user_id)
+        (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash, user_id, daily_key)
         values
-        (${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount}, ${run.mode}, ${runId}, ${ipHash}, ${sessionUser?.user_id || null})
+        (${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount}, ${run.mode}, ${runId}, ${ipHash}, ${sessionUser?.user_id || null}, ${dailyKey})
       `;
 
       if (sessionUser?.user_id) {
