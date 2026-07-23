@@ -71,7 +71,7 @@
       <div class="overlay-actions">
         <button class="btn btn-primary" id="startGameBtn">Play</button>
         <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ascension <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
-        <a href="/hub.html" class="btn btn-secondary">Command Table</a>
+        <button class="btn btn-secondary" id="openRecordsBtn">Records</button>
         <a href="/about.html" class="btn btn-secondary">About</a>
         <a href="/guide.html" class="btn btn-secondary">Complete Guide</a>
         <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
@@ -148,6 +148,37 @@
     </div>
   </div>
 
+  <div class="screen-overlay hidden" id="recordsOverlay">
+    <div class="overlay-card records-card">
+      <div class="reward-kicker">War Record</div>
+      <h1>Records</h1>
+      <div class="records-rank">
+        <div class="records-rank-line">
+          <span class="records-rank-name" id="recordsRankName">Rank 1 · Recruit</span>
+          <span class="records-rank-crystals">✦ <span id="recordsLifetime">0</span> earned</span>
+        </div>
+        <div class="records-xp" role="progressbar" aria-valuemin="0" aria-valuemax="100" id="recordsXpBar">
+          <i id="recordsXpFill"></i>
+        </div>
+        <div class="records-rank-next" id="recordsRankNext"></div>
+      </div>
+
+      <div class="records-stats">
+        <div class="records-stat"><span class="label">Best score</span><span class="value" id="recordsScore">0</span></div>
+        <div class="records-stat"><span class="label">Deepest endless wave</span><span class="value" id="recordsWave">—</span></div>
+        <div class="records-stat"><span class="label">Boss pairs broken</span><span class="value" id="recordsPairs">0</span></div>
+        <div class="records-stat"><span class="label">Longest kill combo</span><span class="value" id="recordsCombo">0</span></div>
+      </div>
+
+      <div class="records-section-label">Honours <span id="recordsAchCount">0 / 14</span></div>
+      <div class="records-ach" id="recordsAchGrid"></div>
+
+      <div class="overlay-actions">
+        <button class="btn btn-secondary" id="closeRecordsBtn">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div class="screen-overlay hidden gameover-overlay endless-unlocked-overlay" id="endlessUnlockOverlay">
     <div class="endless-unlocked-artwork" aria-label="Campaign complete. Endless mode unlocked.">
       <img src="assets/ui/endless-unlocked.jpg" alt="Campaign Complete. Endless Mode Unlocked." />
@@ -168,8 +199,7 @@
         <div class="hero-cta-row">
           <a href="#canvasWrap" class="btn btn-primary hero-play-btn">Play Now</a>
           <div class="hero-actions hero-nav-actions">
-            <a href="/hub.html" class="btn btn-secondary">Command Table</a>
-            <a href="/about.html" class="btn btn-secondary">About</a>
+                <a href="/about.html" class="btn btn-secondary">About</a>
             <a href="/guide.html" class="btn btn-secondary">Complete Guide</a>
             
             <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
