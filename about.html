@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>About Dark Defense - Fantasy Tower Defense Browser Game</title>
-  <meta name="description" content="Learn about Dark Defense, a fantasy tower defense browser game with bosses, spells, endless mode, online leaderboard, and tactical tower upgrades." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>About Dark Defense &mdash; Fantasy Tower Defense in Your Browser</title>
+  <meta name="description" content="What Dark Defense is, how it plays, and why it was built: a dark fantasy tower defense with boss fights, spells, permanent progression and Endless Mode, running instantly in the browser." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/about.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,48 +15,63 @@
   <script src="/account-bar.js" defer></script>
 </head>
 <body>
-  <main class="page-content">
-    <section class="glass content-hero">
-      <div class="panel-kicker">About Dark Defense</div>
-      <h1>Fantasy tower defense built for instant browser play</h1>
-      <p>Dark Defense blends fast tower placement, boss fights, tactical spell timing, and endless survival into a polished browser game that runs instantly without installation.</p>
-    </section>
+  <div class="page-shell" aria-hidden="true"></div>
 
-    <section class="content-grid">
-      <article class="glass content-card">
-        <div class="panel-kicker">Overview</div>
-        <h2>Strategy, pressure, and dark fantasy atmosphere</h2>
-        <p>In Dark Defense, every wave asks for a better decision: where to place towers, when to invest in upgrades, and how to use active spells to prevent the front line from collapsing.</p>
-        <p>The game is designed around readable mechanics, meaningful progression, and short sessions that still feel rewarding. Campaign stages introduce new pressure points, while Endless Mode pushes survival, efficiency, and leaderboard ambition.</p>
-        <p>Because the game runs directly in the browser, players can jump in immediately and replay fast without downloads, launchers, or long setup.</p>
-      </article>
+  <main class="pg">
 
-      <aside class="glass content-card">
-        <div class="panel-kicker">Features</div>
-        <h2>What makes Dark Defense stand out</h2>
-        <ul class="guide-list">
-          <li>Multiple fantasy stages with distinct routes and boss encounters</li>
-          <li>Active spells: Frost Nova, Meteor Strike, and Chain Lightning</li>
-          <li>Upgradeable towers and legendary auras for deeper builds</li>
-          <li>Endless Mode with online bonus leaderboard</li>
-          <li>Secure run validation and anti-cheat score submission flow</li>
-          <li>Responsive browser-first UI for desktop and mobile play</li>
-        </ul>
-      </aside>
-    </section>
-
-    <section class="glass content-card">
-      <div class="panel-kicker">Why it exists</div>
-      <h2>A modern HTML5 tower defense project</h2>
-      <p>Dark Defense was built as a lightweight web game that still feels like a complete strategy experience. The goal is simple: give players a dark fantasy tower defense they can launch instantly, understand quickly, and master over time.</p>
-      <div class="cta-row">
-        <a href="/" class="btn btn-primary">Play Dark Defense</a>
-        <a href="/guide.html" class="btn btn-secondary">Complete Guide</a>
-        <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
-        <a href="/account.html" class="btn btn-secondary">Account</a>
+    <section class="pg-banner">
+      <div class="pg-banner-inner">
+        <div class="pg-eyebrow">The Project</div>
+        <h1 class="pg-title">About Dark Defense</h1>
+        <p class="pg-sub">A dark fantasy tower defense that runs instantly in the browser &mdash; no installs, no launchers, no waiting. Six stages, six bosses, and an Endless mode that never stops scaling.</p>
+        <div class="pg-banner-actions">
+          <a href="/" class="pg-plate">Play Dark Defense</a>
+          <a class="pg-ghost" href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span>Complete Guide</a>
+          <a class="pg-ghost" href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span>Rankings</a>
+        </div>
       </div>
     </section>
+
+    <div class="pg-grid">
+
+      <section class="pg-card half">
+        <h2>What it is</h2>
+        <p>Every wave asks for a better decision: where to place towers, when to spend on upgrades instead of expanding, and when to hold a spell rather than cast it. The mechanics stay readable, but the pressure keeps rising.</p>
+        <p>Campaign stages each introduce a new pressure point and end with a boss that has its own ability to work around. Clear all six and Endless opens &mdash; unlimited waves, doubled enemy health, and boss pairs every tenth wave. That's where leaderboard runs are made.</p>
+        <p>Sessions are short by design, but nothing is lost when a run ends: every attempt pays out Crystals toward permanent upgrades.</p>
+      </section>
+
+      <section class="pg-card half">
+        <h2>What's in it</h2>
+        <ul class="pg-list">
+          <li><strong>Six stages</strong> with distinct routes, art and boss encounters.</li>
+          <li><strong>Five towers</strong>, each with two specializations that fork its role.</li>
+          <li><strong>Three spells</strong> &mdash; Frost Nova, Meteor Strike, Chain Lightning.</li>
+          <li><strong>Ascension</strong> &mdash; permanent upgrades bought with Crystals earned every run.</li>
+          <li><strong>Legendary auras</strong> drafted after boss kills for run-defining builds.</li>
+          <li><strong>Endless Mode</strong> with a global bonus-score leaderboard.</li>
+          <li><strong>Daily challenge</strong> &mdash; a new modifier every midnight, with its own ladder.</li>
+          <li><strong>Verified scores</strong> &mdash; server-side run validation on submission.</li>
+        </ul>
+      </section>
+
+      <section class="pg-card">
+        <h2>Why it exists</h2>
+        <p>Most browser games ask you to accept less: thinner mechanics, weaker art, progress that vanishes when you close the tab. Dark Defense was built to test whether a web game could feel complete instead &mdash; something you launch in seconds, understand in a minute, and still be improving at weeks later.</p>
+        <p>That meant meta-progression that survives between sessions, bosses with real abilities rather than bigger health bars, and a leaderboard worth defending. It runs on plain HTML5 and Canvas, with accounts and score validation handled server-side.</p>
+        <div class="pg-note">Dark Defense is built and maintained by <strong>Adrian Cojocaru</strong>. It's free to play, and it stays that way.</div>
+      </section>
+
+    </div>
+
+    <nav class="pg-strip" aria-label="Elsewhere">
+      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
+      <a href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>Complete Guide</b><span class="cap">Every mechanic</span></span></a>
+      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
+      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
+    </nav>
   </main>
-  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+
+  <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>

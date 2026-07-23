@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>How to Play Dark Defense - Beginner Guide</title>
-  <meta name="description" content="Learn how to play Dark Defense with this beginner guide covering tower placement, upgrades, spells, bosses, Ascension progression, endless mode, and early-game strategy." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>How to Play Dark Defense &mdash; Beginner Quick Start</title>
+  <meta name="description" content="New to Dark Defense? Learn the controls, your first five minutes, and the handful of habits that stop most early losses. Five-minute read before your first run." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/how-to-play.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,100 +13,99 @@
   <link rel="stylesheet" href="style.css" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+<style>
+  /* Keyboard keys, only needed on this page. */
+  .kbd-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(210px,1fr)); gap:8px; }
+  .kbd-row{
+    display:flex; align-items:center; gap:11px;
+    padding:10px 13px; border-radius:11px;
+    background:rgba(255,255,255,.024);
+    border:1px solid rgba(255,255,255,.045);
+    font-size:13px; color:#c2b9ab;
+  }
+  kbd{
+    flex:0 0 auto;
+    min-width:26px; padding:3px 8px;
+    border-radius:6px; text-align:center;
+    font-family:Cinzel, Georgia, serif;
+    font-size:12px; font-weight:700;
+    color:#2a1a08;
+    background:linear-gradient(180deg, #f2d195, #c9973f);
+    box-shadow:0 2px 5px rgba(0,0,0,.4);
+  }
+</style>
 </head>
 <body>
-  <main class="page-content">
-    <section class="glass content-hero">
-      <div class="panel-kicker">How to Play</div>
-      <h1>Beginner guide for Dark Defense</h1>
-      <p>This guide explains the basics of tower placement, upgrades, spell timing, and survival priorities so new players can reach later stages faster and build stronger endless runs.</p>
-      <div class="cta-row" style="margin-top:14px">
-        <a href="/guide.html" class="btn btn-primary">📖 See the new Complete Guide — towers, enemies, bosses &amp; strategy in one page</a>
+  <div class="page-shell" aria-hidden="true"></div>
+
+  <main class="pg">
+
+    <section class="pg-banner">
+      <div class="pg-banner-inner">
+        <div class="pg-eyebrow">Quick Start</div>
+        <h1 class="pg-title">How to Play</h1>
+        <p class="pg-sub">Five minutes of reading before your first run. The controls, the opening moves, and the handful of habits that stop most early losses.</p>
+        <div class="pg-banner-actions">
+          <a href="/" class="pg-plate">Start playing</a>
+          <a class="pg-ghost" href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span>Full guide</a>
+        </div>
       </div>
     </section>
 
-    <section class="content-grid">
-      <article class="glass content-card">
-        <div class="panel-kicker">Core Loop</div>
-        <h2>What to do first</h2>
-        <ol class="guide-list">
-          <li>Place early towers near corners and long path segments for maximum attack time.</li>
-          <li>Start waves only after spending your opening gold efficiently.</li>
-          <li>Upgrade your highest-impact towers instead of spreading resources too thin.</li>
-          <li>Use spells reactively when leaks are likely, not the moment they come off cooldown.</li>
-          <li>Prepare specifically for boss waves with stronger single-target coverage.</li>
+    <div class="pg-grid">
+
+      <section class="pg-card">
+        <h2>Your first five minutes</h2>
+        <ol class="pg-steps">
+          <li><strong>Place two Archers first.</strong> They're cheap at 90 gold and cover ground immediately. Put them beside a corner &mdash; enemies slow down turning, so they stay in range longer.</li>
+          <li><strong>Start the wave</strong> only after your opening gold is spent. Idle gold kills nothing.</li>
+          <li><strong>Let kills fund the next buy.</strong> Every enemy pays gold; watch which part of the road leaks and reinforce there.</li>
+          <li><strong>Upgrade before you expand.</strong> A second upgrade on a working tower usually beats a new tower in a worse spot.</li>
+          <li><strong>Save a spell for the boss.</strong> At the end of each stage a boss arrives with an ability. Entering that fight with a spell ready is the difference between a clear and a restart.</li>
         </ol>
-      </article>
+      </section>
 
-      <aside class="glass content-card">
-        <div class="panel-kicker">Tower Roles</div>
-        <h2>Quick unit breakdown</h2>
-        <ul class="guide-list">
-          <li><strong>Archer:</strong> cheap and reliable early-game tower</li>
-          <li><strong>Hunter:</strong> high range and better single-target pressure</li>
-          <li><strong>Mage:</strong> splash damage for clustered enemies</li>
-          <li><strong>Bomb Tower:</strong> heavy burst for dense waves and choke points</li>
-          <li><strong>Cryo:</strong> permanently unlock for 150 Crystals in Ascension, then place for 160 gold. Only one Cryo can be active at a time (sell it to place another). Its chill field slows enemies and its shots stack Brittle for up to +40% damage received — and it has its own permanent Ascension upgrades for chill, range, damage and Brittle.</li>
+      <section class="pg-card half">
+        <h2>Controls</h2>
+        <div class="kbd-grid">
+          <div class="kbd-row"><kbd>1</kbd>&ndash;<kbd>5</kbd> Select tower type</div>
+          <div class="kbd-row"><kbd>Space</kbd> Pause or resume</div>
+          <div class="kbd-row"><kbd>F</kbd> Game speed &times;1 / &times;2 / &times;3</div>
+          <div class="kbd-row"><kbd>G</kbd> Fullscreen</div>
+          <div class="kbd-row"><kbd>H</kbd> Hide the interface</div>
+          <div class="kbd-row"><kbd>Esc</kbd> Close any panel</div>
+        </div>
+        <div class="pg-note">Click an empty tile to build, click a placed tower to upgrade or specialize it. On mobile, the tower dock sits along the bottom of the screen.</div>
+      </section>
+
+      <section class="pg-card half">
+        <h2>Five habits that keep you alive</h2>
+        <ul class="pg-list">
+          <li><strong>Build on corners and long lanes</strong> &mdash; time in range matters more than raw damage.</li>
+          <li><strong>Don't spread thin.</strong> Four upgraded towers beat eight bare ones.</li>
+          <li><strong>Cast spells reactively</strong>, when a leak is about to happen &mdash; not the moment they come off cooldown.</li>
+          <li><strong>Cluster your towers.</strong> Neighbours grant passive bonuses to each other.</li>
+          <li><strong>Protect your lives.</strong> One leak breaks your kill combo and the score multiplier with it.</li>
         </ul>
-      </aside>
-    </section>
+      </section>
 
-    <section class="content-grid">
-      <article class="glass content-card">
-        <div class="panel-kicker">Tower Synergies</div>
-        <h2>Bonuses for adjacent towers</h2>
-        <p>Every tower grants a bonus to towers of a <strong>different type</strong> placed in one of the 8 cells around it. Each neighbor type counts only once, so duplicates do not stack.</p>
-        <ul class="guide-list">
-          <li><strong>🏹 Archer nearby — Volley Drill:</strong> +8% attack speed</li>
-          <li><strong>🎯 Hunter nearby — Marked Targets:</strong> +8% damage</li>
-          <li><strong>🔮 Mage nearby — Arcane Insight:</strong> +6% range</li>
-          <li><strong>💣 Bomb nearby — Shrapnel Craft:</strong> +10% splash radius (splash towers only)</li>
-          <li><strong>❄ Cryo nearby — Cryo Fracture:</strong> +12% damage to adjacent non-Cryo towers</li>
-        </ul>
-        <p>While placing a tower, dotted lines show which neighbors it will link with. Select a placed tower to see its active synergy links. Clustered builds earn strong bonuses but cover less of the path — spreading out trades power for coverage.</p>
-      </article>
+      <section class="pg-card">
+        <h2>What comes next</h2>
+        <p>Once you've cleared a stage or two, the depth opens up: tower specializations that fork each unit into two roles, legendary auras drafted after boss kills, Crystals that buy permanent upgrades in Ascension, and Endless mode once the campaign falls.</p>
+        <p>All of it is documented in the full guide &mdash; every tower stat, every boss ability, the adjacency bonuses, and the strategy that separates a quick loss from a leaderboard run.</p>
+        <div class="pg-note">Losing your first few runs is normal &mdash; and not wasted. <strong>Every run pays Crystals</strong>, win or lose, and those buy permanent upgrades that make the next attempt stronger.</div>
+      </section>
 
-      <aside class="glass content-card">
-        <div class="panel-kicker">Combos &amp; New Threats</div>
-        <h2>Kill streaks and the Splitter</h2>
-        <ul class="guide-list">
-          <li><strong>Combo:</strong> every kill within 2.6 seconds of the last one extends your streak. At x5 kills score is multiplied by 1.25, at x10 by 1.5, and at x20 by 2. Finishing a x10+ streak grants bonus score — but a single enemy reaching the gate breaks the combo with no reward.</li>
-          <li><strong>Splitter:</strong> from Stage 3 onward, this teal blob splits into two smaller, faster fragments when killed. Splash towers handle it best — pure single-target builds will struggle.</li>
-        </ul>
-        <p>Combos reward builds that keep kills flowing constantly. Slows and splash coverage help bridge the gaps between enemy packs and protect your streak.</p>
-      </aside>
-    </section>
+    </div>
 
-    <section class="glass content-card">
-      <div class="panel-kicker">Permanent Progression</div>
-      <h2>Ascension &amp; Crystals</h2>
-      <p>Every run — win or lose — earns <strong>Crystals</strong>: a little from each wave cleared, more from clearing stages and defeating bosses. Spend them in <strong>Ascension</strong> on permanent upgrades that carry into every future run, so you grow stronger the more you play. Progress is saved locally and synced to your account when you are signed in.</p>
-      <ul class="guide-list">
-        <li><strong>🔆 Radiance:</strong> raw firepower — more tower damage, faster attacks, extra range, and empowered ley stones.</li>
-        <li><strong>🛡️ Bastion:</strong> economy and survival — bonus starting gold and lives, more gold from kills, and stronger stage-clear healing.</li>
-        <li><strong>🔮 Arcana:</strong> spells and drafts — shorter spell cooldowns, aura-draft rerolls, more Crystals earned, and wider boss aura choices.</li>
-        <li><strong>❄ Special Towers:</strong> unlock the Cryo Tower (150 Crystals), then invest in its four permanent upgrades — <em>Deep Frost</em> (stronger chill), <em>Glacial Reach</em> (range &amp; field), <em>Frostbite</em> (damage) and <em>Shatterpoint</em> (extra Brittle per hit), each with four ranks.</li>
-      </ul>
-      <p>Node costs rise with each rank, so early attunements are cheap catch-up power while the deepest upgrades — especially the Cryo tree — are long-term goals worth grinding toward.</p>
-    </section>
-
-    <section class="glass content-card">
-      <div class="panel-kicker">Spell Usage</div>
-      <h2>When to cast each spell</h2>
-      <ul class="guide-list">
-        <li><strong>Frost Nova:</strong> best for slowing a dense pack entering a kill zone.</li>
-        <li><strong>Meteor Strike:</strong> strongest when multiple enemies overlap or a boss is supported by minions.</li>
-        <li><strong>Chain Lightning:</strong> useful when several enemies are close and you need instant cleanup.</li>
-      </ul>
-      <p>Holding spells for danger moments is usually stronger than using them on cooldown. The best players treat spells as tools to prevent leaks, stabilize bad waves, and protect score potential.</p>
-      <div class="cta-row">
-        <a href="/" class="btn btn-primary">Play Now</a>
-        <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Advanced Strategy</a>
-        <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
-        <a href="/account.html" class="btn btn-secondary">Account</a>
-      </div>
-    </section>
+    <nav class="pg-strip" aria-label="Elsewhere">
+      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
+      <a href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>Complete Guide</b><span class="cap">Every mechanic</span></span></a>
+      <a href="/best-tower-defense-browser-game-strategy.html"><span class="ico" aria-hidden="true">&#128081;</span><span><b>Boss guide</b><span class="cap">Beat every boss</span></span></a>
+      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
+    </nav>
   </main>
-  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+
+  <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>
