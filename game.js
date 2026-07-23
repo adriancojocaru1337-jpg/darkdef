@@ -7644,28 +7644,40 @@ startWaveBtn.addEventListener("click",()=>{
 pauseBtn.addEventListener("click",togglePause);
 resetBtn.addEventListener("click",resetGame);
 
+/* One code path for selecting a spell, shared by the buttons and
+   the Q/W/E shortcuts, so a key press behaves exactly like a click. */
+const SPELL_LABELS = {
+  slow: "Frost Nova",
+  damage: "Meteor Strike",
+  bomb: "Chain Lightning"
+};
+
+function toggleSpellSelection(spell){
+  if(!hasStarted || lives <= 0 || isPaused) return;
+  if(spellCooldown[spell] > 0){
+    setMessage(`${SPELL_LABELS[spell]} is still recharging.`);
+    return;
+  }
+  selectedSpell = selectedSpell === spell ? null : spell;
+  setMessage(selectedSpell === spell
+    ? `Choose the target area for ${SPELL_LABELS[spell]}.`
+    : "Spell canceled.");
+  updateSpellButtons();
+}
+
 spellSlowBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  if(!hasStarted || lives<=0 || isPaused || spellCooldown.slow > 0) return;
-  selectedSpell = selectedSpell === "slow" ? null : "slow";
-  setMessage(selectedSpell === "slow" ? "Choose the target area for Frost Nova." : "Spell canceled.");
-  updateSpellButtons();
+  toggleSpellSelection("slow");
 });
 
 spellDamageBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  if(!hasStarted || lives<=0 || isPaused || spellCooldown.damage > 0) return;
-  selectedSpell = selectedSpell === "damage" ? null : "damage";
-  setMessage(selectedSpell === "damage" ? "Choose the target area for Meteor Strike." : "Spell canceled.");
-  updateSpellButtons();
+  toggleSpellSelection("damage");
 });
 
 spellBombBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
-  if(!hasStarted || lives<=0 || isPaused || spellCooldown.bomb > 0) return;
-  selectedSpell = selectedSpell === "bomb" ? null : "bomb";
-  setMessage(selectedSpell === "bomb" ? "Choose the target area for Chain Lightning." : "Spell canceled.");
-  updateSpellButtons();
+  toggleSpellSelection("bomb");
 });
 
 resetCameraBtn?.addEventListener("click",(event)=>{
@@ -7876,6 +7888,11 @@ document.addEventListener("keydown",(event)=>{
     updateUI();
     return;
   }
+
+  // Q/W/E cast spells, matching the on-screen order of the buttons.
+  if(key === "q"){ toggleSpellSelection("slow"); return; }
+  if(key === "w"){ toggleSpellSelection("damage"); return; }
+  if(key === "e"){ toggleSpellSelection("bomb"); return; }
 
   if(key === "1"){ selectedUnitType = "archer"; }
   else if(key === "2"){ selectedUnitType = "hunter"; }

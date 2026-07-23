@@ -62,10 +62,14 @@
         <div class="quick-guide-title">Shortcuts</div>
         <div class="quick-guide-grid">
           <span><kbd>Space</kbd> Start / Pause</span>
+          <span><kbd>1</kbd>&ndash;<kbd>5</kbd> Pick tower</span>
+          <span><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> Cast spells</span>
+          <span><kbd>F</kbd> Game speed</span>
+          <span><kbd>G</kbd> Fullscreen</span>
           <span><kbd>R</kbd> Reset run</span>
           <span><kbd>V</kbd> Unit panel</span>
-          <span><kbd>Esc</kbd> Close menus</span>
           <span><kbd>H</kbd> Hide / Show HUD</span>
+          <span><kbd>Esc</kbd> Close menus</span>
         </div>
       </div>
       <div class="overlay-actions">
@@ -294,17 +298,20 @@
           </div>
 
           <div class="map-spells" id="spellControls">
-            <button class="spell-btn spell-frost" id="spellSlowBtn" title="Frost Nova" type="button">
+            <button class="spell-btn spell-frost" id="spellSlowBtn" title="Frost Nova (Q)" type="button">
+              <span class="spell-key" aria-hidden="true">Q</span>
               <span class="spell-glyph">❄</span>
               <span class="spell-caption">Slow</span>
               <span class="spell-timer" id="spellSlowTimer">Ready</span>
             </button>
-            <button class="spell-btn spell-fire" id="spellDamageBtn" title="Meteor Strike" type="button">
+            <button class="spell-btn spell-fire" id="spellDamageBtn" title="Meteor Strike (W)" type="button">
+              <span class="spell-key" aria-hidden="true">W</span>
               <span class="spell-glyph">☄</span>
               <span class="spell-caption">Meteor</span>
               <span class="spell-timer" id="spellDamageTimer">Ready</span>
             </button>
-            <button class="spell-btn spell-light" id="spellBombBtn" title="Chain Lightning" type="button">
+            <button class="spell-btn spell-light" id="spellBombBtn" title="Chain Lightning (E)" type="button">
+              <span class="spell-key" aria-hidden="true">E</span>
               <span class="spell-glyph">⚡</span>
               <span class="spell-caption">Bolt</span>
               <span class="spell-timer" id="spellBombTimer">Ready</span>
