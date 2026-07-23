@@ -7955,16 +7955,72 @@ function disablePseudoFullscreen(){
   document.body.classList.remove("pseudo-fs-active");
   updateFullscreenBtn();
 }
+/* The screen overlays (start, game over, aura draft, Ascension,
+   name entry, endless unlock) are siblings of the game panel, not
+   children of #canvasWrap. Native fullscreen renders ONLY the
+   fullscreen element and its descendants, so in fullscreen those
+   overlays would be invisible while still blocking the game.
+   We relocate them into #canvasWrap on enter and put them back
+   exactly where they were on exit. */
+const FULLSCREEN_OVERLAY_IDS = [
+  "startOverlay",
+  "gameOverOverlay",
+  "leaderboardNameOverlay",
+  "auraRewardOverlay",
+  "leyOverlay",
+  "endlessUnlockOverlay"
+];
+let relocatedOverlays = [];
+
+function adoptOverlaysIntoCanvas(){
+  if(relocatedOverlays.length) return; // already adopted
+  // Record every slot BEFORE moving anything: relocating the first
+  // overlay would change the nextSibling of the ones after it.
+  const planned = [];
+  FULLSCREEN_OVERLAY_IDS.forEach((id)=>{
+    const el = document.getElementById(id);
+    if(!el || !el.parentNode || el.parentNode === canvasWrap) return;
+    planned.push({ el, parent: el.parentNode, next: el.nextSibling });
+  });
+  if(!planned.length) return;
+  planned.forEach(({ el })=>{ canvasWrap.appendChild(el); });
+  relocatedOverlays = planned;
+  canvasWrap.classList.add("fs-hosting-overlays");
+}
+
+function releaseOverlaysFromCanvas(){
+  if(!relocatedOverlays.length) return;
+  // Restore in reverse: each insertBefore anchor is then guaranteed
+  // to already be back in place.
+  for(let i = relocatedOverlays.length - 1; i >= 0; i--){
+    const { el, parent, next } = relocatedOverlays[i];
+    try{
+      if(next && next.parentNode === parent) parent.insertBefore(el, next);
+      else parent.appendChild(el);
+    }catch(_){
+      document.body.appendChild(el);
+    }
+  }
+  relocatedOverlays = [];
+  canvasWrap.classList.remove("fs-hosting-overlays");
+}
+
 function enterFullscreen(){
   if(canvasWrap.requestFullscreen){
+    // Adopt first: the element must own them before it goes fullscreen.
+    adoptOverlaysIntoCanvas();
     canvasWrap.requestFullscreen().then(()=>{
       // Pe Android: rotim în landscape pentru harta 1008x560.
       if(screen.orientation?.lock){
         screen.orientation.lock("landscape").catch(()=>{});
       }
-    }).catch(()=>{ enablePseudoFullscreen(); });
+    }).catch(()=>{
+      releaseOverlaysFromCanvas();
+      enablePseudoFullscreen();
+    });
   } else if(canvasWrap.webkitRequestFullscreen){
     // Safari mai vechi / iPad
+    adoptOverlaysIntoCanvas();
     canvasWrap.webkitRequestFullscreen();
   } else {
     // iPhone Safari: nu există Fullscreen API pe elemente non-video.
@@ -7989,12 +8045,19 @@ fullscreenBtn?.addEventListener("click",(event)=>{
   toggleFullscreen();
 });
 document.addEventListener("fullscreenchange", ()=>{
-  if(!document.fullscreenElement && screen.orientation?.unlock){
-    try{ screen.orientation.unlock(); }catch(_){}
+  if(!document.fullscreenElement){
+    // Covers every exit path: our button, Esc, or a system gesture.
+    releaseOverlaysFromCanvas();
+    if(screen.orientation?.unlock){
+      try{ screen.orientation.unlock(); }catch(_){}
+    }
   }
   updateFullscreenBtn();
 });
-document.addEventListener("webkitfullscreenchange", updateFullscreenBtn);
+document.addEventListener("webkitfullscreenchange", ()=>{
+  if(!document.webkitFullscreenElement) releaseOverlaysFromCanvas();
+  updateFullscreenBtn();
+});
 updateFullscreenBtn();
 
 syncMobileHudLayout();

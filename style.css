@@ -5082,3 +5082,66 @@ body.pseudo-fs-active{ overflow:hidden; }
 @media (prefers-reduced-motion:reduce){
   .pg-plate, .pg-strip a{ transition:none; }
 }
+
+/* =========================================================
+   Fullscreen overlays.
+   In NATIVE fullscreen the screen overlays are moved inside
+   #canvasWrap (see game.js) so the browser actually paints
+   them. The wrapper is a centring grid, so overlays need to
+   be pulled out of that flow and pinned to the viewport.
+   The iPhone pseudo-fullscreen path does NOT relocate them —
+   it only needs the z-index fix further below.
+   ========================================================= */
+.canvas-wrap:fullscreen .screen-overlay{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  max-width:none;
+  margin:0;
+  z-index:60;
+  /* Escape the wrapper's place-items:center. */
+  grid-area:1 / 1 / -1 / -1;
+  justify-self:stretch;
+  align-self:stretch;
+}
+/* Hidden must stay hidden even after relocation. */
+.canvas-wrap:fullscreen .screen-overlay.hidden{ display:none; }
+
+/* Cards can grow taller than a landscape phone: let them scroll. */
+.canvas-wrap:fullscreen .screen-overlay .overlay-card,
+.canvas-wrap.pseudo-fullscreen .screen-overlay .overlay-card,
+body.pseudo-fs-active .screen-overlay .overlay-card{
+  max-height:calc(100vh - 40px);
+  overflow-y:auto;
+}
+/* The map controls sit above the canvas but must stay under a modal. */
+.canvas-wrap.fs-hosting-overlays .fullscreen-toggle,
+.canvas-wrap.fs-hosting-overlays .speed-toggle,
+.canvas-wrap.fs-hosting-overlays .hud-toggle,
+.canvas-wrap.fs-hosting-overlays .settings-toggle{ z-index:16; }
+
+/* Landscape phones are short: tighten the aura draft so all
+   three cards and the confirm button fit without scrolling. */
+@media (max-height:520px){
+  .canvas-wrap:fullscreen .overlay-card,
+  body.pseudo-fs-active .overlay-card{
+    padding:18px 20px;
+    border-radius:18px;
+  }
+  .canvas-wrap:fullscreen .overlay-card h1,
+  body.pseudo-fs-active .overlay-card h1{
+    font-size:22px;
+    margin-bottom:6px;
+  }
+  .canvas-wrap:fullscreen .reward-grid,
+  body.pseudo-fs-active .reward-grid{ gap:8px; }
+}
+
+/* On iPhone we fake fullscreen with a z-index:9999 wrapper. The
+   overlays sit at z-index:30, so without this they would be buried
+   under the map. They are NOT relocated on this path (no native
+   fullscreen), so they must simply outrank the wrapper. */
+body.pseudo-fs-active .screen-overlay:not(.hidden){
+  z-index:10000;
+}
