@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Command Table - Dark Defense</title>
+<meta name="description" content="Your war record, honours and campaign progress in Dark Defense." />
+<link rel="icon" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<style>
+/* =========================================================
+   Command Table — the player's home base.
+   Absorbs the old profile page: online account stats come
+   from /.netlify/functions/get-profile, local records come
+   from localStorage. Reads only; never writes game state.
+   ========================================================= */
+.ct{
+  position:relative;
+  z-index:1;
+  max-width:1120px;
+  margin:0 auto;
+  padding:26px 20px 60px;
+}
+
+/* --- Standard bar --- */
+.ct-crown{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:wrap;
+  padding:16px 20px;
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(20,16,12,.92), rgba(8,7,10,.94));
+  border:1px solid var(--panel-border);
+  box-shadow:var(--shadow);
+}
+.ct-sigil{ display:flex; align-items:center; gap:14px; min-width:0; }
+.ct-sigil-mark{
+  width:54px; height:54px;
+  display:grid; place-items:center;
+  border-radius:15px;
+  font-size:25px;
+  background:radial-gradient(circle at 32% 26%, rgba(192,138,74,.32), rgba(10,8,12,.9));
+  border:1px solid rgba(192,138,74,.34);
+  flex:0 0 auto;
+  overflow:hidden;
+}
+.ct-sigil-mark img{ width:100%; height:100%; object-fit:cover; }
+.ct-name{
+  font-family:Cinzel, Georgia, serif;
+  font-size:20px; font-weight:700; letter-spacing:.02em; line-height:1.2;
+}
+.ct-rank{
+  font-size:12px; color:var(--muted);
+  letter-spacing:.08em; text-transform:uppercase; margin-top:2px;
+}
+.ct-xp{
+  margin-top:7px; width:200px; max-width:48vw; height:5px;
+  border-radius:999px; background:rgba(255,255,255,.07); overflow:hidden;
+}
+.ct-xp i{
+  display:block; height:100%; width:0%;
+  border-radius:999px;
+  background:linear-gradient(90deg, #c08a4a, #e6bb7a);
+  transition:width .8s cubic-bezier(.2,.8,.2,1);
+}
+.ct-purse{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.ct-coin{
+  display:flex; align-items:center; gap:7px;
+  padding:8px 14px; border-radius:999px;
+  font-size:14px; font-weight:700; white-space:nowrap;
+  background:rgba(10,8,12,.7);
+  border:1px solid rgba(192,138,74,.22);
+}
+.ct-coin.crystal{ color:#c4b5fd; border-color:rgba(167,139,250,.28); }
+
+/* --- Banner --- */
+.ct-banner{
+  position:relative;
+  margin-top:18px;
+  padding:32px 30px;
+  border-radius:20px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(192,138,74,.16), transparent 42%),
+    radial-gradient(circle at 12% 88%, rgba(106,123,71,.12), transparent 40%),
+    linear-gradient(160deg, rgba(22,16,12,.95), rgba(6,6,10,.97));
+  border:1px solid var(--panel-border);
+  box-shadow:var(--shadow);
+}
+/* Portal rings — the gate the player defends. */
+.ct-banner::after{
+  content:"";
+  position:absolute; right:-90px; top:50%;
+  width:330px; height:330px;
+  transform:translateY(-50%);
+  border-radius:50%;
+  border:1px solid rgba(192,138,74,.16);
+  box-shadow:
+    0 0 0 34px rgba(192,138,74,.035),
+    0 0 0 74px rgba(192,138,74,.022),
+    inset 0 0 90px rgba(192,138,74,.05);
+  pointer-events:none;
+}
+.ct-banner-inner{ position:relative; z-index:1; max-width:600px; }
+.ct-eyebrow{
+  font-size:11px; letter-spacing:.30em; text-transform:uppercase;
+  color:var(--accent); font-weight:700;
+}
+.ct-title{
+  font-family:Cinzel, Georgia, serif;
+  font-size:clamp(27px, 5vw, 40px);
+  font-weight:700; line-height:1.12; margin:10px 0 8px;
+}
+.ct-sub{ color:var(--muted); font-size:14px; line-height:1.6; max-width:46ch; }
+.ct-actions{ display:flex; gap:11px; flex-wrap:wrap; margin-top:20px; }
+.ct-btn{
+  font-family:Cinzel, Georgia, serif;
+  font-size:14px; font-weight:700; letter-spacing:.06em;
+  padding:13px 26px; border-radius:12px;
+  border:1px solid rgba(192,138,74,.34);
+  background:rgba(12,10,14,.72);
+  color:var(--text); cursor:pointer; text-decoration:none;
+  display:inline-flex; align-items:center; gap:9px;
+  transition:transform .16s ease, background .2s ease, border-color .2s ease;
+}
+.ct-btn:hover{ transform:translateY(-2px); border-color:rgba(192,138,74,.6); }
+.ct-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.ct-btn.primary{
+  background:linear-gradient(180deg, rgba(192,138,74,.92), rgba(140,96,48,.94));
+  border-color:rgba(230,187,122,.5);
+  color:#160f08;
+}
+
+/* --- Grid --- */
+.ct-grid{
+  display:grid;
+  grid-template-columns:repeat(12, 1fr);
+  gap:15px;
+  margin-top:15px;
+}
+.ct-card{
+  grid-column:span 6;
+  padding:18px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+  border:1px solid var(--panel-border);
+  box-shadow:0 16px 36px rgba(0,0,0,.34);
+}
+.ct-card.full{ grid-column:span 12; }
+.ct-card-head{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; margin-bottom:14px;
+}
+.ct-card-title{
+  font-family:Cinzel, Georgia, serif;
+  font-size:13px; font-weight:700;
+  letter-spacing:.16em; text-transform:uppercase;
+}
+.ct-card-note{ font-size:11px; color:var(--muted); letter-spacing:.05em; }
+
+.ct-stat{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:9px 0; font-size:13px;
+  border-bottom:1px solid rgba(255,255,255,.045);
+}
+.ct-stat:last-child{ border-bottom:none; }
+.ct-stat .label{ color:var(--muted); }
+.ct-stat .value{ font-weight:700; font-variant-numeric:tabular-nums; }
+
+/* Account block */
+.ct-account-state{ font-size:12.5px; color:var(--muted); line-height:1.6; }
+.ct-account-state a{ color:var(--accent); }
+
+/* Honours */
+.ct-ach{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(104px, 1fr));
+  gap:8px;
+}
+.ct-ach .ach{
+  padding:10px 8px; border-radius:11px; text-align:center;
+  font-size:10.5px; line-height:1.3;
+  background:rgba(255,255,255,.028);
+  border:1px solid rgba(255,255,255,.05);
+  color:var(--muted);
+}
+.ct-ach .ach .mark{ display:block; font-size:16px; margin-bottom:4px; opacity:.32; }
+.ct-ach .ach.won{
+  background:radial-gradient(circle at 50% 0%, rgba(192,138,74,.16), rgba(255,255,255,.02));
+  border-color:rgba(192,138,74,.3);
+  color:var(--text); font-weight:600;
+}
+.ct-ach .ach.won .mark{ opacity:1; }
+
+/* Navigation tiles */
+.ct-nav{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(148px, 1fr));
+  gap:10px;
+}
+.ct-nav a{
+  display:flex; align-items:center; gap:11px;
+  padding:14px 15px; border-radius:13px;
+  text-decoration:none; color:var(--text);
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.055);
+  transition:transform .15s ease, border-color .2s ease, background .2s ease;
+}
+.ct-nav a:hover{
+  transform:translateY(-2px);
+  border-color:rgba(192,138,74,.4);
+  background:rgba(192,138,74,.07);
+}
+.ct-nav a:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.ct-nav .ico{ font-size:19px; flex:0 0 auto; }
+.ct-nav .txt{ min-width:0; }
+.ct-nav .txt b{
+  display:block; font-size:13px; font-weight:700;
+  font-family:Cinzel, Georgia, serif; letter-spacing:.02em;
+}
+.ct-nav .txt span{ display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+
+@media (max-width:820px){
+  .ct-card{ grid-column:span 12; }
+}
+@media (max-width:640px){
+  .ct{ padding:16px 14px 44px; }
+  .ct-banner{ padding:25px 20px; }
+  .ct-crown{ padding:14px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .ct-xp i, .ct-btn, .ct-nav a{ transition:none; }
+}
+</style>
+</head>
+<body>
+<div class="page-shell" aria-hidden="true"></div>
+
+<main class="ct">
+
+  <header class="ct-crown">
+    <div class="ct-sigil">
+      <div class="ct-sigil-mark" id="ctCrest" aria-hidden="true">⚔</div>
+      <div>
+        <div class="ct-name" id="ctName">Commander</div>
+        <div class="ct-rank" id="ctRank">Rank 1 · Recruit</div>
+        <div class="ct-xp" role="progressbar" aria-labelledby="ctRank" aria-valuemin="0" aria-valuemax="100" id="ctXpBar">
+          <i id="ctXpFill"></i>
+        </div>
+      </div>
+    </div>
+    <div class="ct-purse">
+      <span class="ct-coin crystal"><span aria-hidden="true">✦</span><span id="ctCrystals">0</span> Crystals</span>
+    </div>
+  </header>
+
+  <section class="ct-banner">
+    <div class="ct-banner-inner">
+      <div class="ct-eyebrow">The Dark Portal holds</div>
+      <h1 class="ct-title" id="ctHeadline">The horde gathers beyond the gate</h1>
+      <p class="ct-sub" id="ctBlurb">Six stages stand between the portal and the world. Place your towers, spend your Crystals, and see how far the line bends before it breaks.</p>
+      <div class="ct-actions">
+        <a class="ct-btn primary" href="/index.html" id="ctPlayBtn">▶ Enter the battlefield</a>
+        <a class="ct-btn" href="/leaderboards.html">Leaderboards</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="ct-grid">
+
+    <!-- Local records -->
+    <section class="ct-card">
+      <div class="ct-card-head">
+        <h2 class="ct-card-title">War record</h2>
+        <span class="ct-card-note">This device</span>
+      </div>
+      <div class="ct-stat"><span class="label">Best score</span><span class="value" id="ctScore">0</span></div>
+      <div class="ct-stat"><span class="label">Deepest endless wave</span><span class="value" id="ctWave">—</span></div>
+      <div class="ct-stat"><span class="label">Boss pairs broken</span><span class="value" id="ctPairs">0</span></div>
+      <div class="ct-stat"><span class="label">Longest kill combo</span><span class="value" id="ctCombo">0</span></div>
+      <div class="ct-stat"><span class="label">Crystals earned</span><span class="value" id="ctLifetime">0</span></div>
+    </section>
+
+    <!-- Account (absorbed profile page) -->
+    <section class="ct-card">
+      <div class="ct-card-head">
+        <h2 class="ct-card-title">Account</h2>
+        <span class="ct-card-note" id="ctAccountNote">Online</span>
+      </div>
+      <div id="ctAccountStats" class="hidden">
+        <div class="ct-stat"><span class="label">Runs recorded</span><span class="value" id="ctRuns">0</span></div>
+        <div class="ct-stat"><span class="label">Best endless score</span><span class="value" id="ctOnlineEndless">0</span></div>
+        <div class="ct-stat"><span class="label">Best story stage</span><span class="value" id="ctOnlineStory">1</span></div>
+        <div class="ct-stat"><span class="label">Total kills</span><span class="value" id="ctKills">0</span></div>
+      </div>
+      <p class="ct-account-state" id="ctAccountState">Checking your session…</p>
+    </section>
+
+    <!-- Honours -->
+    <section class="ct-card full">
+      <div class="ct-card-head">
+        <h2 class="ct-card-title">Honours</h2>
+        <span class="ct-card-note" id="ctAchCount">0 / 14 earned</span>
+      </div>
+      <div class="ct-ach" id="ctAchGrid"></div>
+    </section>
+
+    <!-- Navigation hub -->
+    <section class="ct-card full">
+      <div class="ct-card-head">
+        <h2 class="ct-card-title">Quarters</h2>
+      </div>
+      <nav class="ct-nav">
+        <a href="/index.html"><span class="ico" aria-hidden="true">⚔</span><span class="txt"><b>Battlefield</b><span>Play the campaign</span></span></a>
+        <a href="/leaderboards.html"><span class="ico" aria-hidden="true">🏅</span><span class="txt"><b>Leaderboards</b><span>Global rankings</span></span></a>
+        <a href="/account.html"><span class="ico" aria-hidden="true">⚙</span><span class="txt"><b>Account</b><span>Sign in and settings</span></span></a>
+        <a href="/how-to-play.html"><span class="ico" aria-hidden="true">📖</span><span class="txt"><b>How to play</b><span>Learn the basics</span></span></a>
+        <a href="/guide.html"><span class="ico" aria-hidden="true">🗺</span><span class="txt"><b>Strategy guide</b><span>Deep tactics</span></span></a>
+        <a href="/about.html"><span class="ico" aria-hidden="true">🛡</span><span class="txt"><b>About</b><span>The project</span></span></a>
+      </nav>
+    </section>
+
+  </div>
+</main>
+
+<script>
+(function(){
+  const readInt = (key) => {
+    try { return Math.max(0, parseInt(localStorage.getItem(key) || "0", 10) || 0); }
+    catch (e) { return 0; }
+  };
+  const fmt = (n) => Number(n || 0).toLocaleString();
+  const $ = (id) => document.getElementById(id);
+
+  /* ---- Rank from lifetime Crystals ----------------------
+     Crystals accumulate on every run, win or lose, so this
+     is the one number that only ever grows.                */
+  const RANKS = ["Recruit","Watchman","Sentinel","Warden","Bulwark",
+                 "Portalguard","Dawnbreaker","Ashbearer","Voidsworn","Legend"];
+  const STEP = 400;
+
+  const lifetime = readInt("sdcLeyEarnedTotal");
+  const idx = Math.min(RANKS.length - 1, Math.floor(lifetime / STEP));
+  const atMax = idx >= RANKS.length - 1;
+  const into = lifetime - idx * STEP;
+  const pct = atMax ? 100 : Math.min(99, Math.round((into / STEP) * 100));
+
+  $("ctRank").textContent = `Rank ${idx + 1} · ${RANKS[idx]}`;
+  $("ctXpBar").setAttribute("aria-valuenow", String(pct));
+  requestAnimationFrame(() => { $("ctXpFill").style.width = pct + "%"; });
+  $("ctCrystals").textContent = fmt(readInt("sdcLeyCrystals"));
+
+  /* ---- Local records ---- */
+  const bestScore = readInt("sdcBestScore");
+  const bestWave  = readInt("sdcBestEndlessWave");
+  $("ctScore").textContent    = fmt(bestScore);
+  $("ctWave").textContent     = bestWave > 0 ? "Wave " + bestWave : "—";
+  $("ctPairs").textContent    = fmt(readInt("sdcBestEndlessBossPairs"));
+  $("ctCombo").textContent    = fmt(readInt("sdcBestCombo"));
+  $("ctLifetime").textContent = fmt(lifetime);
+
+  /* ---- Headline adapts to where the player left off ---- */
+  let hasRun = false;
+  try { hasRun = !!localStorage.getItem("sdcSavedRun"); } catch (e) {}
+  if (hasRun) {
+    $("ctHeadline").textContent = "Your line still holds";
+    $("ctBlurb").textContent = "A run is still in progress. Pick it up where you left it, or reset and start a fresh defence.";
+    $("ctPlayBtn").textContent = "▶ Resume the defence";
+  } else if (bestScore > 0) {
+    $("ctHeadline").textContent = "The gate is quiet — for now";
+    $("ctBlurb").textContent = `Your best stand scored ${fmt(bestScore)}. Spend your Crystals on the ley talents, then go past it.`;
+  }
+
+  /* ---- Honours ---- */
+  const ACH = [
+    { key:"first_kill", title:"First Blood", mark:"🩸" },
+    { key:"builder", title:"Builder", mark:"🔨" },
+    { key:"first_tower_upgrade", title:"Forged for War", mark:"⚒" },
+    { key:"first_spell_cast", title:"Arcane Initiate", mark:"✨" },
+    { key:"boss_hunter", title:"Boss Hunter", mark:"👑" },
+    { key:"rich", title:"Treasurer", mark:"💰" },
+    { key:"wave_master", title:"Wave Master", mark:"🌊" },
+    { key:"survivor", title:"Survivor", mark:"🛡" },
+    { key:"combo_10", title:"Chain Reaction", mark:"⛓" },
+    { key:"combo_25", title:"Unbroken Slaughter", mark:"☠" },
+    { key:"stage6_clear", title:"Campaign Conqueror", mark:"🏰" },
+    { key:"first_endless_boss_pair", title:"Twin Terrors Broken", mark:"⚔" },
+    { key:"endless_wave_20", title:"Abyss Walker", mark:"🌑" },
+    { key:"endless_wave_30", title:"Beyond the Threshold", mark:"🔥" }
+  ];
+
+  let won = {};
+  try {
+    const raw = localStorage.getItem("sdcSavedRun");
+    if (raw) won = (JSON.parse(raw) || {}).achievements || {};
+  } catch (e) { won = {}; }
+  // Claimed gold rewards survive a cleared run save.
+  ACH.forEach(a => {
+    try {
+      if (localStorage.getItem("sdcAchievementGoldClaimed:" + a.key) === "1") won[a.key] = true;
+    } catch (e) {}
+  });
+
+  const grid = $("ctAchGrid");
+  let earned = 0;
+  ACH.forEach(a => {
+    const got = !!won[a.key];
+    if (got) earned++;
+    const el = document.createElement("div");
+    el.className = "ach" + (got ? " won" : "");
+    el.title = `${a.title} — ${got ? "earned" : "not yet earned"}`;
+    const mark = document.createElement("span");
+    mark.className = "mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = a.mark;
+    el.appendChild(mark);
+    el.appendChild(document.createTextNode(a.title));
+    grid.appendChild(el);
+  });
+  $("ctAchCount").textContent = `${earned} / ${ACH.length} earned`;
+
+  /* ---- Account: same endpoints the old profile page used ---- */
+  async function loadAccount(){
+    const state = $("ctAccountState");
+    const stats = $("ctAccountStats");
+    const note  = $("ctAccountNote");
+    try {
+      const me = await fetch('/.netlify/functions/me', { credentials:'include', cache:'no-store' });
+      if (!me.ok) throw new Error('no session');
+      const data = await me.json();
+      if (!data.authenticated || !data.user) throw new Error('guest');
+
+      $("ctName").textContent = data.user.username || "Commander";
+      if (data.user.crest) {
+        const crest = $("ctCrest");
+        crest.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = data.user.crest;
+        img.alt = "";
+        crest.appendChild(img);
+      }
+
+      const res = await fetch(`/.netlify/functions/get-profile?username=${encodeURIComponent(data.user.username)}`,
+                              { credentials:'include', cache:'no-store' });
+      if (!res.ok) throw new Error('profile unavailable');
+      const p = (await res.json()).profile || {};
+      const s = p.stats || {};
+
+      $("ctRuns").textContent          = fmt(s.totalRuns);
+      $("ctOnlineEndless").textContent = fmt(s.bestEndlessScore);
+      $("ctOnlineStory").textContent   = fmt(s.bestStoryStage || 1);
+      $("ctKills").textContent         = fmt(s.totalKills);
+
+      stats.classList.remove("hidden");
+      state.classList.add("hidden");
+      note.textContent = "Signed in";
+    } catch (err) {
+      note.textContent = "Guest";
+      state.innerHTML =
+        'Playing as a guest — your records live on this device only. ' +
+        '<a href="/account.html">Sign in</a> to save your progress online and appear on the leaderboards.';
+    }
+  }
+  loadAccount();
+})();
+</script>
+</body>
+</html>

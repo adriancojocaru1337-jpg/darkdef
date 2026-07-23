@@ -162,6 +162,13 @@
     const params = new URLSearchParams(window.location.search);
     const requestedUsername = String(params.get('user') || '').trim();
 
+    // Your own profile now lives in the Command Table. Public
+    // profiles (?user=someone) still render here, since the
+    // leaderboards link straight to them.
+    if (!requestedUsername) {
+      window.location.replace('/command-table.html');
+    }
+
     const profileContent = document.getElementById('profileContent');
     const profileEmpty = document.getElementById('profileEmpty');
     const profileLoading = document.getElementById('profileLoading');

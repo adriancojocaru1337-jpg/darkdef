@@ -186,7 +186,7 @@ async function loadPanelUserSession(){
     const data = await response.json();
     if(!data?.authenticated || !data?.user?.username) return;
     setPanelUserLabel(data.user.username, data.user.crestId || null);
-    panelHeaderUserLink?.setAttribute("href", "/profile.html");
+    panelHeaderUserLink?.setAttribute("href", "/command-table.html");
     panelHeaderLogoutBtn?.classList.remove("hidden");
     leyAccountAuthed = true;
     syncLeyMetaWithAccount();
@@ -1578,132 +1578,6 @@ function closeLeyOverlay(){
   }
 }
 
-/* ============================================================
-   RECORDS — read-only view of meta progression.
-   Rank is derived from lifetime Crystals (leyEarnedTotal), the
-   one number that only ever grows: every run pays out, win or
-   lose. Nothing here writes game state.
-   ============================================================ */
-const recordsOverlay = document.getElementById("recordsOverlay");
-const openRecordsBtn = document.getElementById("openRecordsBtn");
-const closeRecordsBtn = document.getElementById("closeRecordsBtn");
-let recordsAutoPaused = false;
-
-const RECORDS_RANKS = [
-  "Recruit", "Watchman", "Sentinel", "Warden", "Bulwark",
-  "Portalguard", "Dawnbreaker", "Ashbearer", "Voidsworn", "Legend"
-];
-const RECORDS_RANK_STEP = 400; // Crystals per rank.
-
-const RECORDS_ACH = [
-  { key:"first_kill", mark:"🩸" },
-  { key:"builder", mark:"🔨" },
-  { key:"first_tower_upgrade", mark:"⚒" },
-  { key:"first_spell_cast", mark:"✨" },
-  { key:"boss_hunter", mark:"👑" },
-  { key:"rich", mark:"💰" },
-  { key:"wave_master", mark:"🌊" },
-  { key:"survivor", mark:"🛡" },
-  { key:"combo_10", mark:"⛓" },
-  { key:"combo_25", mark:"☠" },
-  { key:"stage6_clear", mark:"🏰" },
-  { key:"first_endless_boss_pair", mark:"⚔" },
-  { key:"endless_wave_20", mark:"🌑" },
-  { key:"endless_wave_30", mark:"🔥" }
-];
-
-function readStoredInt(key){
-  try{ return Math.max(0, parseInt(localStorage.getItem(key) || "0", 10) || 0); }
-  catch(e){ return 0; }
-}
-
-function renderRecordsOverlay(){
-  if(!recordsOverlay) return;
-
-  const lifetime = leyEarnedTotal;
-  const idx = Math.min(RECORDS_RANKS.length - 1, Math.floor(lifetime / RECORDS_RANK_STEP));
-  const atMax = idx >= RECORDS_RANKS.length - 1;
-  const into = lifetime - idx * RECORDS_RANK_STEP;
-  const pct = atMax ? 100 : Math.min(99, Math.round((into / RECORDS_RANK_STEP) * 100));
-
-  const rankNameEl = document.getElementById("recordsRankName");
-  if(rankNameEl) rankNameEl.textContent = `Rank ${idx + 1} · ${RECORDS_RANKS[idx]}`;
-  const lifetimeEl = document.getElementById("recordsLifetime");
-  if(lifetimeEl) lifetimeEl.textContent = lifetime.toLocaleString();
-
-  const bar = document.getElementById("recordsXpBar");
-  const fill = document.getElementById("recordsXpFill");
-  if(bar) bar.setAttribute("aria-valuenow", String(pct));
-  if(fill){
-    fill.style.width = "0%";
-    requestAnimationFrame(()=>{ fill.style.width = pct + "%"; });
-  }
-  const nextEl = document.getElementById("recordsRankNext");
-  if(nextEl){
-    nextEl.textContent = atMax
-      ? "Highest rank reached."
-      : `${(RECORDS_RANK_STEP - into).toLocaleString()} Crystals to ${RECORDS_RANKS[idx + 1]}.`;
-  }
-
-  const bestScore = readStoredInt("sdcBestScore");
-  const bestWave = readStoredInt("sdcBestEndlessWave");
-  const scoreEl = document.getElementById("recordsScore");
-  if(scoreEl) scoreEl.textContent = bestScore.toLocaleString();
-  const waveEl = document.getElementById("recordsWave");
-  if(waveEl) waveEl.textContent = bestWave > 0 ? `Wave ${bestWave}` : "—";
-  const pairsEl = document.getElementById("recordsPairs");
-  if(pairsEl) pairsEl.textContent = String(readStoredInt("sdcBestEndlessBossPairs"));
-  const comboEl = document.getElementById("recordsCombo");
-  if(comboEl) comboEl.textContent = String(readStoredInt("sdcBestCombo"));
-
-  // Live achievements state, plus claimed gold rewards as durable
-  // proof for unlocks that predate the current run.
-  const grid = document.getElementById("recordsAchGrid");
-  if(grid){
-    grid.innerHTML = "";
-    let earned = 0;
-    RECORDS_ACH.forEach((entry)=>{
-      const config = ACHIEVEMENT_CONFIG[entry.key] || { title:"Achievement" };
-      const got = !!achievements[entry.key] || isAchievementRewardClaimed(entry.key);
-      if(got) earned++;
-      const el = document.createElement("div");
-      el.className = "ach" + (got ? " won" : "");
-      el.title = `${config.title} — ${got ? "earned" : "not yet earned"}`;
-      const mark = document.createElement("span");
-      mark.className = "mark";
-      mark.setAttribute("aria-hidden", "true");
-      mark.textContent = entry.mark;
-      el.appendChild(mark);
-      el.appendChild(document.createTextNode(config.title));
-      grid.appendChild(el);
-    });
-    const countEl = document.getElementById("recordsAchCount");
-    if(countEl) countEl.textContent = `${earned} / ${RECORDS_ACH.length}`;
-  }
-}
-
-function openRecordsOverlay(){
-  renderRecordsOverlay();
-  recordsOverlay?.classList.remove("hidden");
-  if(hasStarted && lives > 0 && !isPaused){
-    isPaused = true;
-    recordsAutoPaused = true;
-    updateUI();
-  }
-}
-function closeRecordsOverlay(){
-  recordsOverlay?.classList.add("hidden");
-  if(recordsAutoPaused){
-    recordsAutoPaused = false;
-    if(lives > 0) isPaused = false;
-    updateUI();
-  }
-}
-
-openRecordsBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openRecordsOverlay(); });
-closeRecordsBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); closeRecordsOverlay(); });
-recordsOverlay?.addEventListener("click",(event)=>{ if(event.target === recordsOverlay) closeRecordsOverlay(); });
-
 openLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
 openLeyFromGameOverBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
 closeLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); closeLeyOverlay(); });
@@ -1712,7 +1586,6 @@ panelHeaderLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); 
 leyOverlay?.addEventListener("click",(event)=>{ if(event.target === leyOverlay) closeLeyOverlay(); });
 document.addEventListener("keydown",(event)=>{
   if(event.key === "Escape" && leyOverlay && !leyOverlay.classList.contains("hidden")) closeLeyOverlay();
-  if(event.key === "Escape" && recordsOverlay && !recordsOverlay.classList.contains("hidden")) closeRecordsOverlay();
 });
 
 function updateAuraRerollButton(){
