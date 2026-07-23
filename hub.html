@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dark Defense — Command Table</title>
+<meta name="description" content="Your campaign hub: today's challenge, ascension progress, achievements and best runs." />
+<link rel="icon" href="favicon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+<style>
+/* =========================================================
+   Command Table — hub screen.
+   Reuses the game's tokens from style.css (--accent, --panel,
+   Cinzel/Inter). Everything here reads localStorage only; no
+   backend, no new tables.
+   ========================================================= */
+.hub{
+  position:relative;
+  z-index:1;
+  max-width:1180px;
+  margin:0 auto;
+  padding:28px 20px 60px;
+}
+
+/* --- Standard bar ------------------------------------- */
+.hub-crown{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  flex-wrap:wrap;
+  padding:16px 20px;
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(20,16,12,.92), rgba(8,7,10,.94));
+  border:1px solid var(--panel-border);
+  box-shadow:var(--shadow);
+}
+.hub-sigil{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-width:0;
+}
+.hub-sigil-mark{
+  width:52px;
+  height:52px;
+  display:grid;
+  place-items:center;
+  border-radius:14px;
+  font-size:24px;
+  background:radial-gradient(circle at 32% 26%, rgba(192,138,74,.32), rgba(10,8,12,.9));
+  border:1px solid rgba(192,138,74,.34);
+  flex:0 0 auto;
+}
+.hub-name{
+  font-family:Cinzel, Georgia, serif;
+  font-size:20px;
+  font-weight:700;
+  letter-spacing:.02em;
+  line-height:1.2;
+}
+.hub-rank{
+  font-size:12px;
+  color:var(--muted);
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-top:2px;
+}
+.hub-xp{
+  margin-top:7px;
+  width:190px;
+  max-width:46vw;
+  height:5px;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+  overflow:hidden;
+}
+.hub-xp i{
+  display:block;
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  background:linear-gradient(90deg, #c08a4a, #e6bb7a);
+  transition:width .8s cubic-bezier(.2,.8,.2,1);
+}
+.hub-purse{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.hub-coin{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 14px;
+  border-radius:999px;
+  font-size:14px;
+  font-weight:700;
+  background:rgba(10,8,12,.7);
+  border:1px solid rgba(192,138,74,.22);
+  white-space:nowrap;
+}
+.hub-coin .glyph{ font-size:15px; }
+.hub-coin.crystal{ color:#c4b5fd; border-color:rgba(167,139,250,.28); }
+
+/* --- The banner (signature element) -------------------- */
+.hub-banner{
+  position:relative;
+  margin-top:20px;
+  padding:34px 30px;
+  border-radius:20px;
+  overflow:hidden;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(192,138,74,.16), transparent 42%),
+    radial-gradient(circle at 12% 88%, rgba(106,123,71,.12), transparent 40%),
+    linear-gradient(160deg, rgba(22,16,12,.95), rgba(6,6,10,.97));
+  border:1px solid var(--panel-border);
+  box-shadow:var(--shadow);
+}
+/* Faint portal rings — the Dark Portal the player defends. */
+.hub-banner::after{
+  content:"";
+  position:absolute;
+  right:-90px;
+  top:50%;
+  width:340px;
+  height:340px;
+  transform:translateY(-50%);
+  border-radius:50%;
+  border:1px solid rgba(192,138,74,.16);
+  box-shadow:
+    0 0 0 34px rgba(192,138,74,.035),
+    0 0 0 74px rgba(192,138,74,.022),
+    inset 0 0 90px rgba(192,138,74,.05);
+  pointer-events:none;
+}
+.hub-banner-inner{ position:relative; z-index:1; max-width:600px; }
+.hub-eyebrow{
+  font-size:11px;
+  letter-spacing:.30em;
+  text-transform:uppercase;
+  color:var(--accent);
+  font-weight:700;
+}
+.hub-title{
+  font-family:Cinzel, Georgia, serif;
+  font-size:clamp(28px, 5vw, 42px);
+  font-weight:700;
+  line-height:1.12;
+  margin:10px 0 8px;
+}
+.hub-sub{
+  color:var(--muted);
+  font-size:14px;
+  line-height:1.6;
+  max-width:46ch;
+}
+.hub-actions{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:22px;
+}
+.hub-btn{
+  font-family:Cinzel, Georgia, serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.06em;
+  padding:13px 28px;
+  border-radius:12px;
+  border:1px solid rgba(192,138,74,.34);
+  background:rgba(12,10,14,.72);
+  color:var(--text);
+  cursor:pointer;
+  text-decoration:none;
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  transition:transform .16s ease, background .2s ease, border-color .2s ease;
+}
+.hub-btn:hover{ transform:translateY(-2px); border-color:rgba(192,138,74,.6); }
+.hub-btn:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.hub-btn.primary{
+  background:linear-gradient(180deg, rgba(192,138,74,.92), rgba(140,96,48,.94));
+  border-color:rgba(230,187,122,.5);
+  color:#160f08;
+}
+.hub-btn.ghost{ opacity:.85; }
+
+/* --- Grid --------------------------------------------- */
+.hub-grid{
+  display:grid;
+  grid-template-columns:repeat(12, 1fr);
+  gap:16px;
+  margin-top:16px;
+}
+.card{
+  grid-column:span 4;
+  padding:18px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+  border:1px solid var(--panel-border);
+  box-shadow:0 16px 36px rgba(0,0,0,.34);
+}
+.card.wide{ grid-column:span 6; }
+.card.full{ grid-column:span 12; }
+.card-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:14px;
+}
+.card-title{
+  font-family:Cinzel, Georgia, serif;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+}
+.card-note{ font-size:11px; color:var(--muted); letter-spacing:.06em; }
+
+/* Challenge */
+.chal{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+}
+.chal-emoji{
+  font-size:30px;
+  line-height:1;
+  flex:0 0 auto;
+  filter:drop-shadow(0 3px 8px rgba(0,0,0,.5));
+}
+.chal-name{
+  font-family:Cinzel, Georgia, serif;
+  font-size:17px;
+  font-weight:700;
+  margin-bottom:5px;
+}
+.chal-blurb{ font-size:12.5px; color:var(--muted); line-height:1.55; }
+.chal-best{
+  margin-top:12px;
+  font-size:12px;
+  color:var(--accent);
+  letter-spacing:.05em;
+}
+
+/* Stat rows */
+.stat-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:9px 0;
+  border-bottom:1px solid rgba(255,255,255,.045);
+  font-size:13px;
+}
+.stat-row:last-child{ border-bottom:none; }
+.stat-row .label{ color:var(--muted); }
+.stat-row .value{ font-weight:700; font-variant-numeric:tabular-nums; }
+
+/* Achievements */
+.ach-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(112px, 1fr));
+  gap:9px;
+}
+.ach{
+  padding:11px 10px;
+  border-radius:11px;
+  text-align:center;
+  font-size:11px;
+  line-height:1.3;
+  background:rgba(255,255,255,.028);
+  border:1px solid rgba(255,255,255,.05);
+  color:var(--muted);
+}
+.ach .mark{ display:block; font-size:17px; margin-bottom:5px; opacity:.35; }
+.ach.won{
+  background:radial-gradient(circle at 50% 0%, rgba(192,138,74,.16), rgba(255,255,255,.02));
+  border-color:rgba(192,138,74,.3);
+  color:var(--text);
+  font-weight:600;
+}
+.ach.won .mark{ opacity:1; }
+
+/* Empty state */
+.empty{
+  font-size:12.5px;
+  color:var(--muted);
+  line-height:1.6;
+  padding:4px 0;
+}
+
+@media (max-width:900px){
+  .card, .card.wide{ grid-column:span 6; }
+}
+@media (max-width:640px){
+  .hub{ padding:16px 14px 44px; }
+  .hub-banner{ padding:26px 20px; }
+  .card, .card.wide, .card.full{ grid-column:span 12; }
+  .hub-crown{ padding:14px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .hub-xp i{ transition:none; }
+  .hub-btn{ transition:none; }
+}
+</style>
+</head>
+<body>
+<div class="page-shell" aria-hidden="true"></div>
+
+<main class="hub">
+
+  <!-- Standard bar: who you are, what you carry -->
+  <header class="hub-crown">
+    <div class="hub-sigil">
+      <div class="hub-sigil-mark" aria-hidden="true">⚔</div>
+      <div>
+        <div class="hub-name" id="hubName">Commander</div>
+        <div class="hub-rank" id="hubRank">Rank 1 · Recruit</div>
+        <div class="hub-xp" role="progressbar" aria-labelledby="hubRank" aria-valuemin="0" aria-valuemax="100" id="hubXpBar">
+          <i id="hubXpFill"></i>
+        </div>
+      </div>
+    </div>
+    <div class="hub-purse">
+      <span class="hub-coin crystal"><span class="glyph" aria-hidden="true">✦</span><span id="hubCrystals">0</span> Crystals</span>
+      <a class="hub-coin" href="leaderboards.html" style="text-decoration:none;color:inherit"><span class="glyph" aria-hidden="true">🏅</span>Leaderboards</a>
+    </div>
+  </header>
+
+  <!-- Signature: the portal banner -->
+  <section class="hub-banner">
+    <div class="hub-banner-inner">
+      <div class="hub-eyebrow">The Dark Portal holds</div>
+      <h1 class="hub-title" id="hubHeadline">The horde gathers beyond the gate</h1>
+      <p class="hub-sub" id="hubBlurb">Six stages stand between the portal and the world. Place your towers, spend your crystals, and see how far the line bends before it breaks.</p>
+      <div class="hub-actions">
+        <a class="hub-btn primary" href="index.html" id="hubPlayBtn">▶ Enter the battlefield</a>
+        <a class="hub-btn ghost" href="how-to-play.html">How to play</a>
+        <a class="hub-btn ghost" href="guide.html">Strategy guide</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="hub-grid">
+
+    <!-- Today's challenge -->
+    <section class="card wide">
+      <div class="card-head">
+        <h2 class="card-title">Challenge of the day</h2>
+        <span class="card-note" id="chalResets">Resets at midnight</span>
+      </div>
+      <div class="chal">
+        <div class="chal-emoji" id="chalEmoji" aria-hidden="true">⚔️</div>
+        <div>
+          <div class="chal-name" id="chalName">Loading…</div>
+          <p class="chal-blurb" id="chalBlurb"></p>
+          <div class="chal-best" id="chalBest"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Records -->
+    <section class="card wide">
+      <div class="card-head">
+        <h2 class="card-title">War record</h2>
+        <span class="card-note">All time</span>
+      </div>
+      <div class="stat-row"><span class="label">Best score</span><span class="value" id="statScore">0</span></div>
+      <div class="stat-row"><span class="label">Deepest endless wave</span><span class="value" id="statWave">—</span></div>
+      <div class="stat-row"><span class="label">Boss pairs broken</span><span class="value" id="statPairs">0</span></div>
+      <div class="stat-row"><span class="label">Longest kill combo</span><span class="value" id="statCombo">0</span></div>
+      <div class="stat-row"><span class="label">Crystals earned</span><span class="value" id="statCrystals">0</span></div>
+    </section>
+
+    <!-- Achievements -->
+    <section class="card full">
+      <div class="card-head">
+        <h2 class="card-title">Honours</h2>
+        <span class="card-note" id="achCount">0 / 14 earned</span>
+      </div>
+      <div class="ach-grid" id="achGrid"></div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+/* Read-only view over the game's own localStorage keys.
+   The hub never writes game state — it only reflects it. */
+(function(){
+  const num = (key, fallback = 0) => {
+    try { return Math.max(0, parseInt(localStorage.getItem(key) || String(fallback), 10) || fallback); }
+    catch (e) { return fallback; }
+  };
+
+  /* ---- Rank derived from lifetime crystals ---------------
+     Crystals are already earned every run, win or lose, so
+     they are the one number that only ever goes up. Rank is
+     a view of that, not a new currency.                    */
+  const RANKS = [
+    "Recruit", "Watchman", "Sentinel", "Warden", "Bulwark",
+    "Portalguard", "Dawnbreaker", "Ashbearer", "Voidsworn", "Legend"
+  ];
+  const STEP = 400; // crystals per rank
+
+  const lifetime = num("sdcLeyEarnedTotal");
+  const rankIdx = Math.min(RANKS.length - 1, Math.floor(lifetime / STEP));
+  const intoRank = lifetime - rankIdx * STEP;
+  const pct = rankIdx >= RANKS.length - 1 ? 100 : Math.round((intoRank / STEP) * 100);
+
+  document.getElementById("hubRank").textContent = `Rank ${rankIdx + 1} · ${RANKS[rankIdx]}`;
+  const fill = document.getElementById("hubXpFill");
+  const bar = document.getElementById("hubXpBar");
+  bar.setAttribute("aria-valuenow", String(pct));
+  requestAnimationFrame(() => { fill.style.width = pct + "%"; });
+
+  document.getElementById("hubCrystals").textContent = num("sdcLeyCrystals").toLocaleString();
+
+  /* ---- Records ---- */
+  const bestScore = num("sdcBestScore");
+  const bestWave = num("sdcBestEndlessWave");
+  document.getElementById("statScore").textContent = bestScore.toLocaleString();
+  document.getElementById("statWave").textContent = bestWave > 0 ? "Wave " + bestWave : "—";
+  document.getElementById("statPairs").textContent = num("sdcBestEndlessBossPairs");
+  document.getElementById("statCombo").textContent = num("sdcBestCombo");
+  document.getElementById("statCrystals").textContent = lifetime.toLocaleString();
+
+  /* ---- Returning-player headline ---- */
+  let hasRun = false;
+  try { hasRun = !!localStorage.getItem("sdcSavedRun"); } catch (e) {}
+  if (hasRun) {
+    document.getElementById("hubHeadline").textContent = "Your line still holds";
+    document.getElementById("hubBlurb").textContent =
+      "A run is still in progress. Pick it up where you left it, or reset and start a fresh defence.";
+    document.getElementById("hubPlayBtn").textContent = "▶ Resume the defence";
+  } else if (bestScore > 0) {
+    document.getElementById("hubHeadline").textContent = "The gate is quiet — for now";
+    document.getElementById("hubBlurb").textContent =
+      `Your best stand scored ${bestScore.toLocaleString()}. Spend your crystals on the ley talents, then go past it.`;
+  }
+
+  /* ---- Challenge of the day ----------------------------
+     Same pool and the same deterministic pick as game.js,
+     so the hub and the battlefield always agree.          */
+  const DAILY = [
+    { id:"iron_purse", name:"Iron Purse", emoji:"🪙", blurb:"Half the starting gold. Every tower placement counts — but kills pay 40% more." },
+    { id:"swift_tide", name:"Swift Tide", emoji:"💨", blurb:"The horde moves 25% faster and hits harder. Frost and control are your friends." },
+    { id:"stone_skin", name:"Stone Skin", emoji:"🛡️", blurb:"Enemies carry 45% more health but crawl 10% slower. Bring sustained damage." },
+    { id:"glass_gate", name:"Glass Gate", emoji:"💔", blurb:"Only 8 lives — but you begin rich. One leak too many and it's over." },
+    { id:"gold_rush", name:"Gold Rush", emoji:"💰", blurb:"Double kill gold and a fat purse — but faster spells cost you longer cooldowns." },
+    { id:"arcane_flood", name:"Arcane Flood", emoji:"🔮", blurb:"Spells recharge 40% faster. Lean on your magic to hold the Dark Portal." },
+    { id:"last_stand", name:"Last Stand", emoji:"⚔️", blurb:"Tougher, faster foes on every front — but every kill overflows your coffers." },
+    { id:"frugal_fortress", name:"Frugal Fortress", emoji:"🏰", blurb:"A lean economy and lean spells. Survival is pure positioning and patience." }
+  ];
+
+  // Mirrors hashStringToInt + getTodayKey in game.js.
+  function hashStringToInt(str){
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619) >>> 0;
+    }
+    return h >>> 0;
+  }
+  function todayKey(){
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+
+  const key = todayKey();
+  const chal = DAILY[hashStringToInt("dark-defense-cotd::" + key) % DAILY.length];
+  document.getElementById("chalEmoji").textContent = chal.emoji;
+  document.getElementById("chalName").textContent = chal.name;
+  document.getElementById("chalBlurb").textContent = chal.blurb;
+
+  const dailyBest = num("sdcDailyBest::" + key);
+  document.getElementById("chalBest").textContent =
+    dailyBest > 0 ? `Today's best: wave ${dailyBest}` : "Not attempted today.";
+
+  // Hours until the challenge rerolls.
+  const midnight = new Date();
+  midnight.setHours(24, 0, 0, 0);
+  const hrs = Math.max(1, Math.round((midnight - Date.now()) / 3600000));
+  document.getElementById("chalResets").textContent = `Rerolls in ${hrs}h`;
+
+  /* ---- Honours ---- */
+  const ACH = [
+    { key:"first_kill", title:"First Blood", mark:"🩸" },
+    { key:"builder", title:"Builder", mark:"🔨" },
+    { key:"first_tower_upgrade", title:"Forged for War", mark:"⚒" },
+    { key:"first_spell_cast", title:"Arcane Initiate", mark:"✨" },
+    { key:"boss_hunter", title:"Boss Hunter", mark:"👑" },
+    { key:"rich", title:"Treasurer", mark:"💰" },
+    { key:"wave_master", title:"Wave Master", mark:"🌊" },
+    { key:"survivor", title:"Survivor", mark:"🛡" },
+    { key:"combo_10", title:"Chain Reaction", mark:"⛓" },
+    { key:"combo_25", title:"Unbroken Slaughter", mark:"☠" },
+    { key:"stage6_clear", title:"Campaign Conqueror", mark:"🏰" },
+    { key:"first_endless_boss_pair", title:"Twin Terrors Broken", mark:"⚔" },
+    { key:"endless_wave_20", title:"Abyss Walker", mark:"🌑" },
+    { key:"endless_wave_30", title:"Beyond the Threshold", mark:"🔥" }
+  ];
+
+  // Achievements live inside the run save; read them if present.
+  let won = {};
+  try {
+    const raw = localStorage.getItem("sdcSavedRun");
+    if (raw) won = (JSON.parse(raw) || {}).achievements || {};
+  } catch (e) { won = {}; }
+  // A claimed gold reward is durable proof of an unlock, even
+  // after the run save is cleared.
+  ACH.forEach(a => {
+    try {
+      if (localStorage.getItem("sdcAchievementGoldClaimed:" + a.key) === "1") won[a.key] = true;
+    } catch (e) {}
+  });
+
+  const grid = document.getElementById("achGrid");
+  let earned = 0;
+  ACH.forEach(a => {
+    const got = !!won[a.key];
+    if (got) earned++;
+    const el = document.createElement("div");
+    el.className = "ach" + (got ? " won" : "");
+    el.innerHTML = `<span class="mark" aria-hidden="true">${a.mark}</span>${a.title}`;
+    el.title = got ? `${a.title} — earned` : `${a.title} — not yet earned`;
+    grid.appendChild(el);
+  });
+  document.getElementById("achCount").textContent = `${earned} / ${ACH.length} earned`;
+})();
+</script>
+</body>
+</html>
