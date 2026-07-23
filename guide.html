@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dark Defense — Complete Guide: Towers, Enemies, Bosses & Strategy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dark Defense &mdash; Complete Guide: Towers, Enemies, Bosses &amp; Strategy</title>
   <meta name="description" content="The complete Dark Defense guide: how to play, every tower and upgrade, all enemy types, all six bosses with their abilities, Ascension progression, Endless mode, and advanced high-score strategy." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/guide.html" />
@@ -13,327 +13,741 @@
   <link rel="stylesheet" href="style.css" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
-  <style>
-    /* Guide-specific layout for image cards — scoped so it doesn't affect the game UI */
-    .guide-toc{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
-    .guide-toc a{font-size:13px;padding:7px 13px;border-radius:999px;background:rgba(148,163,184,.12);
-      border:1px solid rgba(148,163,184,.2);color:#cbd5e1;text-decoration:none;transition:all .15s}
-    .guide-toc a:hover{background:rgba(56,189,248,.16);border-color:rgba(56,189,248,.4);color:#e0f2fe}
-    .unit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:6px}
-    .unit-card{background:var(--surface-2,rgba(15,23,42,.5));border:1px solid rgba(148,163,184,.16);
-      border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
-    .unit-card .unit-head{display:flex;align-items:center;gap:12px}
-    .unit-card img{width:64px;height:64px;object-fit:contain;flex-shrink:0;
-      background:radial-gradient(circle at 50% 40%,rgba(56,189,248,.12),transparent 70%);border-radius:10px}
-    .unit-card .unit-name{font-family:'Cinzel',serif;font-size:17px;font-weight:600;color:#f1f5f9;line-height:1.2}
-    .unit-card .unit-cost{font-size:12px;color:#94a3b8;margin-top:2px}
-    .unit-stats{display:flex;flex-wrap:wrap;gap:6px}
-    .unit-stats span{font-size:11px;padding:3px 8px;border-radius:6px;background:rgba(148,163,184,.1);color:#cbd5e1}
-    .unit-desc{font-size:13px;color:#b6c2d4;line-height:1.5}
-    .spec-row{display:flex;gap:8px;margin-top:4px}
-    .spec-chip{flex:1;background:rgba(148,163,184,.08);border-radius:8px;padding:8px 10px}
-    .spec-chip b{display:block;font-size:12.5px;color:#e2e8f0;margin-bottom:2px}
-    .spec-chip small{font-size:11px;color:#93a3b8;line-height:1.4}
-    .boss-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:6px}
-    .boss-card{background:var(--surface-2,rgba(15,23,42,.5));border:1px solid rgba(148,163,184,.16);
-      border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
-    .boss-card .boss-portrait{width:100%;aspect-ratio:1/1;object-fit:cover;object-position:center 22%;
-      border-bottom:1px solid rgba(148,163,184,.14)}
-    .boss-card .boss-body{padding:13px 15px;display:flex;flex-direction:column;gap:7px}
-    .boss-card .boss-name{font-family:'Cinzel',serif;font-size:17px;font-weight:700;color:#f8fafc;line-height:1.2}
-    .boss-card .boss-meta{font-size:12px;color:#94a3b8}
-    .boss-card .boss-ability{font-size:13px;color:#c7d2e0;line-height:1.5}
-    .boss-card .boss-ability b{color:#fca5a5}
-    .enemy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:6px}
-    .enemy-card{background:var(--surface-2,rgba(15,23,42,.5));border:1px solid rgba(148,163,184,.16);
-      border-radius:14px;padding:14px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px}
-    .enemy-card img{height:76px;object-fit:contain;image-rendering:auto}
-    .enemy-card .enemy-name{font-family:'Cinzel',serif;font-size:15px;font-weight:600;color:#f1f5f9}
-    .enemy-card .enemy-tags{display:flex;flex-wrap:wrap;gap:5px;justify-content:center}
-    .enemy-card .enemy-tags span{font-size:10.5px;padding:2px 7px;border-radius:5px;background:rgba(148,163,184,.1);color:#cbd5e1}
-    .enemy-card .enemy-desc{font-size:12px;color:#a8b5c6;line-height:1.45}
-    .tip-callout{background:rgba(56,189,248,.08);border-left:3px solid rgba(56,189,248,.5);
-      border-radius:8px;padding:11px 14px;font-size:13.5px;color:#c7dced;line-height:1.55;margin-top:10px}
-  </style>
+<style>
+/* =========================================================
+   Guide - the Field Manual.
+   Same tokens as the game and the rankings page: Cinzel +
+   Inter, gold on black, fortress artwork. Chapters are
+   tabbed so the page is a reference you navigate, not a
+   scroll you endure.
+   ========================================================= */
+.gd{ max-width:1120px; margin:0 auto; padding:22px 20px 60px; }
+
+/* --- Banner --- */
+.gd-banner{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  border-radius:22px;
+  padding:26px 30px 28px;
+  border:1px solid var(--panel-border);
+  box-shadow:var(--shadow);
+  background:
+    linear-gradient(90deg,
+      rgba(6,7,10,0.97) 0%,
+      rgba(6,7,10,0.93) 30%,
+      rgba(6,7,10,0.78) 50%,
+      rgba(6,7,10,0.42) 72%,
+      rgba(6,7,10,0.20) 100%),
+    linear-gradient(135deg, rgba(129,78,40,0.16), rgba(255,255,255,0.02)),
+    url("assets/ui/hero-fortress.webp");
+  background-size:auto, auto, cover;
+  background-position:center, center, center right;
+  background-repeat:no-repeat;
+}
+.gd-banner::before{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none; z-index:-1;
+  background:
+    radial-gradient(circle at 82% 66%, rgba(234,120,42,0.15), transparent 26%),
+    radial-gradient(circle at 78% 50%, transparent 30%, rgba(0,0,0,0.42) 100%);
+}
+.gd-banner-inner{ position:relative; z-index:1; max-width:640px; }
+.gd-eyebrow{
+  font-size:11px; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--accent); font-weight:700;
+}
+.gd-title{
+  margin:9px 0 8px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:clamp(28px, 4.2vw, 46px);
+  font-weight:700; line-height:1.02; letter-spacing:.02em;
+  background:linear-gradient(178deg, #f4ece0 6%, #e6dccc 46%, #c8bba6 96%);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));
+}
+@supports not (-webkit-background-clip: text){
+  .gd-title{ color:#efe7db; -webkit-text-fill-color:#efe7db; }
+}
+.gd-sub{ margin:0; color:var(--muted); font-size:15px; line-height:1.55; max-width:58ch; }
+.gd-banner-actions{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-top:16px; }
+.gd-plate{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:12px 30px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:15px; font-weight:700; letter-spacing:.05em;
+  color:#2a1a08; text-decoration:none;
+  background:linear-gradient(180deg, #f6dda6 0%, #e2b872 38%, #c9973f 62%, #e8c68d 100%);
+  border-radius:7px;
+  clip-path:polygon(13px 0, calc(100% - 13px) 0, 100% 22%, 100% 78%, calc(100% - 13px) 100%, 13px 100%, 0 78%, 0 22%);
+  box-shadow:0 0 24px rgba(214,158,74,.3), 0 10px 22px rgba(0,0,0,.4),
+             inset 0 1px 0 rgba(255,255,255,.6), inset 0 -2px 6px rgba(120,74,18,.42);
+  transition:transform .16s ease, filter .2s ease;
+}
+.gd-plate:hover{ transform:translateY(-2px); filter:brightness(1.06); }
+.gd-plate:focus-visible{ outline:2px solid #e6bb7a; outline-offset:4px; }
+.gd-ghost{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:13px; font-weight:600; letter-spacing:.04em;
+  color:#e8dfd2; text-decoration:none;
+  transition:color .18s ease;
+}
+.gd-ghost:hover{ color:#f2d9a8; }
+.gd-ghost:focus-visible{ outline:2px solid #c08a4a; outline-offset:3px; border-radius:4px; }
+
+/* --- Chapter switcher --- */
+.gd-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 14px; }
+.gd-tab{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:11px 17px;
+  border-radius:12px;
+  border:1px solid rgba(148,163,184,.14);
+  background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+  color:var(--muted);
+  font-family:Cinzel, Georgia, serif;
+  font-size:13px; font-weight:700; letter-spacing:.05em;
+  cursor:pointer;
+  transition:transform .15s ease, border-color .2s ease, color .2s ease, background .2s ease;
+}
+.gd-tab .ico{ font-size:15px; }
+.gd-tab:hover{ transform:translateY(-1px); color:#e8dfd2; border-color:rgba(192,138,74,.34); }
+.gd-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.gd-tab[aria-selected="true"]{
+  color:#f2e8d8;
+  border-color:rgba(192,138,74,.55);
+  background:linear-gradient(180deg, rgba(52,36,18,.86), rgba(20,14,10,.94));
+  box-shadow:0 8px 20px rgba(192,138,74,.14), inset 0 0 0 1px rgba(230,187,122,.12);
+}
+
+/* --- Chapter panel --- */
+.gd-panel{
+  padding:22px;
+  border-radius:18px;
+  border:1px solid var(--panel-border);
+  background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+  box-shadow:0 16px 36px rgba(0,0,0,.34);
+}
+.gd-panel[hidden]{ display:none; }
+.gd-panel h2{
+  margin:0 0 6px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:21px; font-weight:700; letter-spacing:.02em;
+}
+.gd-panel h3{
+  margin:22px 0 8px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:15px; font-weight:700; letter-spacing:.03em;
+  color:#e8dfd2;
+}
+.gd-panel h3:first-of-type{ margin-top:16px; }
+.gd-lede{ margin:0 0 18px; color:var(--muted); font-size:14px; line-height:1.6; max-width:72ch; }
+.gd-panel p{ font-size:13.5px; line-height:1.65; color:#c2b9ab; max-width:74ch; }
+
+/* Ordered steps for the basics chapter. */
+.gd-steps{ display:grid; gap:9px; margin:0; padding:0; list-style:none; counter-reset:gdstep; }
+.gd-steps li{
+  position:relative;
+  padding:13px 15px 13px 48px;
+  border-radius:12px;
+  background:rgba(255,255,255,.026);
+  border:1px solid rgba(255,255,255,.05);
+  font-size:13.5px; line-height:1.6; color:#c2b9ab;
+}
+.gd-steps li::before{
+  counter-increment:gdstep;
+  content:counter(gdstep);
+  position:absolute;
+  left:14px; top:12px;
+  width:22px; height:22px;
+  display:grid; place-items:center;
+  border-radius:50%;
+  font-family:Cinzel, Georgia, serif;
+  font-size:11px; font-weight:700;
+  color:#2a1a08;
+  background:linear-gradient(180deg, #f2d195, #c9973f);
+}
+.gd-steps li strong{ color:#e8dfd2; }
+
+/* Plain bullet list. */
+.gd-list{ margin:0; padding:0; list-style:none; display:grid; gap:8px; }
+.gd-list li{
+  position:relative;
+  padding:11px 14px 11px 32px;
+  border-radius:11px;
+  background:rgba(255,255,255,.024);
+  border:1px solid rgba(255,255,255,.045);
+  font-size:13.5px; line-height:1.6; color:#c2b9ab;
+}
+.gd-list li::before{
+  content:"\25C6";
+  position:absolute; left:13px; top:12px;
+  font-size:8px; color:rgba(230,187,122,.7);
+}
+.gd-list li strong{ color:#e8dfd2; }
+.gd-list li em{ color:#c4b5fd; font-style:normal; }
+
+/* --- Tower cards --- */
+.gd-towers{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(268px, 1fr));
+  gap:12px;
+}
+.gd-tower{
+  display:flex; flex-direction:column; gap:10px;
+  padding:15px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.055);
+  background:
+    radial-gradient(circle at 22% 12%, rgba(192,138,74,.10), transparent 46%),
+    rgba(255,255,255,.026);
+  transition:border-color .2s ease, transform .16s ease;
+}
+.gd-tower:hover{ border-color:rgba(192,138,74,.32); transform:translateY(-2px); }
+.gd-tower-head{ display:flex; align-items:center; gap:13px; }
+.gd-tower-head img{
+  width:56px; height:56px; object-fit:contain; flex:0 0 auto;
+  filter:drop-shadow(0 4px 8px rgba(0,0,0,.5));
+}
+.gd-glyph{
+  width:56px; height:56px; flex:0 0 auto;
+  display:grid; place-items:center;
+  font-size:30px; color:#a5f3fc;
+  text-shadow:0 0 16px rgba(103,232,249,.45);
+}
+.gd-tower-name{
+  font-family:Cinzel, Georgia, serif;
+  font-size:17px; font-weight:700; color:#f2e8d8; line-height:1.2;
+}
+.gd-tower-cost{ font-size:11.5px; color:var(--muted); margin-top:3px; letter-spacing:.03em; }
+.gd-stats{ display:flex; flex-wrap:wrap; gap:5px; }
+.gd-stats span{
+  font-size:10.5px; font-weight:700; letter-spacing:.04em;
+  padding:3px 8px; border-radius:6px;
+  color:#d8cbb8;
+  background:rgba(192,138,74,.12);
+  border:1px solid rgba(192,138,74,.18);
+  font-variant-numeric:tabular-nums;
+}
+.gd-tower-desc{ font-size:12.5px; color:#b3a99a; line-height:1.55; }
+.gd-specs{ display:grid; gap:7px; margin-top:2px; }
+.gd-spec{
+  padding:9px 11px;
+  border-radius:9px;
+  background:rgba(255,255,255,.03);
+  border-left:2px solid rgba(192,138,74,.4);
+}
+.gd-spec b{ display:block; font-size:12px; color:#e8dfd2; margin-bottom:2px; }
+.gd-spec small{ font-size:11px; color:#9d9488; line-height:1.45; display:block; }
+
+/* --- Enemy cards --- */
+.gd-enemies{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(196px, 1fr));
+  gap:12px;
+}
+.gd-enemy{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:15px 13px;
+  border-radius:14px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.055);
+  background:rgba(255,255,255,.026);
+  transition:border-color .2s ease, transform .16s ease;
+}
+.gd-enemy:hover{ border-color:rgba(192,138,74,.32); transform:translateY(-2px); }
+.gd-enemy img{ height:72px; object-fit:contain; filter:drop-shadow(0 4px 9px rgba(0,0,0,.5)); }
+.gd-enemy-name{
+  font-family:Cinzel, Georgia, serif;
+  font-size:15px; font-weight:700; color:#f2e8d8;
+}
+.gd-tags{ display:flex; flex-wrap:wrap; gap:4px; justify-content:center; }
+.gd-tags span{
+  font-size:10px; font-weight:700; letter-spacing:.03em;
+  padding:2px 7px; border-radius:5px;
+  color:#d8cbb8;
+  background:rgba(192,138,74,.12);
+  border:1px solid rgba(192,138,74,.18);
+}
+.gd-enemy-desc{ font-size:12px; color:#a89e90; line-height:1.5; }
+
+/* --- Boss cards --- */
+.gd-bosses{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(272px, 1fr));
+  gap:14px;
+}
+.gd-boss{
+  display:flex; flex-direction:column;
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.055);
+  background:rgba(255,255,255,.026);
+  transition:border-color .2s ease, transform .16s ease;
+}
+.gd-boss:hover{ border-color:rgba(192,138,74,.34); transform:translateY(-2px); }
+.gd-boss-art{ position:relative; }
+.gd-boss-art img{
+  width:100%; aspect-ratio:1/1; object-fit:cover; object-position:center 22%;
+  display:block;
+}
+/* Fade the portrait into the card body. */
+.gd-boss-art::after{
+  content:"";
+  position:absolute; inset:0;
+  background:linear-gradient(180deg, transparent 52%, rgba(11,9,12,.92) 100%);
+  pointer-events:none;
+}
+.gd-boss-stage{
+  position:absolute; top:10px; left:10px; z-index:1;
+  padding:3px 9px; border-radius:999px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:10.5px; font-weight:700; letter-spacing:.08em;
+  color:#2a1a08;
+  background:linear-gradient(180deg, #f2d195, #c9973f);
+  box-shadow:0 3px 9px rgba(0,0,0,.5);
+}
+.gd-boss-body{ padding:12px 15px 15px; display:flex; flex-direction:column; gap:6px; }
+.gd-boss-name{
+  font-family:Cinzel, Georgia, serif;
+  font-size:16px; font-weight:700; color:#f5ede0; line-height:1.2;
+}
+.gd-boss-meta{ font-size:11.5px; color:var(--muted); letter-spacing:.03em; }
+.gd-boss-ability{ font-size:12.5px; color:#b3a99a; line-height:1.55; }
+.gd-boss-ability b{ color:#f0a882; }
+
+/* --- Callout --- */
+.gd-note{
+  margin-top:16px;
+  padding:13px 16px;
+  border-radius:12px;
+  border-left:3px solid rgba(192,138,74,.55);
+  background:rgba(192,138,74,.08);
+  font-size:13px; line-height:1.6; color:#cfc3b2;
+}
+.gd-note strong{ color:#f0e3ce; }
+
+/* --- Footer strip --- */
+.gd-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+  gap:11px;
+  margin-top:15px;
+}
+.gd-strip a{
+  display:flex; align-items:center; gap:11px;
+  padding:14px 15px; border-radius:13px;
+  text-decoration:none; color:var(--text);
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.055);
+  transition:transform .15s ease, border-color .2s ease, background .2s ease;
+}
+.gd-strip a:hover{
+  transform:translateY(-2px);
+  border-color:rgba(192,138,74,.4);
+  background:rgba(192,138,74,.07);
+}
+.gd-strip a:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.gd-strip .ico{ font-size:19px; flex:0 0 auto; }
+.gd-strip b{
+  display:block; font-size:13px; font-weight:700;
+  font-family:Cinzel, Georgia, serif; letter-spacing:.02em;
+}
+.gd-strip .cap{ display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+
+@media (max-width:760px){
+  .gd{ padding:14px 13px 44px; }
+  .gd-banner{ padding:22px 20px 24px; background-position:center, center, 72% center; }
+  .gd-panel{ padding:16px 14px; }
+  .gd-tabs{ gap:6px; }
+  .gd-tab{ padding:10px 12px; font-size:12px; letter-spacing:.03em; }
+  .gd-tab .label-long{ display:none; }
+  .gd-towers, .gd-bosses{ grid-template-columns:1fr; }
+  .gd-enemies{ grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); }
+}
+@media (prefers-reduced-motion:reduce){
+  .gd-plate, .gd-tab, .gd-tower, .gd-enemy, .gd-boss, .gd-strip a{ transition:none; }
+}
+</style>
 </head>
 <body>
-  <main class="page-content">
+  <div class="page-shell" aria-hidden="true"></div>
 
-    <section class="glass content-hero">
-      <div class="panel-kicker">Complete Guide</div>
-      <h1>Everything you need to master Dark Defense</h1>
-      <p>One page for the whole game: the basics, every tower and its upgrades, all enemy types, all six bosses and their abilities, Ascension progression, Endless mode, and the advanced strategy that separates a quick loss from a high-score run.</p>
-      <nav class="guide-toc" aria-label="Guide sections">
-        <a href="#basics">Basics</a>
-        <a href="#towers">Towers</a>
-        <a href="#enemies">Enemies</a>
-        <a href="#bosses">Bosses</a>
-        <a href="#ascension">Ascension</a>
-        <a href="#endless">Endless</a>
-        <a href="#strategy">Advanced Strategy</a>
-      </nav>
-      <div class="cta-row" style="margin-top:16px">
-        <a href="/index.html" class="btn btn-primary">Play Dark Defense</a>
+  <main class="gd">
+
+    <section class="gd-banner">
+      <div class="gd-banner-inner">
+        <div class="gd-eyebrow">Field Manual</div>
+        <h1 class="gd-title">Complete Guide</h1>
+        <p class="gd-sub">Everything in one place: the basics, every tower and its specializations, all enemy types, all six bosses and their abilities, Ascension progression, Endless mode, and the strategy that separates a quick loss from a high-score run.</p>
+        <div class="gd-banner-actions">
+          <a href="/index.html" class="gd-plate">Play Dark Defense</a>
+          <a class="gd-ghost" href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span>Rankings</a>
+          <a class="gd-ghost" href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span>Command Table</a>
+        </div>
       </div>
     </section>
 
-    <section class="glass content-card" id="basics">
-      <div class="panel-kicker">Getting Started</div>
+    <div class="gd-tabs" role="tablist" aria-label="Guide chapters">
+      <button class="gd-tab" role="tab" id="tab-basics" aria-controls="panel-basics" aria-selected="true" type="button">
+        <span class="ico" aria-hidden="true">&#9873;</span>Basics
+      </button>
+      <button class="gd-tab" role="tab" id="tab-towers" aria-controls="panel-towers" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#9876;</span>Towers
+      </button>
+      <button class="gd-tab" role="tab" id="tab-enemies" aria-controls="panel-enemies" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#128128;</span>Enemies
+      </button>
+      <button class="gd-tab" role="tab" id="tab-bosses" aria-controls="panel-bosses" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#128081;</span>Bosses
+      </button>
+      <button class="gd-tab" role="tab" id="tab-ascension" aria-controls="panel-ascension" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#10022;</span>Ascension
+      </button>
+      <button class="gd-tab" role="tab" id="tab-endless" aria-controls="panel-endless" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#8734;</span>Endless
+      </button>
+      <button class="gd-tab" role="tab" id="tab-strategy" aria-controls="panel-strategy" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#127919;</span>Strategy
+      </button>
+    </div>
+
+    <!-- Basics -->
+    <section class="gd-panel" id="panel-basics" role="tabpanel" aria-labelledby="tab-basics">
       <h2>The basics</h2>
-      <p>Dark Defense is a tower defense game: enemies walk a fixed path toward your gate, and you place towers alongside it to destroy them before they cross. Each kill earns gold; each leak costs a life. Survive every wave in a stage to win — or push as far as you can in Endless.</p>
-      <ul class="guide-list">
-        <li><strong>Place towers</strong> on buildable ground next to the path. Tap a spot, pick a tower, confirm.</li>
-        <li><strong>Earn gold</strong> from kills and wave clears; spend it on new towers or upgrades.</li>
-        <li><strong>Start each wave</strong> with the Start button — tap once for a single wave, or double-tap it to toggle Auto (waves start on their own).</li>
-        <li><strong>Upgrade your best towers</strong> instead of spreading gold thin — a well-placed upgraded tower beats several weak ones.</li>
-        <li><strong>Protect your lives</strong>: a flawless wave earns bonus score, and lives carry your run's momentum.</li>
-      </ul>
-      <div class="tip-callout">Pausing freezes the field — you can inspect towers, but you can't place new ones until you resume.</div>
+      <p class="gd-lede">Enemies walk a fixed road toward your gate. Every one that reaches it costs a life. Your job is to turn that road into a killing field.</p>
+      <ol class="gd-steps">
+        <li><strong>Place towers</strong> on empty ground beside the road. Each costs gold and starts covering its radius immediately.</li>
+        <li><strong>Kill enemies to earn gold</strong>, then spend it on more towers or upgrades. Gold is the only resource during a run.</li>
+        <li><strong>Click a tower to upgrade it</strong> or choose a specialization once it reaches the required level.</li>
+        <li><strong>Cast spells</strong> when a wave breaks through &mdash; they are your recovery tools, not your opening move.</li>
+        <li><strong>Survive the wave</strong>, then the boss at the end of each stage. Clear six stages to finish the campaign and unlock Endless.</li>
+      </ol>
+      <div class="gd-note">Pausing freezes the field &mdash; you can inspect towers, but you can't place new ones until you resume.</div>
     </section>
 
-    <section class="glass content-card" id="towers">
-      <div class="panel-kicker">Your Arsenal</div>
+    <!-- Towers -->
+    <section class="gd-panel" id="panel-towers" role="tabpanel" aria-labelledby="tab-towers" hidden>
       <h2>Towers &amp; upgrades</h2>
-      <p>Five towers, each with a role. Base stats below are at placement (level 1). Every gold upgrade raises damage, range and attack speed; at level 2 you instead choose one of two <em>specializations</em> that define the tower's identity.</p>
+      <p class="gd-lede">Five towers, each with two specializations that fork its role. Costs shown are the base build price before Ascension discounts.</p>
 
-      <div class="unit-grid">
+      <div class="gd-towers">
 
-        <div class="unit-card">
-          <div class="unit-head">
-            <img src="assets/towers/archer.png" alt="Archer tower" loading="lazy" />
-            <div><div class="unit-name">Archer</div><div class="unit-cost">90 gold · cheap starter</div></div>
+        <article class="gd-tower">
+          <div class="gd-tower-head">
+            <img src="assets/towers/archer.png" alt="" loading="lazy" />
+            <div>
+              <div class="gd-tower-name">Archer</div>
+              <div class="gd-tower-cost">90 gold &middot; cheap starter</div>
+            </div>
           </div>
-          <div class="unit-stats"><span>DMG 30</span><span>Range 122</span><span>Rate 0.72s</span><span>Single-target</span></div>
-          <div class="unit-desc">Fast, affordable, reliable. Your opening pick and backbone of any early layout.</div>
-          <div class="spec-row">
-            <div class="spec-chip"><b>Rapid Shot</b><small>Much faster fire, slightly less damage — melts fast swarms.</small></div>
-            <div class="spec-chip"><b>Heavy Arrows</b><small>+38% damage, a bit slower — punches through tanks.</small></div>
+          <div class="gd-stats"><span>DMG 30</span><span>RNG 122</span><span>0.72s</span><span>Single</span></div>
+          <p class="gd-tower-desc">Fast, affordable, reliable. Your opening pick and the backbone of any early layout.</p>
+          <div class="gd-specs">
+            <div class="gd-spec"><b>Rapid Shot</b><small>Much faster fire, slightly less damage &mdash; melts fast swarms.</small></div>
+            <div class="gd-spec"><b>Heavy Arrows</b><small>+38% damage, a bit slower &mdash; punches through tanks.</small></div>
           </div>
-        </div>
+        </article>
 
-        <div class="unit-card">
-          <div class="unit-head">
-            <img src="assets/towers/hunter.png" alt="Hunter tower" loading="lazy" />
-            <div><div class="unit-name">Hunter</div><div class="unit-cost">190 gold · long range</div></div>
+        <article class="gd-tower">
+          <div class="gd-tower-head">
+            <img src="assets/towers/hunter.png" alt="" loading="lazy" />
+            <div>
+              <div class="gd-tower-name">Hunter</div>
+              <div class="gd-tower-cost">190 gold &middot; long range</div>
+            </div>
           </div>
-          <div class="unit-stats"><span>DMG 76</span><span>Range 186</span><span>Rate 1.24s</span><span>Single-target</span></div>
-          <div class="unit-desc">Longest reach in the game. Covers long lanes and picks off priority targets early.</div>
-          <div class="spec-row">
-            <div class="spec-chip"><b>Sniper</b><small>+20% range, +25% damage — an elite killer for bosses.</small></div>
-            <div class="spec-chip"><b>Tracker</b><small>Faster projectiles, +35% vs fast enemies — never misses runners.</small></div>
+          <div class="gd-stats"><span>DMG 76</span><span>RNG 186</span><span>1.24s</span><span>Single</span></div>
+          <p class="gd-tower-desc">Longest reach in the game. Covers long lanes and picks off priority targets early.</p>
+          <div class="gd-specs">
+            <div class="gd-spec"><b>Sniper</b><small>+20% range, +25% damage &mdash; an elite killer for bosses.</small></div>
+            <div class="gd-spec"><b>Tracker</b><small>Faster projectiles, +35% vs fast enemies &mdash; never misses runners.</small></div>
           </div>
-        </div>
+        </article>
 
-        <div class="unit-card">
-          <div class="unit-head">
-            <img src="assets/towers/mage.png" alt="Mage tower" loading="lazy" />
-            <div><div class="unit-name">Mage</div><div class="unit-cost">235 gold · splash</div></div>
+        <article class="gd-tower">
+          <div class="gd-tower-head">
+            <img src="assets/towers/mage.png" alt="" loading="lazy" />
+            <div>
+              <div class="gd-tower-name">Mage</div>
+              <div class="gd-tower-cost">235 gold &middot; splash</div>
+            </div>
           </div>
-          <div class="unit-stats"><span>DMG 54</span><span>Range 156</span><span>Rate 1.08s</span><span>Splash 52</span></div>
-          <div class="unit-desc">Area damage that softens groups. Excellent against clustered waves and splitters.</div>
-          <div class="spec-row">
-            <div class="spec-chip"><b>Frost Mage</b><small>Slows enemies on hit — adds control to its splash.</small></div>
-            <div class="spec-chip"><b>Arc Mage</b><small>Chains to a nearby target — more coverage per shot.</small></div>
+          <div class="gd-stats"><span>DMG 54</span><span>RNG 156</span><span>1.08s</span><span>Splash 52</span></div>
+          <p class="gd-tower-desc">Area damage that softens groups. Excellent against clustered waves and splitters.</p>
+          <div class="gd-specs">
+            <div class="gd-spec"><b>Frost Mage</b><small>Slows enemies on hit &mdash; adds control to its splash.</small></div>
+            <div class="gd-spec"><b>Arc Mage</b><small>Chains to a nearby target &mdash; more coverage per shot.</small></div>
           </div>
-        </div>
+        </article>
 
-        <div class="unit-card">
-          <div class="unit-head">
-            <img src="assets/towers/bomb.png" alt="Bomb tower" loading="lazy" />
-            <div><div class="unit-name">Bomb Tower</div><div class="unit-cost">305 gold · heavy AoE</div></div>
+        <article class="gd-tower">
+          <div class="gd-tower-head">
+            <img src="assets/towers/bomb.png" alt="" loading="lazy" />
+            <div>
+              <div class="gd-tower-name">Bomb Tower</div>
+              <div class="gd-tower-cost">305 gold &middot; heavy AoE</div>
+            </div>
           </div>
-          <div class="unit-stats"><span>DMG 104</span><span>Range 145</span><span>Rate 1.70s</span><span>Splash 68</span></div>
-          <div class="unit-desc">Slow but devastating burst. The strongest single hit and the best wave-clearer when placed on a choke.</div>
-          <div class="spec-row">
-            <div class="spec-chip"><b>Demolition</b><small>Bigger splash and damage — clears dense packs.</small></div>
-            <div class="spec-chip"><b>Shock Bomb</b><small>Chance to stun on hit — control plus burst.</small></div>
+          <div class="gd-stats"><span>DMG 104</span><span>RNG 145</span><span>1.70s</span><span>Splash 68</span></div>
+          <p class="gd-tower-desc">Slow but devastating burst. The strongest single hit and the best wave-clearer when placed on a choke.</p>
+          <div class="gd-specs">
+            <div class="gd-spec"><b>Demolition</b><small>Bigger splash and damage &mdash; clears dense packs.</small></div>
+            <div class="gd-spec"><b>Shock Bomb</b><small>Chance to stun on hit &mdash; control plus burst.</small></div>
           </div>
-        </div>
+        </article>
 
-        <div class="unit-card">
-          <div class="unit-head">
-            <div style="width:64px;height:64px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:34px;background:radial-gradient(circle at 50% 40%,rgba(56,189,248,.2),transparent 70%);border-radius:10px;color:#7dd3fc">❄</div>
-            <div><div class="unit-name">Cryo</div><div class="unit-cost">160 gold · unlock 150 ✦ · one at a time</div></div>
+        <article class="gd-tower">
+          <div class="gd-tower-head">
+            <span class="gd-glyph" aria-hidden="true">&#10052;</span>
+            <div>
+              <div class="gd-tower-name">Cryo</div>
+              <div class="gd-tower-cost">160 gold &middot; unlock: 150 Crystals</div>
+            </div>
           </div>
-          <div class="unit-stats"><span>DMG 22</span><span>Range 150</span><span>Rate 1.0s</span><span>Chill 70%</span><span>+Brittle</span></div>
-          <div class="unit-desc">A control tower, not a damage dealer. Its field slows every enemy in range and stacks <em>Brittle</em>, which makes targets take more damage from all your other towers. Only one can be active at a time — sell it to reposition.</div>
-          <div class="spec-row">
-            <div class="spec-chip"><b>Glacier</b><small>Deeper chill, wider field — maximum slow.</small></div>
-            <div class="spec-chip"><b>Shatter</b><small>More Brittle per hit, +damage — amplifies your whole defense.</small></div>
+          <div class="gd-stats"><span>DMG 22</span><span>RNG 150</span><span>Chill field</span><span>Brittle</span></div>
+          <p class="gd-tower-desc">Low damage, huge value. Its chill field slows everything nearby and stacks Brittle, amplifying every other tower's damage.</p>
+          <div class="gd-specs">
+            <div class="gd-spec"><b>Glacier</b><small>Deeper chill, wider field &mdash; maximum slow.</small></div>
+            <div class="gd-spec"><b>Shatter</b><small>More Brittle per hit, +damage &mdash; amplifies your whole defense.</small></div>
           </div>
-        </div>
+        </article>
 
       </div>
 
-      <div class="tip-callout"><strong>Upgrade values:</strong> each gold upgrade multiplies damage by ×1.40 (Bomb ×1.50), range by ×1.10, and attack speed by ×0.95 (faster), with the cost rising ×1.65 per level. Upgrades stay strong but no longer let a single maxed tower dominate — so keep expanding your coverage.</div>
+      <div class="gd-note"><strong>Upgrade values:</strong> each gold upgrade multiplies damage by &times;1.40 (Bomb &times;1.50), range by &times;1.10, and attack speed by &times;0.95 (faster), with the cost rising &times;1.65 per level. Upgrades stay strong but no longer let a single maxed tower dominate &mdash; so keep expanding your coverage.</div>
     </section>
 
-    <section class="glass content-card" id="enemies">
-      <div class="panel-kicker">Know Your Foes</div>
+    <!-- Enemies -->
+    <section class="gd-panel" id="panel-enemies" role="tabpanel" aria-labelledby="tab-enemies" hidden>
       <h2>Enemy types</h2>
-      <p>Every wave mixes these enemies. Each has a different mix of health and speed, so your ideal answer changes with what's coming.</p>
+      <p class="gd-lede">Every wave mixes these enemies. Each has a different balance of health and speed, so your ideal answer changes with what's coming.</p>
 
-      <div class="enemy-grid">
+      <div class="gd-enemies">
 
-        <div class="enemy-card">
-          <img src="assets/guide/mob_normal.png" alt="Normal enemy" loading="lazy" />
-          <div class="enemy-name">Skeleton</div>
-          <div class="enemy-tags"><span>Baseline HP</span><span>Medium speed</span><span>+20 gold</span></div>
-          <div class="enemy-desc">The standard foot soldier. Balanced and predictable — the yardstick every other enemy is measured against.</div>
-        </div>
+        <article class="gd-enemy">
+          <img src="assets/guide/mob_normal.png" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Skeleton</div>
+          <div class="gd-tags"><span>Baseline HP</span><span>Medium</span><span>+20 gold</span></div>
+          <p class="gd-enemy-desc">The standard foot soldier. Balanced and predictable &mdash; the yardstick every other enemy is measured against.</p>
+        </article>
 
-        <div class="enemy-card">
-          <img src="assets/guide/mob_fast.png" alt="Fast enemy" loading="lazy" />
-          <div class="enemy-name">Runner</div>
-          <div class="enemy-tags"><span>Low HP</span><span>Very fast</span><span>+16 gold</span></div>
-          <div class="enemy-desc">Rushes the gate before slow towers can react. Cover the whole path or lean on fast/tracking towers and slows.</div>
-        </div>
+        <article class="gd-enemy">
+          <img src="assets/guide/mob_fast.png" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Runner</div>
+          <div class="gd-tags"><span>Low HP</span><span>Very fast</span><span>+16 gold</span></div>
+          <p class="gd-enemy-desc">Rushes the gate before slow towers can react. Cover the whole path or lean on fast and tracking towers.</p>
+        </article>
 
-        <div class="enemy-card">
-          <img src="assets/guide/mob_tank.png" alt="Tank enemy" loading="lazy" />
-          <div class="enemy-name">Tank</div>
-          <div class="enemy-tags"><span>2× HP</span><span>Slow</span><span>+28 gold</span></div>
-          <div class="enemy-desc">A slow damage sponge. Focus fire and single-target burst (Hunter, Bomb) beat it faster than spreading shots.</div>
-        </div>
+        <article class="gd-enemy">
+          <img src="assets/guide/mob_tank.png" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Tank</div>
+          <div class="gd-tags"><span>2&times; HP</span><span>Slow</span><span>+28 gold</span></div>
+          <p class="gd-enemy-desc">A slow damage sponge. Focus fire and single-target burst beat it faster than spreading shots.</p>
+        </article>
 
-        <div class="enemy-card">
-          <img src="assets/guide/mob_armored.png" alt="Armored enemy" loading="lazy" />
-          <div class="enemy-name">Armored</div>
-          <div class="enemy-tags"><span>~1.5× HP</span><span>Steady</span><span>+26 gold</span></div>
-          <div class="enemy-desc">Arrives in clusters at the front of waves. High effective health — Brittle stacks from Cryo make it melt much faster.</div>
-        </div>
+        <article class="gd-enemy">
+          <img src="assets/guide/mob_armored.png" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Armored</div>
+          <div class="gd-tags"><span>~1.5&times; HP</span><span>Steady</span><span>+26 gold</span></div>
+          <p class="gd-enemy-desc">Arrives in clusters at the front of waves. High effective health &mdash; Brittle stacks from Cryo make it melt much faster.</p>
+        </article>
 
-        <div class="enemy-card">
-          <img src="assets/guide/mob_splitter.png" alt="Splitter enemy" loading="lazy" />
-          <div class="enemy-name">Splitter</div>
-          <div class="enemy-tags"><span>~1.3× HP</span><span>Medium</span><span>Splits on death</span></div>
-          <div class="enemy-desc">Appears from stage 3. Bursts into smaller enemies when killed — splash towers (Mage, Bomb) handle the fragments cleanly.</div>
-        </div>
+        <article class="gd-enemy">
+          <img src="assets/guide/mob_splitter.png" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Splitter</div>
+          <div class="gd-tags"><span>~1.3&times; HP</span><span>Medium</span><span>Splits</span></div>
+          <p class="gd-enemy-desc">Appears from stage 3. Bursts into smaller enemies when killed &mdash; splash towers handle the fragments cleanly.</p>
+        </article>
 
       </div>
-      <div class="tip-callout">In <strong>Endless</strong>, every non-boss enemy has <strong>double health</strong>, and health also climbs with each wave. Control tools (slows, Brittle) scale better than raw damage over a long run.</div>
+
+      <div class="gd-note">In <strong>Endless</strong>, every non-boss enemy has <strong>double health</strong>, and health also climbs with each wave. Control tools &mdash; slows and Brittle &mdash; scale better than raw damage over a long run.</div>
     </section>
 
-    <section class="glass content-card" id="bosses">
-      <div class="panel-kicker">The Six Bosses</div>
+    <!-- Bosses -->
+    <section class="gd-panel" id="panel-bosses" role="tabpanel" aria-labelledby="tab-bosses" hidden>
       <h2>Bosses &amp; their abilities</h2>
-      <p>Each campaign stage ends with a unique boss that has a huge health pool and a special ability. In Endless, bosses arrive in pairs every tenth wave — now escorted by a full horde — and get tougher each cycle.</p>
+      <p class="gd-lede">Each campaign stage ends with a unique boss that has a huge health pool and a special ability. In Endless, bosses arrive in pairs every tenth wave &mdash; escorted by a full horde &mdash; and get tougher each cycle.</p>
 
-      <div class="boss-grid">
+      <div class="gd-bosses">
 
-        <div class="boss-card">
-          <img class="boss-portrait" src="assets/ui/boss-stage1.jpg" alt="Ancient Treant Skull" loading="lazy" />
-          <div class="boss-body">
-            <div class="boss-name">Ancient Treant Skull</div>
-            <div class="boss-meta">Stage 1 · Forest · difficulty ×1.0</div>
-            <div class="boss-ability"><b>Root Grasp</b> — snares one of your towers, briefly disabling it. Keep a backup tower covering the same lane.</div>
+        <article class="gd-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 1</span>
+            <img src="assets/ui/boss-stage1.jpg" alt="Ancient Treant Skull" loading="lazy" />
           </div>
-        </div>
-
-        <div class="boss-card">
-          <img class="boss-portrait" src="assets/ui/boss-stage2.jpg" alt="Ruin Warden" loading="lazy" />
-          <div class="boss-body">
-            <div class="boss-name">Ruin Warden</div>
-            <div class="boss-meta">Stage 2 · Ruins · difficulty ×1.35</div>
-            <div class="boss-ability"><b>Blood Rage</b> — surges into a burst of speed. Have a slow spell ready to blunt the charge.</div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Ancient Treant Skull</div>
+            <div class="gd-boss-meta">Forest &middot; difficulty &times;1.0</div>
+            <p class="gd-boss-ability"><b>Root Grasp</b> &mdash; snares one of your towers, briefly disabling it. Keep a backup tower covering the same lane.</p>
           </div>
-        </div>
+        </article>
 
-        <div class="boss-card">
-          <img class="boss-portrait" src="assets/ui/boss-stage3.jpg" alt="Grave Necromancer" loading="lazy" />
-          <div class="boss-body">
-            <div class="boss-name">Grave Necromancer</div>
-            <div class="boss-meta">Stage 3 · Graveyard · difficulty ×1.7</div>
-            <div class="boss-ability"><b>Grave Summons</b> — spawns extra minions on the road mid-fight. Splash towers keep the adds from overwhelming you.</div>
+        <article class="gd-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 2</span>
+            <img src="assets/ui/boss-stage2.jpg" alt="Ruin Warden" loading="lazy" />
           </div>
-        </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Ruin Warden</div>
+            <div class="gd-boss-meta">Ruins &middot; difficulty &times;1.35</div>
+            <p class="gd-boss-ability"><b>Blood Rage</b> &mdash; surges into a burst of speed. Have a slow spell ready to blunt the charge.</p>
+          </div>
+        </article>
 
-        <div class="boss-card">
-          <img class="boss-portrait" src="assets/ui/boss-stage4.jpg" alt="Iron Castellan" loading="lazy" />
-          <div class="boss-body">
-            <div class="boss-name">Iron Castellan</div>
-            <div class="boss-meta">Stage 4 · Castle · difficulty ×2.15</div>
-            <div class="boss-ability"><b>Void Bulwark</b> — forms a defensive shell that absorbs damage. Save burst and spells for after it drops.</div>
+        <article class="gd-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 3</span>
+            <img src="assets/ui/boss-stage3.jpg" alt="Grave Necromancer" loading="lazy" />
           </div>
-        </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Grave Necromancer</div>
+            <div class="gd-boss-meta">Graveyard &middot; difficulty &times;1.7</div>
+            <p class="gd-boss-ability"><b>Grave Summons</b> &mdash; spawns extra minions on the road mid-fight. Splash towers keep the adds from overwhelming you.</p>
+          </div>
+        </article>
 
-        <div class="boss-card">
-          <img class="boss-portrait" src="assets/ui/boss-stage5.jpg" alt="Catacomb Devourer" loading="lazy" />
-          <div class="boss-body">
-            <div class="boss-name">Catacomb Devourer</div>
-            <div class="boss-meta">Stage 5 · Catacombs · difficulty ×2.55</div>
-            <div class="boss-ability"><b>Blood Rage</b> — a faster, deadlier surge than stage 2. Layered kill zones and a ready slow are essential.</div>
+        <article class="gd-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 4</span>
+            <img src="assets/ui/boss-stage4.jpg" alt="Iron Castellan" loading="lazy" />
           </div>
-        </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Iron Castellan</div>
+            <div class="gd-boss-meta">Castle &middot; difficulty &times;2.15</div>
+            <p class="gd-boss-ability"><b>Void Bulwark</b> &mdash; forms a defensive shell that absorbs damage. Save burst and spells for after it drops.</p>
+          </div>
+        </article>
 
-        <div class="boss-card">
-          <img class="boss-portrait" src="assets/ui/boss-stage6.jpg" alt="Dark Portal Overlord" loading="lazy" />
-          <div class="boss-body">
-            <div class="boss-name">Dark Portal Overlord</div>
-            <div class="boss-meta">Stage 6 · Dark Portal · difficulty ×3.0</div>
-            <div class="boss-ability"><b>Void Bulwark</b> — the final boss shields itself at the worst moments. Maximum single-target uptime plus saved spells win the run.</div>
+        <article class="gd-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 5</span>
+            <img src="assets/ui/boss-stage5.jpg" alt="Catacomb Devourer" loading="lazy" />
           </div>
-        </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Catacomb Devourer</div>
+            <div class="gd-boss-meta">Catacombs &middot; difficulty &times;2.55</div>
+            <p class="gd-boss-ability"><b>Blood Rage</b> &mdash; a faster, deadlier surge than stage 2. Layered kill zones and a ready slow are essential.</p>
+          </div>
+        </article>
+
+        <article class="gd-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 6</span>
+            <img src="assets/ui/boss-stage6.jpg" alt="Dark Portal Overlord" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Dark Portal Overlord</div>
+            <div class="gd-boss-meta">Dark Portal &middot; difficulty &times;3.0</div>
+            <p class="gd-boss-ability"><b>Void Bulwark</b> &mdash; the final boss shields itself at the worst moments. Maximum single-target uptime plus saved spells win the run.</p>
+          </div>
+        </article>
 
       </div>
     </section>
 
-    <section class="glass content-card" id="ascension">
-      <div class="panel-kicker">Permanent Progression</div>
+    <!-- Ascension -->
+    <section class="gd-panel" id="panel-ascension" role="tabpanel" aria-labelledby="tab-ascension" hidden>
       <h2>Ascension &amp; Crystals</h2>
-      <p>Every run — win or lose — earns <strong>Crystals</strong>. Spend them in <strong>Ascension</strong> on permanent upgrades that carry into every future run, so you grow stronger the more you play. Progress saves locally and syncs to your account when signed in.</p>
-      <ul class="guide-list">
-        <li><strong>🔆 Radiance</strong> — raw firepower: more tower damage, faster attacks, extra range, empowered ley stones.</li>
-        <li><strong>🛡️ Bastion</strong> — economy and survival: bonus starting gold and lives, more gold per kill, stronger stage-clear healing.</li>
-        <li><strong>🔮 Arcana</strong> — spells and drafts: shorter spell cooldowns, aura rerolls, more Crystals earned, wider boss aura choices.</li>
-        <li><strong>❄ Special Towers</strong> — unlock Cryo (150 Crystals), then its four upgrades: <em>Deep Frost</em> (stronger chill), <em>Glacial Reach</em> (range &amp; field), <em>Frostbite</em> (damage), <em>Shatterpoint</em> (extra Brittle) — each with four ranks at 300 / 600 / 1000 / 1600.</li>
+      <p class="gd-lede">Every run &mdash; win or lose &mdash; earns <strong>Crystals</strong>. Spend them on permanent upgrades that carry into every future run, so you grow stronger the more you play. Progress saves locally and syncs to your account when signed in.</p>
+      <ul class="gd-list">
+        <li><strong>&#128262; Radiance</strong> &mdash; raw firepower: more tower damage, faster attacks, extra range, empowered ley stones.</li>
+        <li><strong>&#128737; Bastion</strong> &mdash; economy and survival: bonus starting gold and lives, more gold per kill, stronger stage-clear healing.</li>
+        <li><strong>&#128302; Arcana</strong> &mdash; spells and drafts: shorter spell cooldowns, aura rerolls, more Crystals earned, wider boss aura choices.</li>
+        <li><strong>&#10052; Special Towers</strong> &mdash; unlock Cryo (150 Crystals), then its four upgrades: <em>Deep Frost</em> (stronger chill), <em>Glacial Reach</em> (range &amp; field), <em>Frostbite</em> (damage), <em>Shatterpoint</em> (extra Brittle) &mdash; each with four ranks at 300 / 600 / 1000 / 1600.</li>
       </ul>
-      <div class="tip-callout">Node costs rise with each rank, so early attunements are cheap catch-up power, while the deepest upgrades — especially the Cryo tree — are long-term goals worth grinding toward.</div>
+      <div class="gd-note">Node costs rise with each rank, so early attunements are cheap catch-up power, while the deepest upgrades &mdash; especially the Cryo tree &mdash; are long-term goals worth grinding toward.</div>
     </section>
 
-    <section class="glass content-card" id="endless">
-      <div class="panel-kicker">Survival Mode</div>
+    <!-- Endless -->
+    <section class="gd-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless" hidden>
       <h2>Endless mode</h2>
-      <p>After you clear the campaign, Endless pits you against unlimited waves that scale forever. It's where high scores and leaderboard runs are made.</p>
-      <ul class="guide-list">
-        <li><strong>Doubled enemy health</strong> — every non-boss mob has 2× HP, and health keeps rising each wave.</li>
-        <li><strong>Boss pairs with a horde</strong> — every tenth wave sends two bosses, now preceded by a full wave of mobs, not just the pair alone.</li>
-        <li><strong>Rotating soundtrack</strong> — after each boss pair falls, the music rerolls to a random stage theme.</li>
-        <li><strong>Fewer Crystals than campaign</strong> — Endless rewards are deliberately leaner, so it's about the score, not the farm.</li>
-        <li><strong>Leaderboard runs</strong> — reach as high a wave as you can; your bonus score is submitted globally at game over.</li>
+      <p class="gd-lede">After you clear the campaign, Endless pits you against unlimited waves that scale forever. It's where high scores and leaderboard runs are made.</p>
+      <ul class="gd-list">
+        <li><strong>Doubled enemy health</strong> &mdash; every non-boss mob has 2&times; HP, and health keeps rising each wave.</li>
+        <li><strong>Boss pairs with a horde</strong> &mdash; every tenth wave sends two bosses, preceded by a full wave of mobs, not just the pair alone.</li>
+        <li><strong>Rotating soundtrack</strong> &mdash; after each boss pair falls, the music rerolls to a random stage theme.</li>
+        <li><strong>Fewer Crystals than campaign</strong> &mdash; Endless rewards are deliberately leaner, so it's about the score, not the farm.</li>
+        <li><strong>Leaderboard runs</strong> &mdash; reach as high a wave as you can; your bonus score is submitted globally at game over.</li>
       </ul>
     </section>
 
-    <section class="glass content-card" id="strategy">
-      <div class="panel-kicker">Play Like a High-Score Run</div>
+    <!-- Strategy -->
+    <section class="gd-panel" id="panel-strategy" role="tabpanel" aria-labelledby="tab-strategy" hidden>
       <h2>Advanced strategy</h2>
+      <p class="gd-lede">Four habits separate a quick loss from a leaderboard run.</p>
 
-      <h3>Positioning — use route geometry, not random placement</h3>
-      <p>The strongest layouts are built around repeated exposure. Place towers where enemies stay in range longest — around turns, along long lanes, and in overlapping coverage pockets. A mediocre tower in the right place usually beats a better tower placed badly. Let splash towers soften groups while longer-range towers finish priority targets before they cross the final third of the map.</p>
+      <h3>Positioning &mdash; use route geometry, not random placement</h3>
+      <p>The strongest layouts are built around repeated exposure. Place towers where enemies stay in range longest &mdash; around turns, along long lanes, and in overlapping coverage pockets. A mediocre tower in the right place usually beats a better tower placed badly. Let splash towers soften groups while longer-range towers finish priority targets before they cross the final third of the map.</p>
 
-      <h3>Boss prep — plan waves before they start</h3>
-      <ul class="guide-list">
+      <h3>Boss prep &mdash; plan waves before they start</h3>
+      <ul class="gd-list">
         <li>Save gold before boss waves instead of making weak filler buys.</li>
-        <li>Favor high single-target uptime for bosses (Hunter → Sniper, upgraded Bomb).</li>
+        <li>Favor high single-target uptime for bosses (Hunter &rarr; Sniper, upgraded Bomb).</li>
         <li>Keep at least one spell ready as insurance against a surge or shield drop.</li>
         <li>Upgrade proven towers instead of panic-building new ones.</li>
         <li>Protect lives to preserve bonus score and future momentum.</li>
       </ul>
 
-      <h3>Economy — upgrade efficiency wins long runs</h3>
+      <h3>Economy &mdash; upgrade efficiency wins long runs</h3>
       <p>Overspending on new towers too early is the classic mistake. Upgrades often create more value because they add damage to positions that already work. Expand only when coverage breaks down or a new route segment matters. In Endless, efficient gold conversion matters even more: stable waves create safer score submissions, better bonus accumulation, and room to exploit aura synergies later.</p>
 
-      <h3>Endless — how to survive longer</h3>
+      <h3>Endless &mdash; how to survive longer</h3>
       <p>Long runs are about discipline: keep a clean frontline, avoid unnecessary leaks, and treat every spell as a recovery tool for pressure spikes. If your layout only works while spells are up, it's too fragile. The simplest endless plan wins: stack reliable damage first, add splash for control, layer in Cryo's Brittle to amplify everything, and reinforce boss answers before greed takes over.</p>
-
-      <div class="cta-row" style="margin-top:18px">
-        <a href="/index.html" class="btn btn-primary">Play Dark Defense</a>
-        <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
-        <a href="/about.html" class="btn btn-secondary">About</a>
-      </div>
     </section>
 
+    <nav class="gd-strip" aria-label="Elsewhere">
+      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
+      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
+      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
+      <a href="/how-to-play.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>How to play</b><span class="cap">Quick start</span></span></a>
+    </nav>
   </main>
-  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+
+  <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>
+
+  <script>
+    /* Chapters behave as a tablist, and the URL hash keeps a
+       chapter linkable - #towers still lands on Towers, so old
+       inbound links and search results keep working. */
+    const tabs = Array.from(document.querySelectorAll(".gd-tab"));
+
+    function selectTab(tab, updateHash){
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.setAttribute("aria-selected", String(on));
+        const panel = document.getElementById(t.getAttribute("aria-controls"));
+        if (panel) panel.hidden = !on;
+      });
+      if (updateHash) {
+        const id = tab.id.replace(/^tab-/, "");
+        history.replaceState(null, "", "#" + id);
+      }
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => selectTab(tab, true));
+      tab.addEventListener("keydown", (event) => {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+        event.preventDefault();
+        const i = tabs.indexOf(tab);
+        const next = tabs[(i + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+        next.focus();
+        selectTab(next, true);
+      });
+    });
+
+    function openFromHash(){
+      const id = (location.hash || "").replace(/^#/, "");
+      if (!id) return;
+      const tab = document.getElementById("tab-" + id);
+      if (tab) selectTab(tab, false);
+    }
+    window.addEventListener("hashchange", openFromHash);
+    openFromHash();
+  </script>
 </body>
 </html>
