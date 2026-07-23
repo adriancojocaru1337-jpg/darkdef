@@ -258,6 +258,7 @@
             </div>
           </section>
           <button class="hud-toggle" id="hudToggleBtn" aria-label="Hide interface" title="Hide interface (H)">◐</button>
+          <button class="fullscreen-toggle" id="fullscreenBtn" type="button" aria-label="Fullscreen (F)" title="Fullscreen (F)">⤢</button>
           <button class="speed-toggle" id="speedBtn" type="button" aria-label="Game speed" title="Game speed ×1 · click or press F to change">×1</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
           <div class="canvas-overlay">
@@ -296,101 +297,79 @@
             </button>
           </div>
 
-          <aside class="unit-info-panel hidden" id="unitInfoPanel">
-            <div class="unit-shop-header">
-              <div>
-                <div class="section-label compact-label">Unit Shop</div>
-                <strong>Choose a tower</strong>
-              </div>
-            </div>
-
+          <aside class="unit-info-panel unit-dock hidden" id="unitInfoPanel" aria-label="Unit Shop">
             <button class="unit-info-card active" data-type="archer">
-              <div class="unit-card-headline">
-                <div class="unit-info-top">
-                  <strong>🏹 Archer</strong>
-                  <span class="unit-role-tag">Fast</span>
+              <span class="unit-key-hint" aria-hidden="true">1</span>
+              <span class="unit-info-count" id="panel-reserve-archer">0</span>
+              <img class="unit-sprite" src="assets/towers/archer.png" alt="Archer" draggable="false">
+              <span class="unit-cost-badge">100</span>
+              <div class="unit-tooltip" role="tooltip">
+                <div class="unit-info-top"><strong>&#127993; Archer</strong><span class="unit-role-tag">Fast</span></div>
+                <div class="unit-bar-group">
+                  <div class="unit-bar"><span>DMG</span><i style="--fill:45%"></i></div>
+                  <div class="unit-bar"><span>RNG</span><i style="--fill:62%"></i></div>
                 </div>
-                <span class="unit-cost-badge">100</span>
-              </div>
-              <div class="unit-bar-group">
-                <div class="unit-bar"><span>DMG</span><i style="--fill:45%"></i></div>
-                <div class="unit-bar"><span>RNG</span><i style="--fill:62%"></i></div>
-              </div>
-              <div class="unit-info-meta">Range 120 · Fast single-target damage</div>
-              <div class="unit-card-footer">
-                <span class="unit-info-count" id="panel-reserve-archer">0</span>
+                <div class="unit-info-meta">Range 120 &middot; Fast single-target damage</div>
               </div>
             </button>
 
             <button class="unit-info-card" data-type="hunter">
-              <div class="unit-card-headline">
-                <div class="unit-info-top">
-                  <strong>🎯 Hunter</strong>
-                  <span class="unit-role-tag power">Power</span>
+              <span class="unit-key-hint" aria-hidden="true">2</span>
+              <span class="unit-info-count" id="panel-reserve-hunter">0</span>
+              <img class="unit-sprite" src="assets/towers/hunter.png" alt="Hunter" draggable="false">
+              <span class="unit-cost-badge">180</span>
+              <div class="unit-tooltip" role="tooltip">
+                <div class="unit-info-top"><strong>&#127919; Hunter</strong><span class="unit-role-tag power">Power</span></div>
+                <div class="unit-bar-group">
+                  <div class="unit-bar"><span>DMG</span><i style="--fill:74%"></i></div>
+                  <div class="unit-bar"><span>RNG</span><i style="--fill:88%"></i></div>
                 </div>
-                <span class="unit-cost-badge">180</span>
-              </div>
-              <div class="unit-bar-group">
-                <div class="unit-bar"><span>DMG</span><i style="--fill:74%"></i></div>
-                <div class="unit-bar"><span>RNG</span><i style="--fill:88%"></i></div>
-              </div>
-              <div class="unit-info-meta">Range 178 · Heavy precision shots</div>
-              <div class="unit-card-footer">
-                <span class="unit-info-count" id="panel-reserve-hunter">0</span>
+                <div class="unit-info-meta">Range 178 &middot; Heavy precision shots</div>
               </div>
             </button>
 
             <button class="unit-info-card" data-type="mage">
-              <div class="unit-card-headline">
-                <div class="unit-info-top">
-                  <strong>🔮 Mage</strong>
-                  <span class="unit-role-tag splash">Splash</span>
+              <span class="unit-key-hint" aria-hidden="true">3</span>
+              <span class="unit-info-count" id="panel-reserve-mage">0</span>
+              <img class="unit-sprite" src="assets/towers/mage.png" alt="Mage" draggable="false">
+              <span class="unit-cost-badge">240</span>
+              <div class="unit-tooltip" role="tooltip">
+                <div class="unit-info-top"><strong>&#128302; Mage</strong><span class="unit-role-tag splash">Splash</span></div>
+                <div class="unit-bar-group">
+                  <div class="unit-bar"><span>DMG</span><i style="--fill:58%"></i></div>
+                  <div class="unit-bar"><span>RNG</span><i style="--fill:71%"></i></div>
                 </div>
-                <span class="unit-cost-badge">240</span>
-              </div>
-              <div class="unit-bar-group">
-                <div class="unit-bar"><span>DMG</span><i style="--fill:58%"></i></div>
-                <div class="unit-bar"><span>RNG</span><i style="--fill:71%"></i></div>
-              </div>
-              <div class="unit-info-meta">Range 150 · AoE magic damage</div>
-              <div class="unit-card-footer">
-                <span class="unit-info-count" id="panel-reserve-mage">0</span>
+                <div class="unit-info-meta">Range 150 &middot; AoE magic damage</div>
               </div>
             </button>
 
             <button class="unit-info-card" data-type="bomb">
-              <div class="unit-card-headline">
-                <div class="unit-info-top">
-                  <strong>💣 Bomb</strong>
-                  <span class="unit-role-tag blast">Blast</span>
+              <span class="unit-key-hint" aria-hidden="true">4</span>
+              <span class="unit-info-count" id="panel-reserve-bomb">0</span>
+              <img class="unit-sprite" src="assets/towers/bomb.png" alt="Bomb" draggable="false">
+              <span class="unit-cost-badge">280</span>
+              <div class="unit-tooltip" role="tooltip">
+                <div class="unit-info-top"><strong>&#128163; Bomb</strong><span class="unit-role-tag blast">Blast</span></div>
+                <div class="unit-bar-group">
+                  <div class="unit-bar"><span>DMG</span><i style="--fill:90%"></i></div>
+                  <div class="unit-bar"><span>RNG</span><i style="--fill:65%"></i></div>
                 </div>
-                <span class="unit-cost-badge">280</span>
-              </div>
-              <div class="unit-bar-group">
-                <div class="unit-bar"><span>DMG</span><i style="--fill:90%"></i></div>
-                <div class="unit-bar"><span>RNG</span><i style="--fill:65%"></i></div>
-              </div>
-              <div class="unit-info-meta">Range 140 · Splash burst tower</div>
-              <div class="unit-card-footer">
-                <span class="unit-info-count" id="panel-reserve-bomb">0</span>
+                <div class="unit-info-meta">Range 140 &middot; Splash burst tower</div>
               </div>
             </button>
 
             <button class="unit-info-card unit-locked" data-type="cryo" aria-disabled="true" title="Unlock Cryo permanently with 150 Crystals.">
-              <div class="unit-card-headline">
-                <div class="unit-info-top">
-                  <strong>❄ Cryo</strong>
-                  <span class="unit-role-tag cryo">Control</span>
+              <span class="unit-key-hint" aria-hidden="true">5</span>
+              <span class="unit-info-count" id="panel-reserve-cryo">0</span>
+              <span class="unit-sprite unit-glyph" aria-hidden="true">&#10052;</span>
+              <span class="unit-cost-badge crystal-cost">&#10022; 75</span>
+              <div class="unit-tooltip" role="tooltip">
+                <div class="unit-info-top"><strong>&#10052; Cryo</strong><span class="unit-role-tag cryo">Control</span></div>
+                <div class="unit-bar-group">
+                  <div class="unit-bar"><span>DMG 22</span><i style="--fill:21%"></i></div>
+                  <div class="unit-bar"><span>RNG 150</span><i style="--fill:81%"></i></div>
                 </div>
-                <span class="unit-cost-badge crystal-cost">✦ 75</span>
-              </div>
-              <div class="unit-bar-group">
-                <div class="unit-bar"><span>DMG 22</span><i style="--fill:21%"></i></div>
-                <div class="unit-bar"><span>RNG 150</span><i style="--fill:81%"></i></div>
-              </div>
-              <div class="unit-info-meta">Permanent unlock · 150 Crystals</div>
-              <div class="unit-card-footer">
-                <span class="unit-info-count" id="panel-reserve-cryo">0</span>
+                <div class="unit-info-meta">Permanent unlock &middot; 150 Crystals</div>
               </div>
             </button>
           </aside>

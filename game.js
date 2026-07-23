@@ -3912,7 +3912,7 @@ function updateUI(){
   }
   updateWaveForecast();
   Object.entries(reserveBadgeEls).forEach(([key,el])=>{ if(el) el.textContent=String(reserveCount(key)); });
-  Object.entries(reservePanelEls).forEach(([key,el])=>{ if(el) el.textContent=String(reserveCount(key)); });
+  Object.entries(reservePanelEls).forEach(([key,el])=>{ if(el){ const n=reserveCount(key); el.textContent=String(n); el.classList.toggle("empty", n<=0); } });
   syncUnitSelectors();
   Object.entries(reserveLevelEls).forEach(([key,el])=>{ if(el) el.textContent=reserveLevelLabel(key); });
   updateSelectedPanel();
@@ -7854,7 +7854,16 @@ document.addEventListener("keydown",(event)=>{
     return;
   }
 
+  if(key === "g"){
+    toggleFullscreen();
+    return;
+  }
+
   if(event.key === "Escape"){
+    if(isPseudoFullscreen()){
+      disablePseudoFullscreen();
+      return;
+    }
     if(audioSettingsPanel && !audioSettingsPanel.classList.contains("hidden")){
       setAudioSettingsPanelOpen(false);
       settingsToggleBtn?.focus();
@@ -7916,6 +7925,77 @@ auraRewardList?.addEventListener("click", (event) => {
 
 refreshLeaderboardBtn?.addEventListener("click", ()=>{ loadBonusLeaderboard(); });
 
+
+/* ===== Fullscreen ===== */
+const fullscreenBtn = document.getElementById("fullscreenBtn");
+
+function isPseudoFullscreen(){
+  return canvasWrap.classList.contains("pseudo-fullscreen");
+}
+function isFullscreenActive(){
+  return !!(document.fullscreenElement || document.webkitFullscreenElement) || isPseudoFullscreen();
+}
+function updateFullscreenBtn(){
+  if(!fullscreenBtn) return;
+  const active = isFullscreenActive();
+  fullscreenBtn.textContent = active ? "⤡" : "⤢";
+  const label = active ? "Exit fullscreen (G)" : "Fullscreen (G)";
+  fullscreenBtn.title = label;
+  fullscreenBtn.setAttribute("aria-label", label);
+  fullscreenBtn.classList.toggle("active", active);
+  syncMobileHudLayout();
+}
+function enablePseudoFullscreen(){
+  canvasWrap.classList.add("pseudo-fullscreen");
+  document.body.classList.add("pseudo-fs-active");
+  updateFullscreenBtn();
+}
+function disablePseudoFullscreen(){
+  canvasWrap.classList.remove("pseudo-fullscreen");
+  document.body.classList.remove("pseudo-fs-active");
+  updateFullscreenBtn();
+}
+function enterFullscreen(){
+  if(canvasWrap.requestFullscreen){
+    canvasWrap.requestFullscreen().then(()=>{
+      // Pe Android: rotim în landscape pentru harta 1008x560.
+      if(screen.orientation?.lock){
+        screen.orientation.lock("landscape").catch(()=>{});
+      }
+    }).catch(()=>{ enablePseudoFullscreen(); });
+  } else if(canvasWrap.webkitRequestFullscreen){
+    // Safari mai vechi / iPad
+    canvasWrap.webkitRequestFullscreen();
+  } else {
+    // iPhone Safari: nu există Fullscreen API pe elemente non-video.
+    enablePseudoFullscreen();
+  }
+}
+function exitFullscreen(){
+  if(document.fullscreenElement){
+    document.exitFullscreen().catch(()=>{});
+  } else if(document.webkitFullscreenElement && document.webkitExitFullscreen){
+    document.webkitExitFullscreen();
+  } else {
+    disablePseudoFullscreen();
+  }
+}
+function toggleFullscreen(){
+  if(isFullscreenActive()) exitFullscreen();
+  else enterFullscreen();
+}
+fullscreenBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  toggleFullscreen();
+});
+document.addEventListener("fullscreenchange", ()=>{
+  if(!document.fullscreenElement && screen.orientation?.unlock){
+    try{ screen.orientation.unlock(); }catch(_){}
+  }
+  updateFullscreenBtn();
+});
+document.addEventListener("webkitfullscreenchange", updateFullscreenBtn);
+updateFullscreenBtn();
 
 syncMobileHudLayout();
 window.addEventListener("resize", syncMobileHudLayout);
