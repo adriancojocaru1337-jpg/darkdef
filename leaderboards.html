@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dark Defense Leaderboards - Top 10 Endless and Story Runs</title>
-  <meta name="description" content="See the top 10 Dark Defense leaderboards for Endless Mode and Story Mode. Compare waves, stages, total score, bonus score, and climb the rankings." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Dark Defense Leaderboards - Top Endless, Story and Daily Runs</title>
+  <meta name="description" content="See the top Dark Defense leaderboards for Endless Mode, Story Mode and the daily Challenge of the Day. Compare waves, stages, bonus score and climb the rankings." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/leaderboards.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,139 +13,443 @@
   <link rel="stylesheet" href="style.css" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+<style>
+/* =========================================================
+   Rankings - the Hall of Champions.
+   Same tokens as the game (Cinzel + Inter, gold on black)
+   and the same fortress artwork as the home hero, so the
+   page reads as part of the world, not a separate section.
+   ========================================================= */
+.rk{ max-width:1120px; margin:0 auto; padding:22px 20px 60px; }
+
+/* --- Banner --- */
+.rk-banner{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  border-radius:22px;
+  padding:26px 30px 28px;
+  border:1px solid var(--panel-border);
+  box-shadow:var(--shadow);
+  background:
+    linear-gradient(90deg,
+      rgba(6,7,10,0.97) 0%,
+      rgba(6,7,10,0.93) 30%,
+      rgba(6,7,10,0.78) 50%,
+      rgba(6,7,10,0.42) 72%,
+      rgba(6,7,10,0.20) 100%),
+    linear-gradient(135deg, rgba(129,78,40,0.16), rgba(255,255,255,0.02)),
+    url("assets/ui/hero-fortress.webp");
+  background-size:auto, auto, cover;
+  background-position:center, center, center right;
+  background-repeat:no-repeat;
+}
+.rk-banner::before{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none; z-index:-1;
+  background:
+    radial-gradient(circle at 82% 66%, rgba(234,120,42,0.15), transparent 26%),
+    radial-gradient(circle at 78% 50%, transparent 30%, rgba(0,0,0,0.42) 100%);
+}
+.rk-banner-inner{ position:relative; z-index:1; max-width:640px; }
+.rk-eyebrow{
+  font-size:11px; letter-spacing:.28em; text-transform:uppercase;
+  color:var(--accent); font-weight:700;
+}
+.rk-title{
+  margin:9px 0 8px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:clamp(28px, 4.2vw, 46px);
+  font-weight:700; line-height:1.02; letter-spacing:.02em;
+  background:linear-gradient(178deg, #f4ece0 6%, #e6dccc 46%, #c8bba6 96%);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent; -webkit-text-fill-color:transparent;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.7));
+}
+@supports not (-webkit-background-clip: text){
+  .rk-title{ color:#efe7db; -webkit-text-fill-color:#efe7db; }
+}
+.rk-sub{ margin:0; color:var(--muted); font-size:15px; line-height:1.55; max-width:56ch; }
+.rk-banner-actions{ display:flex; align-items:center; gap:20px; flex-wrap:wrap; margin-top:16px; }
+.rk-plate{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:12px 30px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:15px; font-weight:700; letter-spacing:.05em;
+  color:#2a1a08; text-decoration:none;
+  background:linear-gradient(180deg, #f6dda6 0%, #e2b872 38%, #c9973f 62%, #e8c68d 100%);
+  border-radius:7px;
+  clip-path:polygon(13px 0, calc(100% - 13px) 0, 100% 22%, 100% 78%, calc(100% - 13px) 100%, 13px 100%, 0 78%, 0 22%);
+  box-shadow:0 0 24px rgba(214,158,74,.3), 0 10px 22px rgba(0,0,0,.4),
+             inset 0 1px 0 rgba(255,255,255,.6), inset 0 -2px 6px rgba(120,74,18,.42);
+  transition:transform .16s ease, filter .2s ease;
+}
+.rk-plate:hover{ transform:translateY(-2px); filter:brightness(1.06); }
+.rk-plate:focus-visible{ outline:2px solid #e6bb7a; outline-offset:4px; }
+.rk-ghost{
+  display:inline-flex; align-items:center; gap:7px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:13px; font-weight:600; letter-spacing:.04em;
+  color:#e8dfd2; text-decoration:none;
+  background:none; border:none; padding:5px 2px; cursor:pointer;
+  transition:color .18s ease;
+}
+.rk-ghost:hover{ color:#f2d9a8; }
+.rk-ghost:focus-visible{ outline:2px solid #c08a4a; outline-offset:3px; border-radius:4px; }
+.rk-ghost[disabled]{ opacity:.5; cursor:default; }
+
+/* --- Ladder switcher --- */
+.rk-tabs{ display:flex; gap:8px; flex-wrap:wrap; margin:18px 0 14px; }
+.rk-tab{
+  display:inline-flex; align-items:center; gap:9px;
+  padding:11px 18px;
+  border-radius:12px;
+  border:1px solid rgba(148,163,184,.14);
+  background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+  color:var(--muted);
+  font-family:Cinzel, Georgia, serif;
+  font-size:13px; font-weight:700; letter-spacing:.06em;
+  cursor:pointer;
+  transition:transform .15s ease, border-color .2s ease, color .2s ease, background .2s ease;
+}
+.rk-tab .ico{ font-size:15px; }
+.rk-tab:hover{ transform:translateY(-1px); color:#e8dfd2; border-color:rgba(192,138,74,.34); }
+.rk-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.rk-tab[aria-selected="true"]{
+  color:#f2e8d8;
+  border-color:rgba(192,138,74,.55);
+  background:linear-gradient(180deg, rgba(52,36,18,.86), rgba(20,14,10,.94));
+  box-shadow:0 8px 20px rgba(192,138,74,.14), inset 0 0 0 1px rgba(230,187,122,.12);
+}
+
+/* --- Ladder panel --- */
+.rk-panel{
+  padding:20px;
+  border-radius:18px;
+  border:1px solid var(--panel-border);
+  background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+  box-shadow:0 16px 36px rgba(0,0,0,.34);
+}
+.rk-panel[hidden]{ display:none; }
+.rk-panel-head{
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:14px; flex-wrap:wrap; margin-bottom:16px;
+}
+.rk-panel-head h2{
+  margin:0 0 5px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:19px; font-weight:700; letter-spacing:.02em;
+}
+.rk-rule{ font-size:12.5px; color:var(--muted); line-height:1.5; max-width:60ch; margin:0; }
+
+/* --- Podium: top three get the stage --- */
+.rk-podium{
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:11px;
+  margin-bottom:18px;
+}
+.rk-podium:empty{ display:none; }
+.rk-pod{
+  position:relative;
+  padding:16px 12px 14px;
+  border-radius:14px;
+  text-align:center;
+  border:1px solid rgba(255,255,255,.06);
+  background:rgba(255,255,255,.028);
+}
+/* Gold takes the centre and stands taller. */
+.rk-pod.gold{
+  order:2;
+  border-color:rgba(230,187,122,.42);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(214,158,74,.20), transparent 62%),
+    rgba(255,255,255,.03);
+  box-shadow:0 12px 30px rgba(192,138,74,.16);
+  transform:translateY(-6px);
+}
+.rk-pod.silver{ order:1; border-color:rgba(203,213,225,.24); }
+.rk-pod.bronze{ order:3; border-color:rgba(180,120,70,.3); }
+.rk-pod-medal{
+  font-size:22px; line-height:1; margin-bottom:8px;
+  filter:drop-shadow(0 0 12px rgba(214,158,74,.35));
+}
+.rk-pod .dd-crest{
+  width:46px; height:46px;
+  border-radius:50%;
+  margin:0 auto 9px;
+  border:2px solid rgba(192,138,74,.42);
+}
+.rk-pod.gold .dd-crest{ width:56px; height:56px; border-color:rgba(230,187,122,.65); }
+.rk-pod-name{
+  display:block;
+  font-family:Cinzel, Georgia, serif;
+  font-size:14px; font-weight:700;
+  color:#f2e8d8; text-decoration:none;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+a.rk-pod-name:hover{ color:#f2d9a8; text-decoration:underline; }
+.rk-pod-score{
+  margin-top:6px;
+  font-family:Cinzel, Georgia, serif;
+  font-size:22px; font-weight:700; line-height:1;
+  color:#e6bb7a;
+  text-shadow:0 0 16px rgba(214,158,74,.3);
+}
+.rk-pod.gold .rk-pod-score{ font-size:28px; }
+.rk-pod-meta{ margin-top:5px; font-size:11px; color:var(--muted); letter-spacing:.03em; }
+
+/* --- Table --- */
+.rk-table{ display:grid; gap:5px; }
+.rk-thead, .rk-row{
+  display:grid;
+  grid-template-columns:46px minmax(0,1fr) 64px 76px 80px;
+  align-items:center;
+  gap:10px;
+  padding:10px 13px;
+}
+.rk-thead{
+  font-size:10.5px; font-weight:800;
+  letter-spacing:.14em; text-transform:uppercase;
+  color:#8d8478;
+  padding-bottom:4px;
+}
+.rk-thead div:not(:nth-child(2)),
+.rk-row div:not(:nth-child(2)){ text-align:right; }
+.rk-thead div:first-child,
+.rk-row div:first-child{ text-align:left; }
+.rk-row{
+  border-radius:11px;
+  background:rgba(255,255,255,.024);
+  border:1px solid rgba(255,255,255,.045);
+  font-size:13.5px;
+  font-variant-numeric:tabular-nums;
+  transition:border-color .18s ease, background .18s ease;
+}
+.rk-row:hover{ background:rgba(255,255,255,.04); border-color:rgba(192,138,74,.26); }
+.rk-row.is-you{
+  border-color:rgba(103,232,249,.4);
+  background:rgba(14,165,233,.08);
+}
+.rk-rank{
+  font-family:Cinzel, Georgia, serif;
+  font-weight:700; font-size:13px;
+  color:#9d9488;
+}
+.rk-player{ display:flex; align-items:center; gap:9px; min-width:0; }
+.rk-player .dd-crest{
+  width:28px; height:28px;
+  border-radius:50%;
+  flex:0 0 auto;
+  border:1px solid rgba(192,138,74,.3);
+}
+.rk-player-name{
+  min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-weight:600; color:#e8dfd2; text-decoration:none;
+}
+a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
+.rk-you-chip{
+  flex:0 0 auto;
+  padding:1px 7px; border-radius:999px;
+  font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+  color:#a5f3fc; background:rgba(56,189,248,.16); border:1px solid rgba(56,189,248,.3);
+}
+.rk-hi{ color:#e6bb7a; font-weight:700; }
+
+.rk-empty{
+  padding:26px 16px;
+  text-align:center;
+  font-size:13px; color:var(--muted); line-height:1.6;
+  border-radius:12px;
+  background:rgba(255,255,255,.02);
+  border:1px dashed rgba(255,255,255,.07);
+}
+
+/* Skeleton rows while fetching. */
+.rk-skel{
+  height:41px; border-radius:11px; margin-bottom:5px;
+  background:linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.03) 75%);
+  background-size:200% 100%;
+  animation:rkShimmer 1.3s ease-in-out infinite;
+}
+@keyframes rkShimmer{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+/* --- Footer strip --- */
+.rk-strip{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+  gap:11px;
+  margin-top:15px;
+}
+.rk-strip a{
+  display:flex; align-items:center; gap:11px;
+  padding:14px 15px; border-radius:13px;
+  text-decoration:none; color:var(--text);
+  background:rgba(255,255,255,.03);
+  border:1px solid rgba(255,255,255,.055);
+  transition:transform .15s ease, border-color .2s ease, background .2s ease;
+}
+.rk-strip a:hover{
+  transform:translateY(-2px);
+  border-color:rgba(192,138,74,.4);
+  background:rgba(192,138,74,.07);
+}
+.rk-strip a:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+.rk-strip .ico{ font-size:19px; flex:0 0 auto; }
+.rk-strip b{
+  display:block; font-size:13px; font-weight:700;
+  font-family:Cinzel, Georgia, serif; letter-spacing:.02em;
+}
+.rk-strip .cap{ display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+
+@media (max-width:760px){
+  .rk{ padding:14px 13px 44px; }
+  .rk-banner{ padding:22px 20px 24px; background-position:center, center, 72% center; }
+  .rk-panel{ padding:15px 13px; }
+  .rk-tabs{ gap:6px; }
+  .rk-tab{ padding:10px 13px; font-size:12px; letter-spacing:.04em; }
+  /* Drop the least-important column on narrow screens. */
+  .rk-thead, .rk-row{ grid-template-columns:34px minmax(0,1fr) 58px 70px; gap:8px; padding:9px 10px; }
+  .rk-thead div:nth-child(5), .rk-row div:nth-child(5){ display:none; }
+  .rk-podium{ gap:7px; }
+  .rk-pod{ padding:13px 7px 11px; }
+  .rk-pod .dd-crest{ width:38px; height:38px; }
+  .rk-pod.gold .dd-crest{ width:44px; height:44px; }
+  .rk-pod-name{ font-size:12px; }
+  .rk-pod-score{ font-size:17px; }
+  .rk-pod.gold .rk-pod-score{ font-size:21px; }
+  .rk-player .dd-crest{ width:24px; height:24px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .rk-skel{ animation:none; }
+  .rk-plate, .rk-tab, .rk-row, .rk-strip a{ transition:none; }
+  .rk-pod.gold{ transform:none; }
+}
+</style>
 </head>
 <body>
-  <main class="page-content leaderboard-page">
-    <section class="glass leaderboard-hero leaderboard-hero-wow">
-      <div>
-        <div class="panel-kicker">Global Rankings</div>
-        <h1>Dark Defense leaderboards</h1>
-        <p>Track the strongest Endless survival runs and the best Story campaign clears in one premium ranking page built for competition, replay value, and bragging rights.</p>
-      </div>
-      <div class="leaderboard-hero-actions">
-        <a href="/" class="btn btn-primary">Play Dark Defense</a>
-        <a href="/how-to-play.html" class="btn btn-secondary">How to Play</a>
-        <button class="btn btn-secondary leaderboard-refresh-main" id="refreshLeaderboardsBtn" type="button">Refresh Rankings</button>
+  <div class="page-shell" aria-hidden="true"></div>
+
+  <main class="rk">
+
+    <section class="rk-banner">
+      <div class="rk-banner-inner">
+        <div class="rk-eyebrow">Hall of Champions</div>
+        <h1 class="rk-title">Rankings</h1>
+        <p class="rk-sub">Every run that held the gate longest, ranked. Endless rewards raw survival, Story rewards a clean campaign, and the daily ladder resets at midnight with a fresh challenge.</p>
+        <div class="rk-banner-actions">
+          <a href="/" class="rk-plate">Start a run</a>
+          <button class="rk-ghost" id="refreshLeaderboardsBtn" type="button"><span class="ico" aria-hidden="true">&#10227;</span>Refresh</button>
+          <a class="rk-ghost" href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span>Command Table</a>
+        </div>
       </div>
     </section>
 
-    <section class="leaderboard-wow-grid">
-      <article class="glass leaderboard-wow-card leaderboard-card-endless">
-        <div class="leaderboard-card-topline">
-          <div>
-            <div class="panel-kicker">Endless Mode</div>
-            <h2>Top 10 survival bonus runs</h2>
-          </div>
-          <div class="leaderboard-glow-badge">∞ Endless</div>
-        </div>
-        <p class="leaderboard-card-copy">Ranked by bonus score first, then deepest wave, then total score. This is the pure high-pressure survival table.</p>
-        <div class="leaderboard-table-shell">
-          <div class="leaderboard-table leaderboard-table-header">
-            <div>#</div>
-            <div>Player</div>
-            <div>Wave</div>
-            <div>Bonus</div>
-            <div>Total</div>
-          </div>
-          <div id="endlessLeaderboardRows" class="leaderboard-table-body leaderboard-table-body-glow">
-            <div class="leaderboard-empty wow-empty">Loading Endless leaderboard...</div>
-          </div>
-        </div>
-      </article>
+    <div class="rk-tabs" role="tablist" aria-label="Leaderboard type">
+      <button class="rk-tab" role="tab" id="tab-endless" aria-controls="panel-endless" aria-selected="true" type="button">
+        <span class="ico" aria-hidden="true">&#8734;</span>Endless
+      </button>
+      <button class="rk-tab" role="tab" id="tab-story" aria-controls="panel-story" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#9876;</span>Story
+      </button>
+      <button class="rk-tab" role="tab" id="tab-daily" aria-controls="panel-daily" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#128197;</span>Daily
+      </button>
+    </div>
 
-      <article class="glass leaderboard-wow-card leaderboard-card-story">
-        <div class="leaderboard-card-topline">
-          <div>
-            <div class="panel-kicker">Story Mode</div>
-            <h2>Top 10 campaign clears</h2>
-          </div>
-          <div class="leaderboard-glow-badge story">⚔ Story</div>
+    <section class="rk-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless">
+      <div class="rk-panel-head">
+        <div>
+          <h2>Endless survival</h2>
+          <p class="rk-rule">Ranked by bonus score, then deepest wave, then total score. Pure high-pressure survival.</p>
         </div>
-        <p class="leaderboard-card-copy">Ranked by highest stage reached first, then total score, then bonus score. Perfect while the board is still filling up.</p>
-        <div class="leaderboard-table-shell">
-          <div class="leaderboard-table leaderboard-table-header">
-            <div>#</div>
-            <div>Player</div>
-            <div>Stage</div>
-            <div>Total</div>
-            <div>Bonus</div>
-          </div>
-          <div id="storyLeaderboardRows" class="leaderboard-table-body leaderboard-table-body-glow story">
-            <div class="leaderboard-empty wow-empty">Loading Story leaderboard...</div>
-          </div>
-        </div>
-      </article>
-
-      <article class="glass leaderboard-wow-card leaderboard-card-daily">
-        <div class="leaderboard-card-topline">
-          <div>
-            <div class="panel-kicker">Challenge of the Day</div>
-            <h2>Today's challenge ladder</h2>
-          </div>
-          <div class="leaderboard-glow-badge daily">🗓️ Daily</div>
-        </div>
-        <p class="leaderboard-card-copy" id="dailyBoardCopy">Ranked by deepest wave survived, then bonus score — best run per player. Resets every day at midnight with a fresh challenge.</p>
-        <div class="leaderboard-table-shell">
-          <div class="leaderboard-table leaderboard-table-header">
-            <div>#</div>
-            <div>Player</div>
-            <div>Wave</div>
-            <div>Bonus</div>
-            <div>Kills</div>
-          </div>
-          <div id="dailyLeaderboardRows" class="leaderboard-table-body leaderboard-table-body-glow daily">
-            <div class="leaderboard-empty wow-empty">Loading today's challenge leaderboard...</div>
-          </div>
-        </div>
-      </article>
-    </section>
-
-    <section class="glass leaderboard-detail-strip">
-      <div class="leaderboard-detail-card">
-        <span>Live rankings</span>
-        <strong>Endless + Story + Daily</strong>
       </div>
-      <div class="leaderboard-detail-card">
-        <span>Daily ladder</span>
-        <strong>Fresh challenge every midnight</strong>
-      </div>
-      <div class="leaderboard-detail-card">
-        <span>Goal</span>
-        <strong>Populate and build hype</strong>
+      <div class="rk-podium" id="endlessPodium"></div>
+      <div class="rk-table">
+        <div class="rk-thead">
+          <div>Rank</div><div>Commander</div><div>Wave</div><div>Bonus</div><div>Total</div>
+        </div>
+        <div id="endlessLeaderboardRows"></div>
       </div>
     </section>
 
-    <section class="glass content-card leaderboard-seo-copy">
-      <div class="panel-kicker">Why this page exists</div>
-      <h2>A browser-game leaderboard with real competitive energy</h2>
-      <p>Dark Defense now separates Endless Mode and Story Mode into two public top 10 ladders. Endless rewards survival efficiency and score discipline, while Story Mode highlights campaign progress and strong full-run execution. Together they turn a polished fantasy tower defense into a game players want to revisit, improve, and compare.</p>
-      <div class="cta-row">
-        <a href="/" class="btn btn-primary">Start a run</a>
-        <a href="/best-tower-defense-browser-game-strategy.html" class="btn btn-secondary">Read strategy guide</a>
+    <section class="rk-panel" id="panel-story" role="tabpanel" aria-labelledby="tab-story" hidden>
+      <div class="rk-panel-head">
+        <div>
+          <h2>Campaign clears</h2>
+          <p class="rk-rule">Ranked by highest stage reached, then total score, then bonus score.</p>
+        </div>
+      </div>
+      <div class="rk-podium" id="storyPodium"></div>
+      <div class="rk-table">
+        <div class="rk-thead">
+          <div>Rank</div><div>Commander</div><div>Stage</div><div>Total</div><div>Bonus</div>
+        </div>
+        <div id="storyLeaderboardRows"></div>
       </div>
     </section>
+
+    <section class="rk-panel" id="panel-daily" role="tabpanel" aria-labelledby="tab-daily" hidden>
+      <div class="rk-panel-head">
+        <div>
+          <h2>Challenge of the Day</h2>
+          <p class="rk-rule" id="dailyBoardCopy">Ranked by deepest wave survived, then bonus score. Best run per player, fresh challenge every midnight.</p>
+        </div>
+      </div>
+      <div class="rk-podium" id="dailyPodium"></div>
+      <div class="rk-table">
+        <div class="rk-thead">
+          <div>Rank</div><div>Commander</div><div>Wave</div><div>Bonus</div><div>Kills</div>
+        </div>
+        <div id="dailyLeaderboardRows"></div>
+      </div>
+    </section>
+
+    <nav class="rk-strip" aria-label="Elsewhere">
+      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
+      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
+      <a href="/how-to-play.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>How to play</b><span class="cap">Learn the basics</span></span></a>
+      <a href="/best-tower-defense-browser-game-strategy.html"><span class="ico" aria-hidden="true">&#128506;</span><span><b>Strategy</b><span class="cap">Climb faster</span></span></a>
+    </nav>
   </main>
 
-  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+  <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>
 
   <script>
     const endlessRowsEl = document.getElementById("endlessLeaderboardRows");
-    const storyRowsEl = document.getElementById("storyLeaderboardRows");
-    const dailyRowsEl = document.getElementById("dailyLeaderboardRows");
+    const storyRowsEl   = document.getElementById("storyLeaderboardRows");
+    const dailyRowsEl   = document.getElementById("dailyLeaderboardRows");
+    const endlessPodEl  = document.getElementById("endlessPodium");
+    const storyPodEl    = document.getElementById("storyPodium");
+    const dailyPodEl    = document.getElementById("dailyPodium");
     const dailyBoardCopyEl = document.getElementById("dailyBoardCopy");
     const refreshLeaderboardsBtn = document.getElementById("refreshLeaderboardsBtn");
+
+    /* Whoever is signed in gets their row highlighted. Resolved once;
+       failure just means no highlight. */
+    let ownName = "";
+    async function resolveOwnName(){
+      try{
+        const r = await fetch('/.netlify/functions/me', { credentials:'include', cache:'no-store' });
+        if(!r.ok) return;
+        const d = await r.json();
+        if(d.authenticated && d.user) ownName = String(d.user.username || "").toLowerCase();
+      }catch(_){}
+    }
 
     // Mirrors the deterministic daily pick from game.js so the page can show
     // today's challenge name without loading the whole game script.
     const DAILY_CHALLENGE_NAMES = [
-      { emoji: "🪙", name: "Iron Purse" },
-      { emoji: "💨", name: "Swift Tide" },
-      { emoji: "🛡️", name: "Stone Skin" },
-      { emoji: "💔", name: "Glass Gate" },
-      { emoji: "💰", name: "Gold Rush" },
-      { emoji: "🔮", name: "Arcane Flood" },
-      { emoji: "⚔️", name: "Last Stand" },
-      { emoji: "🏰", name: "Frugal Fortress" }
+      { emoji: "\u{1FA99}", name: "Iron Purse" },
+      { emoji: "\u{1F4A8}", name: "Swift Tide" },
+      { emoji: "\u{1F6E1}\uFE0F", name: "Stone Skin" },
+      { emoji: "\u{1F494}", name: "Glass Gate" },
+      { emoji: "\u{1F4B0}", name: "Gold Rush" },
+      { emoji: "\u{1F52E}", name: "Arcane Flood" },
+      { emoji: "\u2694\uFE0F", name: "Last Stand" },
+      { emoji: "\u{1F3F0}", name: "Frugal Fortress" }
     ];
     function hashStringToInt(str) {
       let h = 2166136261 >>> 0;
@@ -166,119 +470,183 @@
     }
 
     function escapeHtml(value) {
-      return String(value || "Anonymous").replace(/[&<>\"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+      return String(value || "Anonymous").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
     }
-
     function formatNumber(value) {
       return Number(value || 0).toLocaleString("en-US");
     }
-
-    function buildProfileLink(row) {
-      const profileUsername = String(row?.profile_username || "").trim();
-      const label = escapeHtml(row?.player_name || "Anonymous");
-      const crest = window.DarkDefenseCrest?.markup(row?.player_name || "Anonymous", "dd-crest-sm", row?.profile_crest_id || null) || "";
-      if (!profileUsername) {
-        return `<span class="leaderboard-player-link">${crest}<strong>${label}</strong></span>`;
-      }
-      return `<a class="leaderboard-player-link" href="/profile.html?user=${encodeURIComponent(profileUsername)}">${crest}<strong>${label}</strong></a>`;
+    function crestFor(row, cls){
+      return window.DarkDefenseCrest?.markup(row?.player_name || "Anonymous", cls, row?.profile_crest_id || null) || "";
+    }
+    function profileHref(row){
+      const u = String(row?.profile_username || "").trim();
+      return u ? `/profile.html?user=${encodeURIComponent(u)}` : "";
+    }
+    function isOwn(row){
+      return ownName && String(row?.player_name || "").toLowerCase() === ownName;
     }
 
-    function getRankMeta(index) {
-      if (index === 0) return { label: "1st", crown: "👑", medal: "gold" };
-      if (index === 1) return { label: "2nd", crown: "✦", medal: "silver" };
-      if (index === 2) return { label: "3rd", crown: "✦", medal: "bronze" };
-      return { label: `#${index + 1}`, crown: "", medal: "" };
+    /* Which number headlines each board. */
+    const PRIMARY = {
+      endless: (r) => `+${formatNumber(r.bonus_score)}`,
+      story:   (r) => formatNumber(r.score_total),
+      daily:   (r) => `Wave ${formatNumber(r.wave_reached)}`
+    };
+    const SECONDARY = {
+      endless: (r) => `Wave ${formatNumber(r.wave_reached)}`,
+      story:   (r) => `Stage ${formatNumber(r.wave_reached)}`,
+      daily:   (r) => `+${formatNumber(r.bonus_score)} bonus`
+    };
+
+    function renderPodium(target, rows, type){
+      if(!target) return;
+      if(!Array.isArray(rows) || rows.length < 3){ target.innerHTML = ""; return; }
+      const tiers = [
+        { i:0, cls:"gold",   medal:"\u{1F451}" },
+        { i:1, cls:"silver", medal:"\u{1F948}" },
+        { i:2, cls:"bronze", medal:"\u{1F949}" }
+      ];
+      target.innerHTML = tiers.map(({ i, cls, medal }) => {
+        const row = rows[i];
+        const href = profileHref(row);
+        const label = escapeHtml(row.player_name);
+        const name = href
+          ? `<a class="rk-pod-name" href="${href}">${label}</a>`
+          : `<span class="rk-pod-name">${label}</span>`;
+        return `
+          <div class="rk-pod ${cls}">
+            <div class="rk-pod-medal" aria-hidden="true">${medal}</div>
+            ${crestFor(row, "dd-crest-sm")}
+            ${name}
+            <div class="rk-pod-score">${PRIMARY[type](row)}</div>
+            <div class="rk-pod-meta">${SECONDARY[type](row)}</div>
+          </div>`;
+      }).join("");
     }
 
     function renderRows(target, rows, type) {
       if (!Array.isArray(rows) || rows.length === 0) {
-        target.innerHTML = '<div class="leaderboard-empty wow-empty">No scores yet. Be the first to claim this board.</div>';
+        target.innerHTML = '<div class="rk-empty">No runs on this board yet &mdash; the first commander to post a score takes the crown.</div>';
         return;
       }
-
       target.innerHTML = rows.map((row, index) => {
-        const name = buildProfileLink(row);
-        const rank = getRankMeta(index);
-        const rankClass = rank.medal ? ` ${rank.medal}` : "";
+        const href = profileHref(row);
+        const label = escapeHtml(row.player_name);
+        const name = href
+          ? `<a class="rk-player-name" href="${href}">${label}</a>`
+          : `<span class="rk-player-name">${label}</span>`;
+        const you = isOwn(row) ? '<span class="rk-you-chip">You</span>' : "";
+        const rankMark = index === 0 ? "\u{1F451}" : `#${index + 1}`;
+
+        let c3, c4, c5;
         if (type === "story") {
-          return `
-            <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
-              <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
-              <div class="leaderboard-player-cell">${name}<span>${formatNumber(row.kills)} kills</span></div>
-              <div>${formatNumber(row.wave_reached)}</div>
-              <div>${formatNumber(row.score_total)}</div>
-              <div>+${formatNumber(row.bonus_score)}</div>
-            </div>
-          `;
+          c3 = formatNumber(row.wave_reached);
+          c4 = `<span class="rk-hi">${formatNumber(row.score_total)}</span>`;
+          c5 = `+${formatNumber(row.bonus_score)}`;
+        } else if (type === "daily") {
+          c3 = formatNumber(row.wave_reached);
+          c4 = `<span class="rk-hi">+${formatNumber(row.bonus_score)}</span>`;
+          c5 = formatNumber(row.kills);
+        } else {
+          c3 = formatNumber(row.wave_reached);
+          c4 = `<span class="rk-hi">+${formatNumber(row.bonus_score)}</span>`;
+          c5 = formatNumber(row.score_total);
         }
-        if (type === "daily") {
-          return `
-            <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
-              <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
-              <div class="leaderboard-player-cell">${name}</div>
-              <div>${formatNumber(row.wave_reached)}</div>
-              <div>+${formatNumber(row.bonus_score)}</div>
-              <div>${formatNumber(row.kills)}</div>
-            </div>
-          `;
-        }
+
         return `
-          <div class="leaderboard-table leaderboard-table-row wow-row ${type}">
-            <div><span class="leaderboard-rank medal${rankClass}">${rank.crown ? `${rank.crown} ` : ""}#${index + 1}</span></div>
-            <div class="leaderboard-player-cell">${name}<span>${formatNumber(row.kills)} kills</span></div>
-            <div>${formatNumber(row.wave_reached)}</div>
-            <div>+${formatNumber(row.bonus_score)}</div>
-            <div>${formatNumber(row.score_total)}</div>
-          </div>
-        `;
+          <div class="rk-row${isOwn(row) ? " is-you" : ""}">
+            <div class="rk-rank">${rankMark}</div>
+            <div class="rk-player">${crestFor(row, "dd-crest-sm")}${name}${you}</div>
+            <div>${c3}</div>
+            <div>${c4}</div>
+            <div>${c5}</div>
+          </div>`;
       }).join("");
+    }
+
+    function showSkeleton(target){
+      if(target) target.innerHTML = '<div class="rk-skel"></div>'.repeat(5);
     }
 
     async function loadLeaderboards() {
       if (dailyBoardCopyEl) {
-        dailyBoardCopyEl.textContent = `Today: ${getTodayChallengeLabel()} — ranked by deepest wave survived, then bonus score. Best run per player, fresh challenge every midnight.`;
+        dailyBoardCopyEl.textContent = `Today: ${getTodayChallengeLabel()} \u2014 ranked by deepest wave survived, then bonus score. Best run per player, fresh challenge every midnight.`;
       }
+      [endlessRowsEl, storyRowsEl, dailyRowsEl].forEach(showSkeleton);
+      [endlessPodEl, storyPodEl, dailyPodEl].forEach((el) => { if(el) el.innerHTML = ""; });
+
       const mainBoards = (async () => {
         try {
           const response = await fetch("/.netlify/functions/get-leaderboards", { cache: "no-store" });
           if (!response.ok) throw new Error("leaderboards unavailable");
           const data = await response.json();
-          renderRows(endlessRowsEl, data.endless || [], "endless");
-          renderRows(storyRowsEl, data.story || [], "story");
+          const endless = data.endless || [];
+          const story = data.story || [];
+          renderPodium(endlessPodEl, endless, "endless");
+          renderPodium(storyPodEl, story, "story");
+          renderRows(endlessRowsEl, endless, "endless");
+          renderRows(storyRowsEl, story, "story");
         } catch (error) {
-          const message = '<div class="leaderboard-empty wow-empty">Leaderboards are temporarily unavailable.</div>';
+          const message = '<div class="rk-empty">Rankings are temporarily unavailable. Try refreshing in a moment.</div>';
           endlessRowsEl.innerHTML = message;
           storyRowsEl.innerHTML = message;
         }
       })();
+
       const dailyBoard = (async () => {
         try {
           const response = await fetch(`/.netlify/functions/get-daily-leaderboard?day=${encodeURIComponent(getTodayKey())}`, { cache: "no-store" });
           if (!response.ok) throw new Error("daily unavailable");
           const rows = await response.json();
           if (!Array.isArray(rows) || rows.length === 0) {
-            dailyRowsEl.innerHTML = '<div class="leaderboard-empty wow-empty">No runs submitted today yet — play the Challenge of the Day and claim #1.</div>';
+            dailyRowsEl.innerHTML = '<div class="rk-empty">No runs submitted today yet &mdash; play the Challenge of the Day and claim first place.</div>';
           } else {
+            renderPodium(dailyPodEl, rows, "daily");
             renderRows(dailyRowsEl, rows, "daily");
           }
         } catch (error) {
-          dailyRowsEl.innerHTML = '<div class="leaderboard-empty wow-empty">Daily leaderboard is temporarily unavailable.</div>';
+          dailyRowsEl.innerHTML = '<div class="rk-empty">The daily ladder is temporarily unavailable.</div>';
         }
       })();
+
       await Promise.all([mainBoards, dailyBoard]);
       if (refreshLeaderboardsBtn) {
         refreshLeaderboardsBtn.disabled = false;
-        refreshLeaderboardsBtn.textContent = "Refresh Rankings";
+        refreshLeaderboardsBtn.innerHTML = '<span class="ico" aria-hidden="true">\u21BB</span>Refresh';
       }
     }
 
+    /* --- Tabs --- */
+    const tabs = Array.from(document.querySelectorAll(".rk-tab"));
+    function selectTab(tab){
+      tabs.forEach((t) => {
+        const on = t === tab;
+        t.setAttribute("aria-selected", String(on));
+        document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+      });
+    }
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => selectTab(tab));
+      // Left/right arrows move between ladders, as expected of a tablist.
+      tab.addEventListener("keydown", (event) => {
+        const i = tabs.indexOf(tab);
+        if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+          event.preventDefault();
+          const next = tabs[(i + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+          next.focus();
+          selectTab(next);
+        }
+      });
+    });
+
     refreshLeaderboardsBtn?.addEventListener("click", () => {
       refreshLeaderboardsBtn.disabled = true;
-      refreshLeaderboardsBtn.textContent = "Refreshing...";
+      refreshLeaderboardsBtn.textContent = "Refreshing\u2026";
       loadLeaderboards();
     });
 
-    loadLeaderboards();
+    // Resolve identity first so the very first render can mark your row.
+    resolveOwnName().then(loadLeaderboards);
   </script>
 </body>
 </html>
