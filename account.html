@@ -14,82 +14,322 @@
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
   <style>
-    .account-shell{max-width:1180px;margin:0 auto;padding:24px;}
-    .account-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:22px;align-items:stretch}
-    .account-hero,.account-panel{border-radius:30px;padding:28px}
-    .account-hero{background:radial-gradient(circle at top right, rgba(56,189,248,.14), transparent 26%),radial-gradient(circle at left center, rgba(250,204,21,.12), transparent 24%),linear-gradient(180deg, rgba(12,22,40,.94), rgba(8,17,31,.96));}
-    .account-hero h1{margin:8px 0 12px;font-size:clamp(34px,4vw,54px);line-height:.98}
-    .account-hero p{margin:0;color:var(--muted);line-height:1.75;max-width:700px}
-    .account-badges{display:flex;flex-wrap:wrap;gap:10px;margin:20px 0 24px}
-    .account-badge{padding:10px 14px;border-radius:999px;background:rgba(8,17,31,.6);border:1px solid rgba(148,163,184,.12);font-size:13px;font-weight:800;color:#dbeafe}
-    .account-feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .account-feature{padding:18px;border-radius:22px;background:rgba(8,17,31,.58);border:1px solid rgba(148,163,184,.10)}
-    .account-feature strong{display:block;font-size:18px;margin-bottom:8px}
-    .account-feature span{display:block;color:var(--muted);line-height:1.6;font-size:14px}
-    .account-panel{background:linear-gradient(180deg, rgba(14,25,43,.94), rgba(8,17,31,.96));}
-    .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
-    .auth-tab{padding:14px 16px;border-radius:18px;border:1px solid rgba(148,163,184,.14);background:rgba(8,17,31,.72);color:#e5eefc;font-weight:800;cursor:pointer}
-    .auth-tab.active{border-color:rgba(56,189,248,.34);background:linear-gradient(180deg, rgba(17,35,61,.92), rgba(8,17,31,.92));box-shadow:0 12px 24px rgba(14,165,233,.10), inset 0 0 0 1px rgba(103,232,249,.08)}
-    .auth-pane.hidden{display:none}
-    .auth-panel-head h2{margin:0 0 8px;font-size:28px}
-    .auth-panel-head p{margin:0 0 18px;color:var(--muted);line-height:1.6}
-    .auth-form{display:grid;gap:14px}
-    .field{display:grid;gap:8px}
-    .field label{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#93c5fd;font-weight:800}
-    .field input{width:100%;padding:15px 16px;border-radius:16px;border:1px solid rgba(148,163,184,.14);background:rgba(8,17,31,.78);color:#f8fafc;font-size:15px;outline:none;transition:border-color .14s ease, box-shadow .14s ease}
-    .field input:focus{border-color:rgba(56,189,248,.34);box-shadow:0 0 0 4px rgba(56,189,248,.08)}
-    .auth-submit{min-height:52px}
-    .auth-note{color:var(--muted);font-size:13px;line-height:1.6}
-    .auth-inline-row{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
-    .text-link{background:none;border:0;padding:0;color:#7dd3fc;font-weight:800;cursor:pointer;text-decoration:none}
-    .text-link:hover{text-decoration:underline}
-    .forgot-shell{margin-top:14px;padding:16px;border-radius:18px;background:rgba(8,17,31,.56);border:1px solid rgba(148,163,184,.12)}
-    .forgot-shell.hidden{display:none}
-    .forgot-shell p{margin:0 0 12px;color:var(--muted);font-size:14px;line-height:1.6}
-    .auth-status{position:fixed;right:18px;bottom:18px;max-width:min(420px, calc(100vw - 28px));padding:14px 16px;border-radius:16px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.92);color:#dbeafe;display:none;z-index:50;box-shadow:0 18px 40px rgba(0,0,0,.28);transform:translateY(10px);opacity:0;transition:opacity .18s ease, transform .18s ease}
-    .auth-status.visible{display:block;opacity:1;transform:translateY(0)}
-    .auth-status.error{border-color:rgba(251,113,133,.22);color:#ffe4e6;background:rgba(68,18,28,.92)}
-    .auth-status.success{border-color:rgba(34,197,94,.24);color:#dcfce7;background:rgba(8,48,28,.92)}
+    /* =========================================================
+       Account - restyled to match the game (Cinzel + Inter,
+       gold on black, fortress artwork). Class names and IDs are
+       unchanged, so every existing script hook still resolves.
+       ========================================================= */
+    .account-shell{ max-width:1120px; margin:0 auto; padding:22px 20px 60px; }
+    .account-grid{ display:grid; grid-template-columns:1.05fr .95fr; gap:16px; align-items:start; }
+
+    /* --- Left: the pitch, over the fortress --- */
+    .account-hero{
+      position:relative;
+      overflow:hidden;
+      isolation:isolate;
+      border-radius:22px;
+      padding:26px 28px 28px;
+      border:1px solid var(--panel-border);
+      box-shadow:var(--shadow);
+      background:
+        linear-gradient(90deg,
+          rgba(6,7,10,0.97) 0%,
+          rgba(6,7,10,0.94) 34%,
+          rgba(6,7,10,0.82) 56%,
+          rgba(6,7,10,0.52) 78%,
+          rgba(6,7,10,0.28) 100%),
+        linear-gradient(135deg, rgba(129,78,40,0.16), rgba(255,255,255,0.02)),
+        url("assets/ui/hero-fortress.webp");
+      background-size:auto, auto, cover;
+      background-position:center, center, center right;
+      background-repeat:no-repeat;
+    }
+    .account-hero::before{
+      content:"";
+      position:absolute; inset:0;
+      pointer-events:none; z-index:-1;
+      background:
+        radial-gradient(circle at 84% 68%, rgba(234,120,42,0.14), transparent 26%),
+        radial-gradient(circle at 78% 50%, transparent 30%, rgba(0,0,0,0.42) 100%);
+    }
+    .account-hero > *{ position:relative; z-index:1; }
+    .account-hero h1{ margin:9px 0 9px; }
+    .account-hero p{ margin:0; color:var(--muted); font-size:14.5px; line-height:1.6; max-width:52ch; }
+
+    .account-badges{ display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 20px; }
+    .account-badge{
+      padding:7px 13px; border-radius:999px;
+      background:rgba(10,8,12,.7);
+      border:1px solid rgba(192,138,74,.24);
+      font-size:11.5px; font-weight:700; letter-spacing:.03em;
+      color:#d8cbb8;
+    }
+
+    .account-feature-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .account-feature{
+      padding:14px 15px;
+      border-radius:13px;
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.055);
+    }
+    .account-feature strong{
+      display:block;
+      font-family:Cinzel, Georgia, serif;
+      font-size:14px; font-weight:700; letter-spacing:.02em;
+      color:#f2e8d8;
+      margin-bottom:5px;
+    }
+    .account-feature span{ display:block; color:var(--muted); line-height:1.55; font-size:12.5px; }
+
+    /* --- Right: the working panel --- */
+    .account-panel{
+      border-radius:22px;
+      padding:22px;
+      border:1px solid var(--panel-border);
+      background:linear-gradient(180deg, rgba(18,14,12,.9), rgba(7,7,10,.93));
+      box-shadow:0 16px 36px rgba(0,0,0,.34);
+    }
+
+    .auth-tabs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:20px; }
+    .auth-tab{
+      padding:12px 16px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,.14);
+      background:linear-gradient(180deg, rgba(24,18,14,.9), rgba(9,8,11,.93));
+      color:var(--muted);
+      font-family:Cinzel, Georgia, serif;
+      font-size:13px; font-weight:700; letter-spacing:.05em;
+      cursor:pointer;
+      transition:border-color .2s ease, color .2s ease, background .2s ease;
+    }
+    .auth-tab:hover{ color:#e8dfd2; border-color:rgba(192,138,74,.34); }
+    .auth-tab:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; }
+    .auth-tab.active{
+      color:#f2e8d8;
+      border-color:rgba(192,138,74,.55);
+      background:linear-gradient(180deg, rgba(52,36,18,.86), rgba(20,14,10,.94));
+      box-shadow:0 8px 20px rgba(192,138,74,.14), inset 0 0 0 1px rgba(230,187,122,.12);
+    }
+    .auth-pane.hidden{ display:none; }
+
+    .auth-panel-head h2{
+      margin:0 0 7px;
+      font-family:Cinzel, Georgia, serif;
+      font-size:21px; font-weight:700; letter-spacing:.02em;
+      color:#f2e8d8;
+    }
+    .auth-panel-head p{ margin:0 0 18px; color:var(--muted); font-size:13px; line-height:1.6; }
+    .auth-panel-head .panel-kicker{ color:var(--accent); }
+
+    .auth-form{ display:grid; gap:13px; }
+    .field{ display:grid; gap:6px; }
+    .field label{
+      font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+      color:#a3937c; font-weight:800;
+    }
+    .field input{
+      width:100%;
+      padding:13px 15px;
+      border-radius:11px;
+      border:1px solid rgba(148,163,184,.16);
+      background:rgba(8,7,10,.8);
+      color:#f2e8d8;
+      font-size:14.5px;
+      outline:none;
+      transition:border-color .14s ease, box-shadow .14s ease;
+    }
+    .field input::placeholder{ color:#6f675d; }
+    .field input:focus{
+      border-color:rgba(192,138,74,.5);
+      box-shadow:0 0 0 3px rgba(192,138,74,.12);
+    }
+
+    /* Primary action reads as the forged plate used site-wide. */
+    .auth-submit{
+      min-height:48px;
+      font-family:Cinzel, Georgia, serif;
+      font-size:14px; font-weight:700; letter-spacing:.05em;
+    }
+    .btn-primary.auth-submit{
+      color:#2a1a08;
+      background:linear-gradient(180deg, #f6dda6 0%, #e2b872 38%, #c9973f 62%, #e8c68d 100%);
+      border:none;
+      box-shadow:0 0 22px rgba(214,158,74,.26), 0 8px 18px rgba(0,0,0,.36),
+                 inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 5px rgba(120,74,18,.4);
+    }
+    .btn-primary.auth-submit:hover{ filter:brightness(1.06); }
+
+    .auth-note{ color:var(--muted); font-size:12px; line-height:1.6; }
+    .auth-inline-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .text-link{
+      background:none; border:0; padding:0;
+      color:var(--accent); font-weight:700; font-size:12.5px;
+      cursor:pointer; text-decoration:none;
+    }
+    .text-link:hover{ color:#f2d9a8; text-decoration:underline; }
+    .text-link:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:4px; }
+
+    .forgot-shell{
+      margin-top:14px; padding:15px;
+      border-radius:13px;
+      background:rgba(255,255,255,.028);
+      border:1px solid rgba(255,255,255,.055);
+    }
+    .forgot-shell.hidden{ display:none; }
+    .forgot-shell p{ margin:0 0 12px; color:var(--muted); font-size:12.5px; line-height:1.6; }
+
+    /* --- Toast --- */
+    .auth-status{
+      position:fixed; right:18px; bottom:18px;
+      max-width:min(420px, calc(100vw - 28px));
+      padding:13px 16px;
+      border-radius:13px;
+      border:1px solid rgba(192,138,74,.24);
+      background:rgba(12,10,14,.96);
+      color:#e8dfd2;
+      font-size:13.5px;
+      display:none; z-index:50;
+      box-shadow:0 18px 40px rgba(0,0,0,.42);
+      transform:translateY(10px); opacity:0;
+      transition:opacity .18s ease, transform .18s ease;
+    }
+    .auth-status.visible{ display:block; opacity:1; transform:translateY(0); }
+    .auth-status.error{ border-color:rgba(251,113,133,.3); color:#ffe4e6; background:rgba(48,14,20,.96); }
+    .auth-status.success{ border-color:rgba(134,239,172,.3); color:#dcfce7; background:rgba(10,38,22,.96); }
+
     .account-panel.loading .session-card,
     .account-panel.loading .auth-pane,
-    .account-panel.loading .auth-tabs{opacity:.6}
-    .session-card.loading{display:block!important}
-    .session-card.loading.hidden{display:none!important}
-    .session-loading{display:grid;gap:12px}
-    .session-skeleton{border-radius:18px;background:linear-gradient(90deg, rgba(15,23,42,.95), rgba(30,41,59,.88), rgba(15,23,42,.95));background-size:200% 100%;animation:accountSkeleton 1.2s linear infinite}
-    .session-skeleton.head{height:68px}
-    .session-skeleton.meta{height:20px}
-    .session-skeleton.grid{height:144px}
-    @keyframes accountSkeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
-    .session-card{margin-top:18px;padding:18px;border-radius:22px;background:linear-gradient(180deg, rgba(17,35,61,.90), rgba(8,17,31,.92));border:1px solid rgba(56,189,248,.16)}
-    .session-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:14px}
-    .session-identity{display:flex;align-items:center;gap:14px}
-    .session-crest{display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-    .session-head h3{margin:0;font-size:24px}
-    .session-meta{color:var(--muted);font-size:14px;line-height:1.6}
-    .crest-picker{margin-top:18px;padding:16px;border-radius:20px;background:rgba(8,17,31,.58);border:1px solid rgba(148,163,184,.10)}
-    .crest-picker-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
-    .crest-picker-head strong{font-size:18px}
-    .crest-picker-copy{margin:0;color:var(--muted);font-size:14px;line-height:1.6}
-    .crest-current{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:14px;padding:14px 16px;border-radius:18px;background:rgba(8,17,31,.72);border:1px solid rgba(148,163,184,.10)}
-    .crest-current.hidden{display:none!important}
-    .crest-current-main{display:flex;align-items:center;gap:14px}
-    .crest-current-text strong{display:block;font-size:16px}
-    .crest-current-text span{display:block;margin-top:4px;color:var(--muted);font-size:13px}
-    .crest-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}
-    .crest-option{display:grid;justify-items:center;gap:8px;padding:14px 10px;border-radius:18px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.72);color:#f8fafc;cursor:pointer;transition:border-color .14s ease, transform .14s ease, box-shadow .14s ease}
-    .crest-option span{font-size:12px;color:var(--muted);text-align:center}
-    .crest-option.active{border-color:rgba(125,211,252,.42);box-shadow:0 0 0 3px rgba(56,189,248,.10);transform:translateY(-1px)}
-    .crest-save-row{display:flex;justify-content:flex-end;margin-top:14px}
-    @media (max-width:640px){.crest-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    .session-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
-    .session-stat{padding:14px;border-radius:18px;background:rgba(8,17,31,.7);border:1px solid rgba(148,163,184,.1)}
-    .session-stat span{display:block;color:var(--muted);font-size:12px;margin-bottom:6px}
-    .session-stat strong{font-size:24px}
-    .session-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px}
-    .hidden{display:none!important}
-    @media (max-width:920px){.account-grid{grid-template-columns:1fr}.account-hero,.account-panel{padding:20px;border-radius:24px}}
-    @media (max-width:640px){.account-shell{padding:14px}.account-feature-grid,.session-stats{grid-template-columns:1fr}.auth-tabs{grid-template-columns:1fr}.account-hero h1{font-size:30px}.auth-panel-head h2{font-size:24px}}
+    .account-panel.loading .auth-tabs{ opacity:.6; }
+
+    /* --- Skeleton --- */
+    .session-card.loading{ display:block!important; }
+    .session-card.loading.hidden{ display:none!important; }
+    .session-loading{ display:grid; gap:11px; }
+    .session-skeleton{
+      border-radius:13px;
+      background:linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.03) 75%);
+      background-size:200% 100%;
+      animation:accountSkeleton 1.3s ease-in-out infinite;
+    }
+    .session-skeleton.head{ height:64px; }
+    .session-skeleton.meta{ height:18px; }
+    .session-skeleton.grid{ height:138px; }
+    @keyframes accountSkeleton{ 0%{ background-position:200% 0; } 100%{ background-position:-200% 0; } }
+
+    /* --- Signed-in card --- */
+    .session-card{
+      margin-top:18px;
+      padding:18px;
+      border-radius:16px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(192,138,74,.10), transparent 58%),
+        rgba(255,255,255,.028);
+      border:1px solid rgba(192,138,74,.28);
+    }
+    .session-head{ display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:13px; }
+    .session-identity{ display:flex; align-items:center; gap:13px; }
+    .session-crest{ display:flex; align-items:center; justify-content:center; flex:0 0 auto; }
+    .session-crest .dd-crest{
+      border-radius:50%;
+      border:2px solid rgba(192,138,74,.45);
+    }
+    .session-head h3{
+      margin:0;
+      font-family:Cinzel, Georgia, serif;
+      font-size:21px; font-weight:700; letter-spacing:.02em;
+      color:#f5ede0;
+    }
+    .session-head .panel-kicker{ color:var(--accent); }
+    .session-meta{ color:var(--muted); font-size:12.5px; line-height:1.6; }
+
+    /* --- Crest picker --- */
+    .crest-picker{
+      margin-top:18px; padding:16px;
+      border-radius:14px;
+      background:rgba(255,255,255,.026);
+      border:1px solid rgba(255,255,255,.055);
+    }
+    .crest-picker-head{ display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:11px; }
+    .crest-picker-head strong{
+      font-family:Cinzel, Georgia, serif;
+      font-size:15px; font-weight:700; color:#f2e8d8;
+    }
+    .crest-picker-head .panel-kicker{ color:var(--accent); }
+    .crest-picker-copy{ margin:0; color:var(--muted); font-size:12.5px; line-height:1.6; }
+
+    .crest-current{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; flex-wrap:wrap;
+      margin-top:14px; padding:13px 15px;
+      border-radius:12px;
+      background:rgba(8,7,10,.7);
+      border:1px solid rgba(192,138,74,.2);
+    }
+    .crest-current.hidden{ display:none!important; }
+    .crest-current-main{ display:flex; align-items:center; gap:13px; }
+    .crest-current-text strong{
+      display:block;
+      font-family:Cinzel, Georgia, serif;
+      font-size:14.5px; color:#f2e8d8;
+    }
+    .crest-current-text span{ display:block; margin-top:3px; color:var(--muted); font-size:12px; }
+
+    .crest-grid{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:14px; }
+    .crest-option{
+      display:grid; justify-items:center; gap:7px;
+      padding:13px 9px;
+      border-radius:13px;
+      border:1px solid rgba(148,163,184,.14);
+      background:rgba(8,7,10,.72);
+      color:#f2e8d8;
+      cursor:pointer;
+      transition:border-color .14s ease, transform .14s ease, box-shadow .14s ease;
+    }
+    .crest-option:hover{ border-color:rgba(192,138,74,.4); transform:translateY(-1px); }
+    .crest-option:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+    .crest-option span{ font-size:11px; color:var(--muted); text-align:center; }
+    .crest-option.active{
+      border-color:rgba(230,187,122,.55);
+      box-shadow:0 0 0 3px rgba(192,138,74,.14);
+      transform:translateY(-1px);
+    }
+    .crest-save-row{ display:flex; justify-content:flex-end; margin-top:14px; }
+
+    /* --- Stats --- */
+    .session-stats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:15px; }
+    .session-stat{
+      padding:13px 14px;
+      border-radius:12px;
+      background:rgba(8,7,10,.7);
+      border:1px solid rgba(255,255,255,.05);
+    }
+    .session-stat span{ display:block; color:var(--muted); font-size:11px; letter-spacing:.05em; margin-bottom:5px; }
+    .session-stat strong{
+      font-family:Cinzel, Georgia, serif;
+      font-size:22px; font-weight:700;
+      color:#e6bb7a;
+      font-variant-numeric:tabular-nums;
+    }
+    .session-actions{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; }
+
+    .hidden{ display:none!important; }
+
+    @media (max-width:920px){
+      .account-grid{ grid-template-columns:1fr; }
+      .account-hero,.account-panel{ padding:20px; border-radius:18px; }
+      .account-hero{ background-position:center, center, 72% center; }
+    }
+    @media (max-width:640px){
+      .account-shell{ padding:14px 13px 44px; }
+      .account-feature-grid,.session-stats{ grid-template-columns:1fr; }
+      .auth-tabs{ grid-template-columns:1fr; }
+      .crest-grid{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .auth-panel-head h2{ font-size:19px; }
+    }
+    @media (prefers-reduced-motion:reduce){
+      .session-skeleton{ animation:none; }
+      .auth-tab,.crest-option,.field input,.auth-status{ transition:none; }
+    }
   </style>
 </head>
 <body>
@@ -105,10 +345,10 @@
           <div class="account-badge">Secure sessions</div>
         </div>
         <div class="account-feature-grid">
-          <div class="account-feature"><strong>Save your identity</strong><span>Reserve your username, stop typing names manually, and build recognition on public leaderboards.</span></div>
-          <div class="account-feature"><strong>Track real progress</strong><span>Best Endless score, Story progression, kills, and total runs are ready to become profile stats.</span></div>
-          <div class="account-feature"><strong>Built for expansion</strong><span>This auth layer supports future profiles, cosmetics, saved progression, and premium account features.</span></div>
-          <div class="account-feature"><strong>Professional flow</strong><span>Guest-first gameplay still works, but committed players can now convert into real accounts cleanly.</span></div>
+          <div class="account-feature"><strong>Claim your name</strong><span>Reserve a username once and stop typing it every run. It follows you onto every leaderboard.</span></div>
+          <div class="account-feature"><strong>Keep your records</strong><span>Best Endless score, campaign progress, total kills and runs, stored against your account.</span></div>
+          <div class="account-feature"><strong>Pick a crest</strong><span>Choose the emblem that appears beside your name on the leaderboards and your public profile.</span></div>
+          <div class="account-feature"><strong>Play as a guest first</strong><span>No account needed to play. Sign in whenever you want your runs to count online.</span></div>
         </div>
       </article>
 
@@ -121,8 +361,8 @@
         <section class="auth-pane" id="registerPane">
           <div class="auth-panel-head">
             <div class="panel-kicker">Register</div>
-            <h2>Create your player account</h2>
-            <p>Use a clean username, a real email, and a strong password. Sessions are managed through secure cookies so the browser stays signed in naturally.</p>
+            <h2>Create your account</h2>
+            <p>Pick a username your rivals will see on the ladders. Your email is only used for password resets.</p>
           </div>
           <form class="auth-form" id="registerForm">
             <div class="field">
@@ -139,14 +379,14 @@
             </div>
             <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           </form>
-          <p class="auth-note">The current MVP keeps things focused: email + username + password + secure session. No unnecessary friction yet.</p>
+          <p class="auth-note">Nothing else required &mdash; no confirmation step, no newsletter. You are signed in the moment you register.</p>
         </section>
 
         <section class="auth-pane hidden" id="loginPane">
           <div class="auth-panel-head">
             <div class="panel-kicker">Sign in</div>
-            <h2>Return to your account</h2>
-            <p>Use your email or username and password. Once authenticated, your account panel can load profile stats and future saved progression.</p>
+            <h2>Welcome back, commander</h2>
+            <p>Sign in with your email or username. Your records and Ascension progress load automatically.</p>
           </div>
           <form class="auth-form" id="loginForm">
             <div class="field">
@@ -160,7 +400,7 @@
             <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
           </form>
           <div class="auth-inline-row">
-            <p class="auth-note">For the next step, the game can check this session automatically and link score submissions to a real user profile.</p>
+            <p class="auth-note">Staying signed in links every run you finish to your name on the leaderboards.</p>
             <button class="text-link" id="forgotPasswordToggle" type="button">Forgot password?</button>
           </div>
           <div class="forgot-shell hidden" id="forgotPasswordBox">
@@ -199,17 +439,17 @@
             <div class="crest-picker-head">
               <div>
                 <div class="panel-kicker">Crest</div>
-                <strong>Choose your player emblem</strong>
+                <strong>Choose your emblem</strong>
               </div>
               <div class="session-crest" id="sessionCrestPreview"></div>
             </div>
-            <p class="crest-picker-copy">Your selected crest will appear in the global header, profile page, and leaderboard entries linked to your account.</p>
+            <p class="crest-picker-copy">Your crest appears beside your name in the site header, on your public profile, and on every leaderboard entry.</p>
             <div class="crest-current hidden" id="crestCurrent">
               <div class="crest-current-main">
                 <div class="session-crest" id="crestCurrentPreview"></div>
                 <div class="crest-current-text">
                   <strong id="crestCurrentName">Current emblem</strong>
-                  <span>Visible across your account presence.</span>
+                  <span>Shown wherever your name appears.</span>
                 </div>
               </div>
               <button class="btn btn-secondary" id="changeCrestBtn" type="button">Change emblem</button>
@@ -235,6 +475,13 @@
         </section>
       </aside>
     </section>
+
+    <nav class="pg-strip" aria-label="Elsewhere">
+      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
+      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
+      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
+      <a href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>Complete Guide</b><span class="cap">Every mechanic</span></span></a>
+    </nav>
   </main>
 
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
