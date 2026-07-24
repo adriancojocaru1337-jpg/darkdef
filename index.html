@@ -64,6 +64,9 @@
           <span><kbd>Space</kbd> Start / Pause</span>
           <span><kbd>1</kbd>&ndash;<kbd>5</kbd> Pick tower</span>
           <span><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> Cast spells</span>
+          <span><kbd>C</kbd> Hero ability</span>
+          <span><kbd>I</kbd> Inventory</span>
+          <span><kbd>K</kbd> Hero Skills</span>
           <span><kbd>F</kbd> Game speed</span>
           <span><kbd>G</kbd> Fullscreen</span>
           <span><kbd>R</kbd> Reset run</span>
@@ -75,6 +78,8 @@
       <div class="overlay-actions">
         <button class="btn btn-primary" id="startGameBtn">Play</button>
         <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ascension <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
+        <button class="btn btn-secondary btn-inventory" id="openInventoryBtn" type="button">Inventory <span class="inventory-chip" id="inventoryBtnCount">0 / 40</span></button>
+        <button class="btn btn-secondary btn-skills" id="openHeroSkillsBtn" type="button">Hero Skills <span class="skill-points-chip" id="skillBtnPoints">0</span></button>
         <a href="/command-table.html" class="btn btn-secondary">Command Table</a>
         <a href="/about.html" class="btn btn-secondary">About</a>
         <a href="/guide.html" class="btn btn-secondary">Complete Guide</a>
@@ -132,6 +137,7 @@
       <div class="reward-kicker">Boss Reward</div>
       <h1>Choose a legendary aura</h1>
       <p id="auraRewardText">You defeated the boss. Choose 1 of 3 auras and apply it to a single tower. The aura stays on that tower in the next stages too.</p>
+      <div class="boss-loot-reward hidden" id="bossLootReward" aria-live="polite"></div>
       <div class="reward-grid" id="auraRewardList"></div>
       <div class="reward-bonus" id="auraRewardBonus">Stage clear reward: +0 gold</div>
       <button class="btn btn-secondary reward-reroll hidden" id="auraRerollBtn">🔁 Second Sight — reroll the draft</button>
@@ -150,6 +156,115 @@
         <button class="btn btn-secondary" id="closeLeyBtn">Close</button>
       </div>
     </div>
+  </div>
+
+  <div class="screen-overlay hidden inventory-overlay" id="inventoryOverlay">
+    <section class="overlay-card inventory-card" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
+      <header class="inventory-header">
+        <div>
+          <div class="reward-kicker">Hero Buildcraft</div>
+          <h1 id="inventoryTitle">Inventory &amp; Equipment</h1>
+          <p>Claim boss loot, build Varyn's loadout, and compare every stat change instantly.</p>
+        </div>
+        <button class="inventory-close" id="closeInventoryBtn" type="button" aria-label="Close inventory">×</button>
+      </header>
+
+      <div class="inventory-summary" aria-live="polite">
+        <div><span>Bag</span><strong id="inventoryCapacityStat">0 / 40</strong></div>
+        <div><span>Loot Cache</span><strong id="inventoryCacheStat">0</strong></div>
+        <div><span>Equipped Power</span><strong id="inventoryPowerStat">0</strong></div>
+        <div><span>Hero Damage</span><strong id="inventoryDamageStat">26</strong></div>
+        <div><span>Hero HP</span><strong id="inventoryHpStat">230</strong></div>
+        <div><span>Rare Guarantee</span><strong id="inventoryPityStat">4 bosses</strong></div>
+      </div>
+
+      <section class="loot-cache-panel">
+        <div class="inventory-section-head">
+          <div>
+            <span class="inventory-section-kicker">Unclaimed rewards</span>
+            <h2>Loot Cache</h2>
+          </div>
+          <button class="btn btn-primary inventory-claim-all" id="claimAllLootBtn" type="button">Claim All</button>
+        </div>
+        <div class="loot-cache-list" id="lootCacheList"></div>
+      </section>
+
+      <div class="inventory-workspace">
+        <section class="equipment-panel">
+          <div class="inventory-section-head">
+            <div>
+              <span class="inventory-section-kicker">Varyn</span>
+              <h2>Equipped</h2>
+            </div>
+          </div>
+          <div class="equipment-slots" id="equipmentSlots"></div>
+        </section>
+
+        <section class="inventory-bag-panel">
+          <div class="inventory-section-head inventory-bag-head">
+            <div>
+              <span class="inventory-section-kicker">Permanent collection</span>
+              <h2>Inventory</h2>
+            </div>
+            <div class="inventory-controls">
+              <label>
+                <span class="sr-only">Filter inventory by slot</span>
+                <select id="inventoryFilter">
+                  <option value="all">All slots</option>
+                  <option value="weapon">Weapons</option>
+                  <option value="armor">Armor</option>
+                  <option value="boots">Boots</option>
+                  <option value="ring">Rings</option>
+                  <option value="charm">Charms</option>
+                </select>
+              </label>
+              <label>
+                <span class="sr-only">Sort inventory</span>
+                <select id="inventorySort">
+                  <option value="power_desc">Power ↓</option>
+                  <option value="level_desc">Level ↓</option>
+                  <option value="name_asc">Name A–Z</option>
+                  <option value="power_asc">Power ↑</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          <div class="inventory-items" id="inventoryItems"></div>
+        </section>
+      </div>
+
+      <div class="inventory-feedback" id="inventoryFeedback">Equipment is saved automatically.</div>
+    </section>
+  </div>
+
+  <div class="screen-overlay hidden hero-skills-overlay" id="heroSkillsOverlay">
+    <section class="overlay-card hero-skills-card" role="dialog" aria-modal="true" aria-labelledby="heroSkillsTitle">
+      <header class="hero-skills-header">
+        <div>
+          <div class="reward-kicker">Varyn · Ashen Warden</div>
+          <h1 id="heroSkillsTitle">Hero Skill Tree</h1>
+          <p>Spend one point per hero level after Level 1. Skills combine with equipment through the same combat stat pipeline.</p>
+        </div>
+        <button class="hero-skills-close" id="closeHeroSkillsBtn" type="button" aria-label="Close hero skill tree">×</button>
+      </header>
+
+      <div class="hero-skills-summary" aria-live="polite">
+        <div><span>Hero Level</span><strong id="heroSkillLevel">1</strong></div>
+        <div class="available"><span>Available Points</span><strong id="heroSkillAvailable">0</strong></div>
+        <div><span>Spent Points</span><strong id="heroSkillSpent">0</strong></div>
+        <div><span>Hero Damage</span><strong id="heroSkillDamage">26</strong></div>
+      </div>
+
+      <div class="hero-skill-branches" id="heroSkillBranches"></div>
+
+      <footer class="hero-skills-footer">
+        <div class="hero-skill-feedback" id="heroSkillFeedback">Choose a branch and shape Varyn's combat role.</div>
+        <div class="hero-skill-footer-actions">
+          <button class="btn btn-secondary hero-skill-respec" id="heroSkillRespecBtn" type="button">Respec</button>
+          <button class="btn btn-primary" id="heroSkillDoneBtn" type="button">Done</button>
+        </div>
+      </footer>
+    </section>
   </div>
 
   <div class="screen-overlay hidden gameover-overlay endless-unlocked-overlay" id="endlessUnlockOverlay">
@@ -228,6 +343,8 @@
             </button>
           </div>
           <div class="panel-header-user-actions">
+            <button class="panel-header-skills" id="panelHeaderSkillsBtn" type="button" title="Hero Skill Tree (K)">Skills <span id="panelHeaderSkillPoints">0</span></button>
+            <button class="panel-header-inventory" id="panelHeaderInventoryBtn" type="button" title="Inventory &amp; Equipment (I)">Bag <span id="panelHeaderInventoryCount">0</span></button>
             <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Ascension — talent tree">✦ <span id="panelHeaderLeyBalance">0</span></button>
             <a class="panel-header-user" id="panelHeaderUserLink" aria-live="polite" href="/account.html">
               <span class="panel-header-user-crest" id="panelHeaderUserCrest" aria-hidden="true"></span>
@@ -317,6 +434,23 @@
               <span class="spell-timer" id="spellBombTimer">Ready</span>
             </button>
           </div>
+
+          <section class="hero-hud" id="heroHud" aria-label="Hero controls">
+            <button class="hero-command-btn" id="heroCommandBtn" type="button" aria-pressed="false" title="Select Varyn, then choose a point on the road">
+              <span class="hero-portrait" aria-hidden="true">&#9876;</span>
+              <span class="hero-hud-copy">
+                <strong id="heroHudName">Varyn &middot; Lv.1</strong>
+                <span id="heroHudState">230 / 230 HP</span>
+                <span class="hero-bar hero-hp-bar" aria-hidden="true"><i id="heroHpFill"></i></span>
+                <span class="hero-bar hero-xp-bar" aria-hidden="true"><i id="heroXpFill"></i></span>
+              </span>
+            </button>
+            <button class="hero-ability-btn" id="heroAbilityBtn" type="button" title="Rift Pulse (C)">
+              <span class="hero-ability-key" aria-hidden="true">C</span>
+              <strong>Rift Pulse</strong>
+              <span id="heroAbilityCooldown">Ready</span>
+            </button>
+          </section>
 
           <aside class="unit-info-panel unit-dock hidden" id="unitInfoPanel" aria-label="Unit Shop">
             <button class="unit-info-card active" data-type="archer">
@@ -495,6 +629,7 @@
             <div class="stat-item"><span>Wave in stage</span><strong id="stageWaveStat">1</strong></div>
             <div class="stat-item"><span>Best score</span><strong id="bestScoreStat">0</strong></div>
             <div class="stat-item"><span>Endless</span><strong id="endlessUnlockedStat">No</strong></div>
+            <div class="stat-item stat-item-loot"><span>Loot Cache</span><strong id="lootInboxStat">0</strong></div>
           </div>
 
           <div class="meta-row">
@@ -513,15 +648,35 @@
             <div class="shortcut-item"><kbd>Space</kbd><span>Start / Pause</span></div>
             <div class="shortcut-item"><kbd>R</kbd><span>Reset run</span></div>
             <div class="shortcut-item"><kbd>1-5</kbd><span>Select towers</span></div>
+            <div class="shortcut-item"><kbd>C</kbd><span>Hero ability</span></div>
             <div class="shortcut-item"><kbd>V</kbd><span>Tower panel</span></div>
             <div class="shortcut-item"><kbd>H</kbd><span>Hide / show HUD</span></div>
+            <div class="shortcut-item"><kbd>I</kbd><span>Inventory</span></div>
+            <div class="shortcut-item"><kbd>K</kbd><span>Hero Skills</span></div>
           </div>
         </section>
       </aside>
     </section>
   </main>
 
-  <script src="game.js?v=r7"></script>
+  <script src="js/core/event-bus.js?v=r8"></script>
+  <script src="js/core/profile-store.js?v=r8"></script>
+  <script src="js/core/api-client.js?v=r82"></script>
+  <script src="js/core/run-state-machine.js?v=r82"></script>
+  <script src="js/core/run-rng.js?v=r81"></script>
+  <script src="js/content/combat-content.js?v=r81"></script>
+  <script src="js/content/reward-content.js?v=r90"></script>
+  <script src="js/content/hero-skill-content.js?v=r92"></script>
+  <script src="js/systems/enemy-behavior-system.js?v=r81"></script>
+  <script src="js/systems/boss-phase-system.js?v=r81"></script>
+  <script src="js/systems/hero-system.js?v=r8"></script>
+  <script src="js/systems/reward-generator.js?v=r90"></script>
+  <script src="js/systems/reward-inbox.js?v=r90"></script>
+  <script src="js/systems/inventory-system.js?v=r91"></script>
+  <script src="js/systems/equipment-system.js?v=r91"></script>
+  <script src="js/systems/hero-stat-pipeline.js?v=r91"></script>
+  <script src="js/systems/hero-skill-tree-system.js?v=r92"></script>
+  <script src="game.js?v=r92"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>

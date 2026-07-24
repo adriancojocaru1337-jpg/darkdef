@@ -55,6 +55,40 @@ const modeStat = document.getElementById("modeStat");
 const bestScoreStat = document.getElementById("bestScoreStat");
 const furthestStageStat = document.getElementById("furthestStageStat");
 const endlessUnlockedStat = document.getElementById("endlessUnlockedStat");
+const lootInboxStat = document.getElementById("lootInboxStat");
+const inventoryOverlay = document.getElementById("inventoryOverlay");
+const openInventoryBtn = document.getElementById("openInventoryBtn");
+const inventoryBtnCount = document.getElementById("inventoryBtnCount");
+const panelHeaderInventoryBtn = document.getElementById("panelHeaderInventoryBtn");
+const panelHeaderInventoryCount = document.getElementById("panelHeaderInventoryCount");
+const closeInventoryBtn = document.getElementById("closeInventoryBtn");
+const inventoryCapacityStat = document.getElementById("inventoryCapacityStat");
+const inventoryCacheStat = document.getElementById("inventoryCacheStat");
+const inventoryPowerStat = document.getElementById("inventoryPowerStat");
+const inventoryDamageStat = document.getElementById("inventoryDamageStat");
+const inventoryHpStat = document.getElementById("inventoryHpStat");
+const inventoryPityStat = document.getElementById("inventoryPityStat");
+const claimAllLootBtn = document.getElementById("claimAllLootBtn");
+const lootCacheList = document.getElementById("lootCacheList");
+const equipmentSlots = document.getElementById("equipmentSlots");
+const inventoryItems = document.getElementById("inventoryItems");
+const inventoryFilter = document.getElementById("inventoryFilter");
+const inventorySort = document.getElementById("inventorySort");
+const inventoryFeedback = document.getElementById("inventoryFeedback");
+const heroSkillsOverlay = document.getElementById("heroSkillsOverlay");
+const openHeroSkillsBtn = document.getElementById("openHeroSkillsBtn");
+const skillBtnPoints = document.getElementById("skillBtnPoints");
+const panelHeaderSkillsBtn = document.getElementById("panelHeaderSkillsBtn");
+const panelHeaderSkillPoints = document.getElementById("panelHeaderSkillPoints");
+const closeHeroSkillsBtn = document.getElementById("closeHeroSkillsBtn");
+const heroSkillDoneBtn = document.getElementById("heroSkillDoneBtn");
+const heroSkillLevel = document.getElementById("heroSkillLevel");
+const heroSkillAvailable = document.getElementById("heroSkillAvailable");
+const heroSkillSpent = document.getElementById("heroSkillSpent");
+const heroSkillDamage = document.getElementById("heroSkillDamage");
+const heroSkillBranches = document.getElementById("heroSkillBranches");
+const heroSkillFeedback = document.getElementById("heroSkillFeedback");
+const heroSkillRespecBtn = document.getElementById("heroSkillRespecBtn");
 
 const notificationPanel = document.getElementById("notificationPanel");
 const notificationBadge = document.getElementById("notificationBadge");
@@ -82,6 +116,13 @@ const spellBombBtn = document.getElementById("spellBombBtn");
 const spellSlowTimer = document.getElementById("spellSlowTimer");
 const spellDamageTimer = document.getElementById("spellDamageTimer");
 const spellBombTimer = document.getElementById("spellBombTimer");
+const heroCommandBtn = document.getElementById("heroCommandBtn");
+const heroAbilityBtn = document.getElementById("heroAbilityBtn");
+const heroHudName = document.getElementById("heroHudName");
+const heroHudState = document.getElementById("heroHudState");
+const heroHpFill = document.getElementById("heroHpFill");
+const heroXpFill = document.getElementById("heroXpFill");
+const heroAbilityCooldown = document.getElementById("heroAbilityCooldown");
 const refreshLeaderboardBtn = document.getElementById("refreshLeaderboardBtn");
 const bonusLeaderboardList = document.getElementById("bonusLeaderboardList");
 const bonusLeaderboardSubtitle = document.getElementById("bonusLeaderboardSubtitle");
@@ -122,6 +163,7 @@ const auraRewardList = document.getElementById("auraRewardList");
 const auraRewardText = document.getElementById("auraRewardText");
 const auraRewardNote = document.getElementById("auraRewardNote");
 const auraRewardBonus = document.getElementById("auraRewardBonus");
+const bossLootReward = document.getElementById("bossLootReward");
 const endlessUnlockOverlay = document.getElementById("endlessUnlockOverlay");
 const endlessUnlockText = document.getElementById("endlessUnlockText");
 const endlessUnlockReward = document.getElementById("endlessUnlockReward");
@@ -178,12 +220,10 @@ async function loadPanelUserSession(){
   panelHeaderUserLink?.setAttribute("href", "/account.html");
   panelHeaderLogoutBtn?.classList.add("hidden");
   try{
-    const response = await fetch("/.netlify/functions/me", {
+    const data = await apiClient.get("me", {
       credentials: "include",
       cache: "no-store"
     });
-    if(!response.ok) return;
-    const data = await response.json();
     if(!data?.authenticated || !data?.user?.username) return;
     setPanelUserLabel(data.user.username, data.user.crestId || null);
     panelHeaderUserLink?.setAttribute("href", "/command-table.html");
@@ -1038,6 +1078,9 @@ let bossFxType = "";
 let bossTelegraphTimer = 0;
 let bossTelegraphType = "";
 let bossTelegraphStage = null;
+let bossTelegraphEnemyId = null;
+let bossTelegraphColor = "";
+let announcedEnemyTraits = new Set();
 let bossCastTimer = 0;
 let bossCastText = "";
 let bossCastColor = "#f8fafc";
@@ -1141,6 +1184,7 @@ const spellConfig = {
 let pendingAuraDraft = null;
 let pendingAuraChoice = null;
 let pendingBossResolution = null;
+let pendingLootReward = null;
 let pendingEndlessBossPair = [];
 let lastEndlessBossPairKey = "";
 let runEndlessBossPairsDefeated = 0;
@@ -1150,6 +1194,167 @@ let bestEndlessBossPairs = 0;
 
 let leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
 let leaderboardRunPromise = null;
+
+/* ===== RPG foundation: versioned player profile + Hero System =====
+   These modules are intentionally isolated from the legacy game state. The
+   small adapter below is the only place where the hero touches combat. */
+const profileStore = window.DarkDefense.createProfileStore({
+  events: window.DarkDefense.events
+});
+
+const apiClient = window.DarkDefense.createApiClient({
+  basePath: "/.netlify/functions",
+  events: window.DarkDefense.events,
+  defaultTimeoutMs: 10000
+});
+
+const runStateMachine = window.DarkDefense.createRunStateMachine({
+  events: window.DarkDefense.events,
+  initial: { phase: "idle", mode: "campaign" }
+});
+
+const rewardInbox = window.DarkDefense.createRewardInbox({
+  profileStore,
+  events: window.DarkDefense.events
+});
+
+const inventorySystem = window.DarkDefense.createInventorySystem({
+  profileStore,
+  events: window.DarkDefense.events
+});
+
+const equipmentSystem = window.DarkDefense.createEquipmentSystem({
+  profileStore,
+  events: window.DarkDefense.events,
+  definitions: window.DarkDefense.ITEM_DEFINITIONS,
+  slots: window.DarkDefense.EQUIPMENT_SLOTS
+});
+
+const heroSkillTreeSystem = window.DarkDefense.createHeroSkillTreeSystem({
+  profileStore,
+  events: window.DarkDefense.events,
+  definitions: window.DarkDefense.HERO_SKILL_DEFINITIONS
+});
+
+const heroStatPipeline = window.DarkDefense.createHeroStatPipeline({
+  getEquippedItems: (heroId) => equipmentSystem.getEquippedItems(heroId),
+  getSkillModifiers: (heroId) => heroSkillTreeSystem.getModifiers(heroId)
+});
+
+function getRunFlowMode(){
+  return dailyChallengeActive ? "daily" : currentMode;
+}
+
+function startRunFlow(reason="run-started"){
+  return runStateMachine.send("START_RUN", {
+    mode: getRunFlowMode(),
+    daily: dailyChallengeActive,
+    reason
+  }).accepted;
+}
+
+function pauseRunFlow(reason="paused"){
+  const accepted = runStateMachine.send("PAUSE", { reason }).accepted;
+  if(accepted) isPaused = true;
+  return accepted;
+}
+
+function resumeRunFlow(reason="resumed"){
+  const accepted = runStateMachine.send("RESUME", { reason }).accepted;
+  if(accepted) isPaused = false;
+  return accepted;
+}
+
+let runRng = window.DarkDefense.createRunRng(window.DarkDefense.createRunSeed("campaign"));
+
+const rewardGenerator = window.DarkDefense.createRewardGenerator({
+  rng: () => runRng,
+  definitions: window.DarkDefense.ITEM_DEFINITIONS,
+  rarities: window.DarkDefense.ITEM_RARITIES,
+  affixes: window.DarkDefense.ITEM_AFFIXES,
+  tables: window.DarkDefense.REWARD_TABLES,
+  pityRules: window.DarkDefense.REWARD_PITY_RULES
+});
+
+function resetRunRng(){
+  const seed = dailyChallengeActive && activeDailyChallenge
+    ? `daily:${activeDailyChallenge.dateKey}`
+    : window.DarkDefense.createRunSeed(currentMode || "campaign");
+  runRng = window.DarkDefense.createRunRng(seed);
+}
+
+const enemyBehaviorSystem = window.DarkDefense.createEnemyBehaviorSystem({
+  definitions: window.DarkDefense.ENEMY_TRAITS,
+  events: window.DarkDefense.events,
+  getPosition: (enemy) => getPathPosition(enemy.progress),
+  onActivated: (enemy, trait) => {
+    const pos = getPathPosition(enemy.progress);
+    showPopup(pos.x, pos.y - 28, trait.short, trait.color);
+    if(!announcedEnemyTraits.has(trait.id)){
+      announcedEnemyTraits.add(trait.id);
+      pushNotification("stage", `Enemy trait: ${trait.name}`, trait.description);
+    }
+  }
+});
+
+const bossPhaseSystem = window.DarkDefense.createBossPhaseSystem({
+  definitions: window.DarkDefense.BOSS_PHASES,
+  events: window.DarkDefense.events,
+  onTelegraph: (enemy, phase) => {
+    bossTelegraphEnemyId = enemy.id;
+    bossTelegraphType = phase.ability;
+    bossTelegraphStage = enemy.bossStage || currentStage;
+    bossTelegraphColor = phase.color || "";
+    bossTelegraphTimer = phase.telegraphSeconds;
+    startBossCastBanner(`${phase.name} incoming`, phase.color, phase.telegraphSeconds);
+  },
+  onTrigger: (enemy, phase) => triggerBossPhase(enemy, phase)
+});
+
+const heroSystem = window.DarkDefense.createHeroSystem({
+  profileStore,
+  statPipeline: heroStatPipeline,
+  events: window.DarkDefense.events,
+  getEnemies: () => enemies,
+  getPathPosition: (progress) => getPathPosition(progress),
+  dealDamage: (enemy, baseDamage, source) => {
+    const projectileType = source?.source === "ability" ? "mage" : "archer";
+    const finalDamage = dealDamageToEnemy(enemy, baseDamage, projectileType);
+    enemy.lastHitByHeroId = source?.heroId || "varyn";
+    const pos = getPathPosition(enemy.progress);
+    const color = source?.source === "ability" ? "#fde68a" : "#f59e0b";
+    addHitParticles(pos.x, pos.y, source?.source === "ability" ? 7 : 3, color, {
+      speed: source?.source === "ability" ? 150 : 90,
+      speedY: source?.source === "ability" ? 130 : 80,
+      lifeMin: .16,
+      lifeMax: .32,
+      sizeMin: 1.5,
+      sizeMax: 3.2,
+      glow: source?.source === "ability" ? 10 : 6
+    });
+    showPopup(pos.x, pos.y - 10, `-${Math.round(finalDamage)}`, color);
+    return finalDamage;
+  },
+  onMessage: (message) => setMessage(message),
+  onNotification: (type, title, text) => pushNotification(type, title, text),
+  onLevelUp: ({ level }) => {
+    const pos = getPathPosition(heroSystem.getRunState().progress);
+    showPopup(pos.x, pos.y - 30, `Hero Level ${level}!`, "#fde68a");
+    addScreenFlash("#f59e0b", .35, .18);
+    pushNotification("achievement", "Hero level up", `Varyn reached Level ${level}.`);
+    updateHeroSkillBadges();
+    if(isHeroSkillsOverlayOpen()) renderHeroSkillTree();
+  },
+  ui: {
+    commandButton: heroCommandBtn,
+    abilityButton: heroAbilityBtn,
+    name: heroHudName,
+    state: heroHudState,
+    hpFill: heroHpFill,
+    xpFill: heroXpFill,
+    abilityCooldown: heroAbilityCooldown
+  }
+});
 
 const achievements = {
   first_kill:false,
@@ -1397,16 +1602,10 @@ async function pushLeyMeta(){
   if(!leyAccountAuthed || leySyncInFlight) return;
   leySyncInFlight = true;
   try{
-    const response = await fetch("/.netlify/functions/save-ley-meta", {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(getLocalLeyMeta())
+    const data = await apiClient.post("save-ley-meta", getLocalLeyMeta(), {
+      credentials: "include"
     });
-    if(response.ok){
-      const data = await response.json();
-      if(data?.ok) adoptLeyMeta({ totalEarned: data.totalEarned, talents: data.talents });
-    }
+    if(data?.ok) adoptLeyMeta({ totalEarned: data.totalEarned, talents: data.talents });
   }catch(_){ /* offline is fine — localStorage remains source of truth until next push */ }
   finally{ leySyncInFlight = false; }
 }
@@ -1421,11 +1620,8 @@ async function syncLeyMetaWithAccount(){
   if(!leyAccountAuthed) return;
   let server = null;
   try{
-    const response = await fetch("/.netlify/functions/get-ley-meta", { credentials: "include", cache: "no-store" });
-    if(response.ok){
-      const data = await response.json();
-      if(data?.ok) server = { totalEarned: data.totalEarned, talents: data.talents };
-    }
+    const data = await apiClient.get("get-ley-meta", { credentials: "include", cache: "no-store" });
+    if(data?.ok) server = { totalEarned: data.totalEarned, talents: data.talents };
   }catch(_){ return; }
   if(!server) return;
   const localBefore = getLocalLeyMeta();
@@ -1438,10 +1634,9 @@ async function syncLeyMetaWithAccount(){
 }
 
 window.addEventListener("pagehide", ()=>{
-  if(!leyAccountAuthed || !navigator.sendBeacon) return;
+  if(!leyAccountAuthed) return;
   try{
-    const blob = new Blob([JSON.stringify(getLocalLeyMeta())], { type:"application/json" });
-    navigator.sendBeacon("/.netlify/functions/save-ley-meta", blob);
+    apiClient.sendBeacon("save-ley-meta", getLocalLeyMeta());
   }catch(_){}
 });
 
@@ -1564,16 +1759,15 @@ function openLeyOverlay(){
   renderLeyOverlay();
   leyOverlay?.classList.remove("hidden");
   if(hasStarted && lives > 0 && !isPaused){
-    isPaused = true;
-    leyAutoPaused = true;
-    updateUI();
+    leyAutoPaused = pauseRunFlow("ley-overlay");
+    if(leyAutoPaused) updateUI();
   }
 }
 function closeLeyOverlay(){
   leyOverlay?.classList.add("hidden");
   if(leyAutoPaused){
     leyAutoPaused = false;
-    if(lives > 0) isPaused = false;
+    if(lives > 0) resumeRunFlow("ley-overlay-closed");
     updateUI();
   }
 }
@@ -1608,11 +1802,7 @@ auraRerollBtn?.addEventListener("click",(event)=>{
 
 
 function randomAuraDraft(count=3){
-  const pool = Object.values(AURA_REWARDS).slice();
-  for(let i=pool.length-1;i>0;i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
+  const pool = runRng.shuffle(Object.values(AURA_REWARDS));
   return pool.slice(0, Math.min(count, pool.length));
 }
 
@@ -1732,7 +1922,7 @@ function applySpecializationStatusOnEnemy(enemy, unit, pos, damageDone=0){
     if(pos) showPopup(pos.x, pos.y - 18, "Slow", "#93c5fd");
   } else if(unit.type === "bomb" && unit.specialization === "shock") {
     const stunChance = unit.specStunChance || 0;
-    if(stunChance > 0 && Math.random() < stunChance){
+    if(stunChance > 0 && runRng.chance(stunChance)){
       enemy.stunTimer = Math.max(enemy.stunTimer || 0, unit.specStunDuration || 0.60);
       if(pos) showPopup(pos.x, pos.y - 18, "Stun!", "#fca5a5");
     }
@@ -1763,8 +1953,7 @@ function triggerSpecializationChain(sourceEnemy, sourceUnit, sourcePos){
       .sort((a,b)=>a.dist-b.dist)[0];
     if(!next) break;
     visited.add(next.enemy.id);
-    const finalChainDamage = chainDamage * getDamageMultiplierAgainstEnemy(next.enemy, "mage");
-    next.enemy.hp -= finalChainDamage;
+    const finalChainDamage = dealDamageToEnemy(next.enemy, chainDamage, "mage");
     markEnemyHit(next.enemy, sourceUnit, finalChainDamage);
     addHitParticles(next.pos.x, next.pos.y, 7, "#c4b5fd");
     showPopup(next.pos.x, next.pos.y - 12, `-${Math.round(finalChainDamage)}`, "#c4b5fd");
@@ -1790,8 +1979,7 @@ function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
     if(!next) break;
     visited.add(next.enemy.id);
     if(sourceUnit.type === "cryo") applyCryoBrittle(next.enemy, sourceUnit, next.pos);
-    const finalChainDamage = chainDamage * getDamageMultiplierAgainstEnemy(next.enemy, sourceUnit.type);
-    next.enemy.hp -= finalChainDamage;
+    const finalChainDamage = dealDamageToEnemy(next.enemy, chainDamage, sourceUnit.type);
     markEnemyHit(next.enemy, sourceUnit, finalChainDamage);
     addHitParticles(next.pos.x, next.pos.y, 8, "#fde047");
     showPopup(next.pos.x, next.pos.y - 10, `-${Math.round(finalChainDamage)}`, "#fde047");
@@ -1800,8 +1988,7 @@ function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
     jumpsDone += 1;
   }
   if(jumpsDone === 0 && sourceEnemy){
-    const bonusDamage = stats.damage * 0.20 * getBrittleDamageMultiplier(sourceEnemy);
-    sourceEnemy.hp -= bonusDamage;
+    const bonusDamage = dealDamageToEnemy(sourceEnemy, stats.damage * 0.20, sourceUnit.type);
     markEnemyHit(sourceEnemy, sourceUnit, bonusDamage);
     addHitParticles(sourcePos.x, sourcePos.y, 6, "#fde047");
     showPopup(sourcePos.x, sourcePos.y - 18, `+${Math.round(bonusDamage)} storm`, "#fde047");
@@ -1818,14 +2005,487 @@ function triggerInfernoExplosion(deadEnemy){
     if(enemy.id === deadEnemy.id) continue;
     const pos = getPathPosition(enemy.progress);
     if(distance(center, pos) <= 55){
-      const finalDamage = dmg * getBrittleDamageMultiplier(enemy);
-      enemy.hp -= finalDamage;
+      const finalDamage = dealDamageToEnemy(enemy, dmg, "burn");
       if(owner) markEnemyHit(enemy, owner, finalDamage);
       addHitParticles(pos.x, pos.y, 8, "#fb923c");
       showPopup(pos.x, pos.y - 12, `-${Math.round(finalDamage)}`, "#fb923c");
     }
   }
   burstSpellParticles(center.x, center.y, "#fdba74", "#fb923c", 20);
+}
+
+function formatLootValue(statId, value){
+  return statId.endsWith("_pct")
+    ? `+${Math.round(value * 1000) / 10}%`
+    : `+${Math.round(value * 10) / 10}`;
+}
+
+function renderBossLootReward(){
+  if(!bossLootReward) return;
+  const item = pendingLootReward?.items?.[0];
+  if(!item){
+    bossLootReward.classList.add("hidden");
+    bossLootReward.innerHTML = "";
+    return;
+  }
+  const coreLabel = item.coreStat.id
+    .replace(/^hero_/, "")
+    .replace(/_pct$|_flat$/g, "")
+    .replaceAll("_", " ");
+  const affixSummary = item.affixes.length
+    ? item.affixes.map((affix) => `${affix.label} ${formatLootValue(affix.id, affix.value)}`).join(" · ")
+    : `${coreLabel} ${formatLootValue(item.coreStat.id, item.coreStat.value)}`;
+  const pityLabel = pendingLootReward?.pity?.triggered
+    ? ` · ${pendingLootReward.pity.triggered === "epic" ? "Epic" : "Rare"} pity guarantee`
+    : "";
+  bossLootReward.style.setProperty("--loot-color", item.rarityColor || "#60a5fa");
+  bossLootReward.innerHTML = `
+    <div class="boss-loot-icon">${item.icon}</div>
+    <div class="boss-loot-copy">
+      <div class="boss-loot-label">Item secured in Loot Cache</div>
+      <div class="boss-loot-name">${item.rarityName} ${item.name}</div>
+      <div class="boss-loot-meta">Lv.${item.level} · ${item.slot} · ${affixSummary}${pityLabel}</div>
+    </div>
+    <div class="boss-loot-power"><span>Power</span>${item.power}</div>
+  `;
+  bossLootReward.classList.remove("hidden");
+}
+
+function queueBossLootReward(){
+  const mode = dailyChallengeActive ? "daily" : currentMode;
+  const tableId = `boss_${mode}`;
+  const sourceId = `boss:${runRng.seed}:${mode}:${currentStage}:${stageWave}`;
+  const generated = rewardGenerator.generateBossReward({
+    sourceId,
+    runSeed: runRng.seed,
+    mode,
+    stage: currentStage,
+    wave: stageWave,
+    pityState: rewardInbox.getPity(tableId)
+  });
+  const result = rewardInbox.enqueue(generated);
+  pendingLootReward = result.accepted
+    ? generated
+    : rewardInbox.list().find((bundle) => bundle.bundleId === generated.bundleId) || generated;
+  const item = pendingLootReward.items[0];
+  if(result.accepted && item){
+    pushNotification(
+      "achievement",
+      `${item.rarityName} loot secured`,
+      `${item.icon} ${item.name} · Lv.${item.level} · Power ${item.power}. Stored safely in Loot Cache.`
+    );
+  }
+  return pendingLootReward;
+}
+
+let inventoryAutoPaused = false;
+
+function escapeInventoryHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;"
+  })[char]);
+}
+
+function safeItemColor(value){
+  const color = String(value || "");
+  return /^#[0-9a-f]{6}$/i.test(color) ? color : "#94a3b8";
+}
+
+function itemStatLabel(statId){
+  return String(statId || "")
+    .replace(/^hero_/, "")
+    .replace(/_pct$|_flat$/g, "")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function itemStatLines(item){
+  const lines = [];
+  if(item?.coreStat){
+    lines.push({
+      label: itemStatLabel(item.coreStat.id),
+      value: formatLootValue(item.coreStat.id, item.coreStat.value),
+      core: true
+    });
+  }
+  for(const affix of Array.isArray(item?.affixes) ? item.affixes : []){
+    lines.push({
+      label: affix.label || itemStatLabel(affix.id),
+      value: formatLootValue(affix.id, affix.value),
+      core: false
+    });
+  }
+  return lines;
+}
+
+function equipmentSlotPrompt(slotId){
+  return {
+    weapon: "Equip a weapon",
+    armor: "Equip armor",
+    boots: "Equip boots",
+    ring: "Equip a ring",
+    charm: "Equip a charm"
+  }[slotId] || "Equip an item";
+}
+
+function inventoryItemCard(item){
+  const equipped = equipmentSystem.isEquipped(item.instanceId);
+  const color = safeItemColor(item.rarityColor);
+  const statLines = itemStatLines(item).map((stat) => `
+    <div class="inventory-item-stat${stat.core ? " core" : ""}">
+      <span>${escapeInventoryHtml(stat.label)}</span>
+      <strong>${escapeInventoryHtml(stat.value)}</strong>
+    </div>
+  `).join("");
+  return `
+    <article class="inventory-item-card${equipped ? " equipped" : ""}" style="--item-color:${color}">
+      <div class="inventory-item-top">
+        <span class="inventory-item-icon">${escapeInventoryHtml(item.icon || "◆")}</span>
+        <span class="inventory-item-power"><small>Power</small>${Math.round(Number(item.power) || 0)}</span>
+      </div>
+      <div class="inventory-item-rarity">${escapeInventoryHtml(item.rarityName || item.rarity || "Item")}</div>
+      <h3>${escapeInventoryHtml(item.name || item.definitionId)}</h3>
+      <div class="inventory-item-meta">Lv.${Math.max(1, Math.floor(Number(item.level) || 1))} · ${escapeInventoryHtml(item.slot || "unknown")}</div>
+      <div class="inventory-item-stats">${statLines}</div>
+      <button class="btn ${equipped ? "btn-secondary" : "btn-primary"} inventory-equip-btn"
+        type="button" data-equip-item="${escapeInventoryHtml(item.instanceId)}" ${equipped ? "disabled" : ""}>
+        ${equipped ? "Equipped" : `Equip ${escapeInventoryHtml(item.slot || "")}`}
+      </button>
+    </article>
+  `;
+}
+
+function setInventoryFeedback(message, tone = "neutral"){
+  if(!inventoryFeedback) return;
+  inventoryFeedback.textContent = message;
+  inventoryFeedback.dataset.tone = tone;
+}
+
+function updateInventoryBadges(){
+  const status = inventorySystem.getStatus();
+  const cacheCount = rewardInbox.itemCount();
+  if(inventoryBtnCount) inventoryBtnCount.textContent = `${status.count} / ${status.capacity}`;
+  if(panelHeaderInventoryCount) panelHeaderInventoryCount.textContent = String(status.count);
+  panelHeaderInventoryBtn?.classList.toggle("has-loot", cacheCount > 0);
+  openInventoryBtn?.classList.toggle("has-loot", cacheCount > 0);
+}
+
+function renderInventoryOverlay(){
+  if(!inventoryOverlay) return;
+  const status = inventorySystem.getStatus();
+  const bundles = rewardInbox.list();
+  const cacheCount = rewardInbox.itemCount();
+  const stats = heroSystem.getStats();
+  const loadout = equipmentSystem.getLoadout();
+  const rewardMode = dailyChallengeActive ? "daily" : currentMode;
+  const pityTableId = `boss_${rewardMode}`;
+  const pityState = rewardInbox.getPity(pityTableId);
+  const pityRules = window.DarkDefense.REWARD_PITY_RULES[pityTableId] || { rare: 0, epic: 0 };
+
+  if(inventoryCapacityStat) inventoryCapacityStat.textContent = `${status.count} / ${status.capacity}`;
+  if(inventoryCacheStat) inventoryCacheStat.textContent = String(cacheCount);
+  if(inventoryPowerStat) inventoryPowerStat.textContent = String(stats.equipmentPower || 0);
+  if(inventoryDamageStat) inventoryDamageStat.textContent = String(Math.round(stats.damage * 10) / 10);
+  if(inventoryHpStat) inventoryHpStat.textContent = String(stats.maxHp);
+  if(inventoryPityStat){
+    const remaining = Math.max(1, (pityRules.rare || 1) - pityState.rare);
+    inventoryPityStat.textContent = `${remaining} ${remaining === 1 ? "boss" : "bosses"}`;
+    inventoryPityStat.title = `Epic guarantee in ${Math.max(1, (pityRules.epic || 1) - pityState.epic)} boss rewards.`;
+  }
+
+  if(claimAllLootBtn){
+    claimAllLootBtn.disabled = cacheCount <= 0;
+    claimAllLootBtn.textContent = cacheCount > 0 ? `Claim All (${cacheCount})` : "Cache Empty";
+  }
+
+  if(lootCacheList){
+    lootCacheList.innerHTML = bundles.length ? bundles.map((bundle) => {
+      const items = Array.isArray(bundle.items) ? bundle.items : [];
+      const label = items.map((item) =>
+        `${escapeInventoryHtml(item.icon || "◆")} ${escapeInventoryHtml(item.rarityName || "")} ${escapeInventoryHtml(item.name || item.definitionId)}`
+      ).join(", ");
+      return `
+        <article class="loot-cache-entry">
+          <div>
+            <span>Boss reward · ${escapeInventoryHtml(bundle.mode || "campaign")}</span>
+            <strong>${label}</strong>
+          </div>
+          <button class="btn btn-secondary" type="button" data-claim-bundle="${escapeInventoryHtml(bundle.bundleId)}">Claim</button>
+        </article>
+      `;
+    }).join("") : `
+      <div class="inventory-empty">
+        <span>◇</span>
+        <strong>Loot Cache empty</strong>
+        <small>Defeat a boss to secure a new equipment item.</small>
+      </div>
+    `;
+  }
+
+  if(equipmentSlots){
+    equipmentSlots.innerHTML = window.DarkDefense.EQUIPMENT_SLOTS.map((slot) => {
+      const item = loadout[slot.id];
+      const color = safeItemColor(item?.rarityColor);
+      return `
+        <article class="equipment-slot${item ? " filled" : ""}" style="--item-color:${color}">
+          <span class="equipment-slot-icon">${escapeInventoryHtml(slot.icon)}</span>
+          <div class="equipment-slot-copy">
+            <span>${escapeInventoryHtml(slot.name)}</span>
+            <strong>${item ? escapeInventoryHtml(item.name) : "Empty slot"}</strong>
+            <small>${item ? `${escapeInventoryHtml(item.rarityName || item.rarity)} · Power ${Math.round(Number(item.power) || 0)}` : equipmentSlotPrompt(slot.id)}</small>
+          </div>
+          ${item ? `<button type="button" data-unequip-slot="${escapeInventoryHtml(slot.id)}">Unequip</button>` : ""}
+        </article>
+      `;
+    }).join("");
+  }
+
+  if(inventoryItems){
+    const filter = inventoryFilter?.value || "all";
+    const sort = inventorySort?.value || "power_desc";
+    const items = inventorySystem.list(sort).filter((item) => filter === "all" || item.slot === filter);
+    inventoryItems.innerHTML = items.length
+      ? items.map(inventoryItemCard).join("")
+      : `<div class="inventory-empty inventory-empty-bag"><span>□</span><strong>No items here</strong><small>Claim boss rewards from the Loot Cache above.</small></div>`;
+  }
+  updateInventoryBadges();
+}
+
+function handleInventoryClaim(result){
+  if(result.accepted){
+    setInventoryFeedback(`${result.claimedItems.length} ${result.claimedItems.length === 1 ? "item" : "items"} moved safely into Inventory.`, "success");
+    pushNotification("achievement", "Loot claimed", `${result.claimedItems.length} equipment item secured in Inventory.`);
+  }else if(result.reason === "capacity"){
+    setInventoryFeedback(`Inventory full. You need ${result.required} free slots, but only ${result.free} remain. Nothing was moved.`, "warning");
+  }else if(result.reason === "duplicate_item"){
+    setInventoryFeedback("Claim blocked because an item ID already exists. The Loot Cache was left untouched.", "warning");
+  }else if(result.reason !== "empty"){
+    setInventoryFeedback("The reward could not be claimed. The Loot Cache was left untouched.", "warning");
+  }
+  renderInventoryOverlay();
+  updateUI();
+}
+
+function equipInventoryItem(instanceId){
+  const previousStats = heroSystem.getStats();
+  const result = equipmentSystem.equip(instanceId);
+  if(result.accepted){
+    const nextStats = heroSystem.refreshStats(previousStats);
+    setInventoryFeedback(`${result.item.name} equipped in ${result.slotId}. Hero Power is now ${nextStats.equipmentPower}.`, "success");
+    tone("sine", 560, 840, .1, .025);
+  }else{
+    setInventoryFeedback(result.reason === "already_equipped"
+      ? "That item is already equipped."
+      : "The item could not be equipped.", "warning");
+  }
+  renderInventoryOverlay();
+  updateUI();
+}
+
+function unequipInventorySlot(slotId){
+  const previousStats = heroSystem.getStats();
+  const result = equipmentSystem.unequip(slotId);
+  if(result.accepted){
+    heroSystem.refreshStats(previousStats);
+    setInventoryFeedback(`${itemStatLabel(slotId)} slot cleared. The item remains safely in Inventory.`, "success");
+  }else{
+    setInventoryFeedback("That equipment slot is already empty.", "warning");
+  }
+  renderInventoryOverlay();
+  updateUI();
+}
+
+function isInventoryOverlayOpen(){
+  return !!inventoryOverlay && !inventoryOverlay.classList.contains("hidden");
+}
+
+function openInventoryOverlay(){
+  if(!inventoryOverlay
+    || isHeroSkillsOverlayOpen()
+    || (auraRewardOverlay && !auraRewardOverlay.classList.contains("hidden"))
+    || (leyOverlay && !leyOverlay.classList.contains("hidden"))) return false;
+  renderInventoryOverlay();
+  setInventoryFeedback("Equipment is saved automatically.");
+  inventoryOverlay.classList.remove("hidden");
+  if(hasStarted && lives > 0 && !isPaused){
+    inventoryAutoPaused = pauseRunFlow("inventory-overlay");
+    if(inventoryAutoPaused) updateUI();
+  }
+  return true;
+}
+
+function closeInventoryOverlay(){
+  inventoryOverlay?.classList.add("hidden");
+  if(inventoryAutoPaused){
+    inventoryAutoPaused = false;
+    if(lives > 0) resumeRunFlow("inventory-overlay-closed");
+    updateUI();
+  }
+}
+
+let heroSkillsAutoPaused = false;
+let heroSkillRespecArmed = false;
+
+function setHeroSkillFeedback(message, tone = "neutral"){
+  if(!heroSkillFeedback) return;
+  heroSkillFeedback.textContent = message;
+  heroSkillFeedback.dataset.tone = tone;
+}
+
+function updateHeroSkillBadges(){
+  const state = heroSkillTreeSystem.getState();
+  const available = state.availablePoints;
+  if(skillBtnPoints) skillBtnPoints.textContent = String(available);
+  if(panelHeaderSkillPoints) panelHeaderSkillPoints.textContent = String(available);
+  openHeroSkillsBtn?.classList.toggle("has-points", available > 0);
+  panelHeaderSkillsBtn?.classList.toggle("has-points", available > 0);
+}
+
+function heroSkillRequirementText(definition){
+  if(!definition.prerequisites.length) return "No prerequisite";
+  return definition.prerequisites.map((requirement) => {
+    const requiredSkill = window.DarkDefense.HERO_SKILL_DEFINITIONS[requirement.id];
+    return `${requiredSkill?.name || requirement.id} ${requirement.rank}/${requiredSkill?.maxRank || requirement.rank}`;
+  }).join(" · ");
+}
+
+function renderHeroSkillTree(){
+  if(!heroSkillBranches) return;
+  const state = heroSkillTreeSystem.getState();
+  const stats = heroSystem.getStats();
+  if(heroSkillLevel) heroSkillLevel.textContent = String(state.level);
+  if(heroSkillAvailable) heroSkillAvailable.textContent = String(state.availablePoints);
+  if(heroSkillSpent) heroSkillSpent.textContent = String(state.spentPoints);
+  if(heroSkillDamage) heroSkillDamage.textContent = String(Math.round(stats.damage * 10) / 10);
+
+  heroSkillBranches.innerHTML = window.DarkDefense.HERO_SKILL_BRANCHES.map((branch) => {
+    const nodes = branch.skillIds.map((skillId) => {
+      const definition = window.DarkDefense.HERO_SKILL_DEFINITIONS[skillId];
+      const rank = state.ranks[skillId] || 0;
+      const check = heroSkillTreeSystem.canPurchase(skillId);
+      const maxed = rank >= definition.maxRank;
+      const locked = !check.accepted && !maxed;
+      const pips = Array.from({length:definition.maxRank}, (_,index) =>
+        `<span class="${index < rank ? "filled" : ""}"></span>`
+      ).join("");
+      const lockLabel = check.reason === "prerequisite"
+        ? heroSkillRequirementText(definition)
+        : (check.reason === "no_points" ? "Requires an available point" : "");
+      return `
+        <article class="hero-skill-node${maxed ? " maxed" : ""}${locked ? " locked" : ""}">
+          <div class="hero-skill-node-head">
+            <span class="hero-skill-node-icon">${escapeInventoryHtml(definition.icon)}</span>
+            <div>
+              <h3>${escapeInventoryHtml(definition.name)}</h3>
+              <div class="hero-skill-ranks">${pips}<small>${rank}/${definition.maxRank}</small></div>
+            </div>
+          </div>
+          <p>${escapeInventoryHtml(definition.description)}</p>
+          <div class="hero-skill-requirement">${escapeInventoryHtml(lockLabel || heroSkillRequirementText(definition))}</div>
+          <button class="btn ${check.accepted ? "btn-primary" : "btn-secondary"}"
+            type="button" data-buy-hero-skill="${escapeInventoryHtml(skillId)}"
+            ${check.accepted ? "" : "disabled"}>
+            ${maxed ? "Mastered" : (check.accepted ? `Learn Rank ${rank + 1}` : "Locked")}
+          </button>
+        </article>
+      `;
+    }).join("");
+    return `
+      <section class="hero-skill-branch" style="--skill-branch-color:${branch.color}">
+        <header>
+          <span>${escapeInventoryHtml(branch.icon)}</span>
+          <div>
+            <h2>${escapeInventoryHtml(branch.name)}</h2>
+            <p>${escapeInventoryHtml(branch.description)}</p>
+          </div>
+        </header>
+        <div class="hero-skill-nodes">${nodes}</div>
+      </section>
+    `;
+  }).join("");
+
+  if(heroSkillRespecBtn){
+    heroSkillRespecBtn.disabled = state.spentPoints <= 0;
+    heroSkillRespecBtn.textContent = heroSkillRespecArmed
+      ? `Confirm Respec (+${state.spentPoints})`
+      : `Respec${state.spentPoints > 0 ? ` (${state.spentPoints})` : ""}`;
+    heroSkillRespecBtn.classList.toggle("armed", heroSkillRespecArmed);
+  }
+  updateHeroSkillBadges();
+}
+
+function purchaseHeroSkill(skillId){
+  heroSkillRespecArmed = false;
+  const previousStats = heroSystem.getStats();
+  const result = heroSkillTreeSystem.purchase(skillId);
+  if(result.accepted){
+    const nextStats = heroSystem.refreshStats(previousStats);
+    setHeroSkillFeedback(`${result.definition.name} reached Rank ${result.rank}/${result.definition.maxRank}. Damage: ${Math.round(nextStats.damage * 10) / 10}.`, "success");
+    pushNotification("achievement", "Hero skill learned", `${result.definition.name} · Rank ${result.rank}.`);
+    tone("sine", 620, 920, .12, .02);
+  }else{
+    setHeroSkillFeedback(result.reason === "no_points"
+      ? "Varyn needs another hero level for a new skill point."
+      : "That skill is still locked by its prerequisite.", "warning");
+  }
+  renderHeroSkillTree();
+  updateUI();
+}
+
+function handleHeroSkillRespec(){
+  const state = heroSkillTreeSystem.getState();
+  if(state.spentPoints <= 0) return;
+  if(!heroSkillRespecArmed){
+    heroSkillRespecArmed = true;
+    setHeroSkillFeedback(`Respec will return ${state.spentPoints} points. Click Confirm Respec to continue.`, "warning");
+    renderHeroSkillTree();
+    return;
+  }
+  const previousStats = heroSystem.getStats();
+  const result = heroSkillTreeSystem.respec();
+  heroSkillRespecArmed = false;
+  if(result.accepted){
+    heroSystem.refreshStats(previousStats);
+    setHeroSkillFeedback(`${result.refundedPoints} skill points returned. Equipment and hero XP were not changed.`, "success");
+  }else{
+    setHeroSkillFeedback("The skill tree could not be reset.", "warning");
+  }
+  renderHeroSkillTree();
+  updateUI();
+}
+
+function isHeroSkillsOverlayOpen(){
+  return !!heroSkillsOverlay && !heroSkillsOverlay.classList.contains("hidden");
+}
+
+function openHeroSkillsOverlay(){
+  if(!heroSkillsOverlay
+    || isInventoryOverlayOpen()
+    || (auraRewardOverlay && !auraRewardOverlay.classList.contains("hidden"))
+    || (leyOverlay && !leyOverlay.classList.contains("hidden"))) return false;
+  heroSkillRespecArmed = false;
+  renderHeroSkillTree();
+  setHeroSkillFeedback("Choose a branch and shape Varyn's combat role.");
+  heroSkillsOverlay.classList.remove("hidden");
+  if(hasStarted && lives > 0 && !isPaused){
+    heroSkillsAutoPaused = pauseRunFlow("hero-skills-overlay");
+    if(heroSkillsAutoPaused) updateUI();
+  }
+  return true;
+}
+
+function closeHeroSkillsOverlay(){
+  heroSkillsOverlay?.classList.add("hidden");
+  heroSkillRespecArmed = false;
+  if(heroSkillsAutoPaused){
+    heroSkillsAutoPaused = false;
+    if(lives > 0) resumeRunFlow("hero-skills-overlay-closed");
+    updateUI();
+  }
 }
 
 function renderAuraRewardCards(){
@@ -1847,6 +2507,7 @@ function showAuraRewardOverlay(){
   auraRerollUsed = false;
   renderAuraRewardCards();
   updateAuraRerollButton();
+  renderBossLootReward();
   auraRewardText.textContent = `The boss has been defeated. Choose 1 of ${pendingAuraDraft.length} legendary auras, then apply it to a single tower. That aura stays on the tower in future stages.`;
   const upcomingClearReward = pendingBossResolution?.type === "campaign-next-stage" ? getStageClearGoldReward(Math.max(1, pendingBossResolution.nextStage - 1)) : 0;
   if(auraRewardBonus){
@@ -1877,6 +2538,8 @@ function queueBossAuraReward(){
   bossDefeatRewardDelayTimer = 3.0;
   bossDefeatIntroText = "AN ANCIENT EVIL FALLS";
   bossDefeatIntroSubtext = "";
+  queueBossLootReward();
+  runStateMachine.send("REWARD_OPENED", { reason:"boss-defeated" });
   isPaused = true;
   setMessage(currentMode === "campaign" ? "An ancient evil falls." : "The endless horror falters.");
   updateUI();
@@ -1937,6 +2600,7 @@ function resolveBossWaveCompletion(){
   const resolution = pendingBossResolution;
   pendingBossResolution = null;
   if(!resolution) return;
+  runStateMachine.send("TRANSITION_STARTED", { reason:resolution.type });
 
   if(resolution.type === "campaign-next-stage") {
     const clearedStage = Math.max(1, resolution.nextStage - 1);
@@ -1995,6 +2659,7 @@ function resolveBossWaveCompletion(){
     pushNotification("stage","Endless Boss down",`Keep going! Endless wave ${stageWave} is next. Boss pairs defeated: ${runEndlessBossPairsDefeated}.`);
   }
   isPaused = false;
+  runStateMachine.send("READY", { reason:"boss-resolution-complete" });
   armWaveCallBonus();
   saveRunState();
   updateUI();
@@ -2004,13 +2669,9 @@ function resolveBossWaveCompletion(){
 
 async function requestLeaderboardRun(modeHint=currentMode){
   try{
-    const response = await fetch("/.netlify/functions/start-run", {
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body: JSON.stringify({ mode: ["endless","daily"].includes(modeHint) ? modeHint : "campaign" })
+    const data = await apiClient.post("start-run", {
+      mode: ["endless","daily"].includes(modeHint) ? modeHint : "campaign"
     });
-    if(!response.ok) throw new Error("run token unavailable");
-    const data = await response.json();
     if(!data?.runId || !data?.runToken) throw new Error("invalid run token");
     leaderboardRun = {
       runId: data.runId,
@@ -2046,9 +2707,7 @@ async function loadBonusLeaderboard(){
   if(!bonusLeaderboardList) return;
   bonusLeaderboardSubtitle.textContent = "Loading the global Endless bonus scoreboard...";
   try{
-    const response = await fetch("/.netlify/functions/get-bonus-leaderboard", { cache: "no-store" });
-    if(!response.ok) throw new Error("Leaderboard unavailable");
-    const rows = await response.json();
+    const rows = await apiClient.get("get-bonus-leaderboard", { cache: "no-store" });
     if(!Array.isArray(rows) || rows.length === 0){
       bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">No Endless runs submitted yet.</div>';
       bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
@@ -2094,23 +2753,19 @@ async function submitStoryLeaderboardScore(finalStage=currentStage){
   }catch(e){}
   try{
     await ensureLeaderboardRun("campaign");
-    const response = await fetch("/.netlify/functions/submit-score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        mode: "campaign",
-        name: playerName,
-        score: totalScore(),
-        bonusScore: bonusScore,
-        wave: finalStage,
-        kills: kills,
-        runId: leaderboardRun.runId,
-        runToken: leaderboardRun.runToken,
-        clientStartedAt: leaderboardRun.clientStartedAt,
-        elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
-      })
+    await apiClient.post("submit-score", {
+      mode: "campaign",
+      name: playerName,
+      score: totalScore(),
+      bonusScore: bonusScore,
+      wave: finalStage,
+      kills: kills,
+      runId: leaderboardRun.runId,
+      runToken: leaderboardRun.runToken,
+      clientStartedAt: leaderboardRun.clientStartedAt,
+      elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
+      runSeed: runRng.seed
     });
-    if(!response.ok) throw new Error("submit failed");
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
     pushNotification("achievement", "Story leaderboard submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
   }catch(error){
@@ -2131,27 +2786,19 @@ async function submitDailyLeaderboardScore(){
   try{ localStorage.setItem("sdcPlayerName", playerName); }catch(e){}
   try{
     await ensureLeaderboardRun("daily");
-    const response = await fetch("/.netlify/functions/submit-score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: playerName,
-        score: totalScore(),
-        bonusScore: bonusScore,
-        wave: stageWave,
-        kills: kills,
-        dailyKey: activeDailyChallenge.dateKey,
-        runId: leaderboardRun.runId,
-        runToken: leaderboardRun.runToken,
-        clientStartedAt: leaderboardRun.clientStartedAt,
-        elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
-      })
+    await apiClient.post("submit-score", {
+      name: playerName,
+      score: totalScore(),
+      bonusScore: bonusScore,
+      wave: stageWave,
+      kills: kills,
+      dailyKey: activeDailyChallenge.dateKey,
+      runId: leaderboardRun.runId,
+      runToken: leaderboardRun.runToken,
+      clientStartedAt: leaderboardRun.clientStartedAt,
+      elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
+      runSeed: runRng.seed
     });
-    if(!response.ok){
-      let serverError = "";
-      try{ serverError = (await response.json())?.error || ""; }catch(e){}
-      throw new Error(serverError || "submit failed");
-    }
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"daily" };
     pushNotification("achievement", "Daily leaderboard submitted", `${playerName} reached Wave ${stageWave} in today's challenge.`);
   }catch(error){
@@ -2167,9 +2814,10 @@ async function loadDailyLeaderboardIntoGameOver(){
   gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">Loading today\'s top defenders...</div>';
   try{
     const dayKey = activeDailyChallenge?.dateKey || getTodayKey();
-    const response = await fetch(`/.netlify/functions/get-daily-leaderboard?day=${encodeURIComponent(dayKey)}`, { cache:"no-store" });
-    if(!response.ok) throw new Error("unavailable");
-    const rows = await response.json();
+    const rows = await apiClient.get("get-daily-leaderboard", {
+      query: { day: dayKey },
+      cache:"no-store"
+    });
     if(!Array.isArray(rows) || rows.length === 0){
       gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">No runs submitted today yet — yours could be first.</div>';
       return;
@@ -2219,26 +2867,18 @@ async function submitBonusLeaderboardScore(){
   }catch(e){}
   try{
     await ensureLeaderboardRun("endless");
-    const response = await fetch("/.netlify/functions/submit-score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: playerName,
-        score: totalScore(),
-        bonusScore: bonusScore,
-        wave: stageWave,
-        kills: kills,
-        runId: leaderboardRun.runId,
-        runToken: leaderboardRun.runToken,
-        clientStartedAt: leaderboardRun.clientStartedAt,
-        elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0
-      })
+    await apiClient.post("submit-score", {
+      name: playerName,
+      score: totalScore(),
+      bonusScore: bonusScore,
+      wave: stageWave,
+      kills: kills,
+      runId: leaderboardRun.runId,
+      runToken: leaderboardRun.runToken,
+      clientStartedAt: leaderboardRun.clientStartedAt,
+      elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
+      runSeed: runRng.seed
     });
-    if(!response.ok){
-      let serverError = "";
-      try{ serverError = (await response.json())?.error || ""; }catch(e){}
-      throw new Error(serverError || "submit failed");
-    }
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"endless" };
     await loadBonusLeaderboard();
     pushNotification("achievement", "Leaderboard submitted", `${playerName} — Wave ${stageWave}, bonus +${bonusScore} sent to the global leaderboard.`);
@@ -2844,7 +3484,7 @@ function getWaveThreatProfile(){
     return {
       key: "armored",
       label: "Armored Push",
-      detail: "Heavy armor resists arrows. Bombs and mages perform best."
+      detail: "Bulwarks protect nearby allies. Break the armored carrier with bombs or magic."
     };
   }
 
@@ -2852,7 +3492,7 @@ function getWaveThreatProfile(){
     return {
       key: "fast",
       label: "Swift Pack",
-      detail: "Fast enemies are leading this wave. Archers and hunters can pick them off."
+      detail: "Pack Hunters accelerate together. Split the pack with control, then focus fire."
     };
   }
 
@@ -2871,11 +3511,25 @@ function getDamageMultiplierAgainstEnemy(enemy, projectileType){
     else if(projectileType === "mage") multiplier = 1.18;
     else if(projectileType === "bomb") multiplier = 1.28;
   }
-  return multiplier * getBrittleDamageMultiplier(enemy);
+  return multiplier
+    * getBrittleDamageMultiplier(enemy)
+    * enemyBehaviorSystem.getDamageTakenMultiplier(enemy);
 }
 
 function getBrittleDamageMultiplier(enemy){
   return 1 + Math.min(5, Math.max(0, enemy?.brittleStacks || 0)) * 0.08;
+}
+
+function dealDamageToEnemy(enemy, baseDamage, damageType="neutral"){
+  if(!enemy || enemy.hp <= 0) return 0;
+  const finalDamage = Math.max(0, Number(baseDamage) || 0) * getDamageMultiplierAgainstEnemy(enemy, damageType);
+  const absorbed = Math.min(Math.max(0, enemy.shieldHp || 0), finalDamage);
+  if(absorbed > 0){
+    enemy.shieldHp = Math.max(0, enemy.shieldHp - absorbed);
+    enemy.shieldFxTimer = Math.max(enemy.shieldFxTimer || 0, .35);
+  }
+  enemy.hp -= Math.max(0, finalDamage - absorbed);
+  return finalDamage;
 }
 
 function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
@@ -2886,6 +3540,8 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
   const rangePct = stats.range > 0 ? dist / stats.range : 1;
 
   if(enemy.type === "boss") score += 220;
+  if(enemy.behavior?.traitId === "bulwark") score += 85;
+  if(enemy.behavior?.traitId === "last_stand" && enemy.behavior.active) score += 110;
 
   if(unit.type === "archer"){
     if(enemy.type === "fast") score += 140;
@@ -3090,8 +3746,7 @@ function castDamageSpell(x, y){
   for(const enemy of enemies){
     const pos = getPathPosition(enemy.progress);
     if(distance({x,y}, pos) <= cfg.radius){
-      const finalDamage = cfg.damage * getBrittleDamageMultiplier(enemy);
-      enemy.hp -= finalDamage;
+      const finalDamage = dealDamageToEnemy(enemy, cfg.damage, "spell");
       affected += 1;
       addHitParticles(pos.x, pos.y, 10, "#fb923c");
       showPopup(pos.x, pos.y - 10, `-${Math.round(finalDamage)}`, "#fb923c");
@@ -3122,8 +3777,7 @@ function castBombSpell(x, y){
 
   let affected = 0;
   for(const item of inRange){
-    const finalDamage = cfg.damage * getBrittleDamageMultiplier(item.enemy);
-    item.enemy.hp -= finalDamage;
+    const finalDamage = dealDamageToEnemy(item.enemy, cfg.damage, "spell");
     affected += 1;
     addHitParticles(item.pos.x, item.pos.y, 8, "#fde047");
     showPopup(item.pos.x, item.pos.y - 10, `-${Math.round(finalDamage)}`, "#fde047");
@@ -3323,14 +3977,11 @@ function pickRandomEndlessBossPair(){
       allPairs.push([ids[i], ids[j]]);
     }
   }
-  for(let i = allPairs.length - 1; i > 0; i--){
-    const j = Math.floor(Math.random() * (i + 1));
-    [allPairs[i], allPairs[j]] = [allPairs[j], allPairs[i]];
-  }
-  const preferred = allPairs.find(pair => getBossPairKey(pair) !== lastEndlessBossPairKey);
-  const selected = preferred || allPairs[0] || ids.slice(0,2);
+  const shuffledPairs = runRng.shuffle(allPairs);
+  const preferred = shuffledPairs.find(pair => getBossPairKey(pair) !== lastEndlessBossPairKey);
+  const selected = preferred || shuffledPairs[0] || ids.slice(0,2);
   lastEndlessBossPairKey = getBossPairKey(selected);
-  return [...selected].sort(()=>Math.random()-0.5);
+  return runRng.shuffle(selected);
 }
 
 function syncEndlessUnlockArtworkBounds(){
@@ -3380,6 +4031,7 @@ function enterEndlessModeFromUnlock(){
   lastEndlessBossPairKey = "";
   runEndlessBossPairsDefeated = 0;
   endlessMusicStage = 1;
+  startRunFlow("endless-entered");
   prewarmLeaderboardRun("endless");
   syncAmbientAudio();
   saveProgress();
@@ -3434,6 +4086,7 @@ function startDailyChallenge(){
   isPaused = false;
 
   hasStarted = true;
+  startRunFlow("daily-challenge-started");
   ensureAudio();
   prewarmLeaderboardRun("daily");
   syncAmbientAudio();
@@ -3588,7 +4241,7 @@ function maybeSaveBestEndlessRun(){
    their run. Enemies/projectiles are intentionally NOT saved — a resume
    always lands in the calm build phase before the next wave. */
 const RUN_SAVE_KEY = "sdcSavedRun";
-const RUN_SAVE_VERSION = 2;
+const RUN_SAVE_VERSION = 5;
 
 function serializeRunState(){
   return {
@@ -3604,9 +4257,13 @@ function serializeRunState(){
     endlessMusicStage: (typeof endlessMusicStage !== "undefined") ? endlessMusicStage : 1,
     runLeyCrystalsEarned,
     runEndlessBossPairsDefeated,
+    lastEndlessBossPairKey,
+    runFlow: runStateMachine.getSnapshot(),
+    rng: runRng.getSnapshot(),
     comboBest,
     achievements: { ...achievements },
     spellCooldown: { ...spellCooldown },
+    hero: heroSystem.serializeRunState(),
     units: structuredClone(units),
     reservePool: structuredClone(reservePool),
     daily: dailyChallengeActive && activeDailyChallenge
@@ -3634,7 +4291,8 @@ function loadSavedRun(){
     const raw = localStorage.getItem(RUN_SAVE_KEY);
     if(!raw) return null;
     const save = JSON.parse(raw);
-    if(!save || save.v !== RUN_SAVE_VERSION) return null;
+    // Versions 2–4 remain valid; missing flow/combat state gets safe defaults.
+    if(!save || ![2, 3, 4, RUN_SAVE_VERSION].includes(save.v)) return null;
     if(!STAGES[save.stage]) return null;
     if(typeof save.lives !== "number" || save.lives <= 0) return null;
     // A saved daily run is only valid on the day it was played.
@@ -3671,6 +4329,8 @@ function restoreRunState(save){
   idCounter = Math.max(idCounter, (save.idCounter|0) || 1);
   runLeyCrystalsEarned = Math.max(0, save.runLeyCrystalsEarned|0);
   runEndlessBossPairsDefeated = Math.max(0, save.runEndlessBossPairsDefeated|0);
+  lastEndlessBossPairKey = typeof save.lastEndlessBossPairKey === "string" ? save.lastEndlessBossPairKey : "";
+  runRng = window.DarkDefense.createRunRng(save.rng || window.DarkDefense.createRunSeed("legacy"));
   comboBest = Math.max(0, save.comboBest|0);
   if(typeof endlessMusicStage !== "undefined") endlessMusicStage = save.endlessMusicStage || 1;
   if(save.endlessUnlocked) endlessUnlocked = true;
@@ -3685,6 +4345,14 @@ function restoreRunState(save){
   reservePool = save.reservePool && typeof save.reservePool === "object"
     ? { archer:[], hunter:[], mage:[], bomb:[], cryo:[], ...save.reservePool }
     : { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
+  heroSystem.restoreRunState(save.hero);
+  runStateMachine.send("RESTORE", {
+    ...(save.runFlow || {}),
+    phase: "ready",
+    mode: save.daily ? "daily" : currentMode,
+    daily: !!save.daily,
+    reason: "run-restored"
+  });
 
   // Reuse the anti-cheat run token when still valid so a resumed run keeps
   // its original server start time; otherwise request a fresh one.
@@ -3722,6 +4390,7 @@ function finishResumeRun(){
   resumeOverlay?.classList.add("hidden");
   hasStarted = true;
   isPaused = false;
+  runStateMachine.send("READY", { reason:"resume-confirmed" });
   ensureAudio();
   syncAmbientAudio();
   loadProgressNotice();
@@ -3746,6 +4415,7 @@ function startNewRunFromResume(){
   prewarmLeaderboardRun("campaign");
   hasStarted = true;
   isPaused = false;
+  startRunFlow("new-run-from-resume");
   ensureAudio();
   syncAmbientAudio();
   loadProgressNotice();
@@ -3767,7 +4437,7 @@ document.addEventListener("visibilitychange",()=>{
   if(!isRunInProgress()) return;
   if(!waveActive && !pendingAuraChoice && !pendingBossResolution) saveRunState();
   if(isPaused || pendingAuraChoice || pendingBossResolution) return;
-  isPaused = true;
+  if(!pauseRunFlow("tab-hidden")) return;
   cancelSpellSelection();
   setMessage("Game paused — you switched tabs. Press Pause or Space to resume.");
   updateUI();
@@ -3785,6 +4455,13 @@ function saveProgress(){
     localStorage.setItem("sdcBestScore", String(best));
     localStorage.setItem("sdcFurthestStage", String(furthest));
     localStorage.setItem("sdcEndlessUnlocked", endlessUnlocked ? "1" : localStorage.getItem("sdcEndlessUnlocked") || "0");
+    profileStore.update((profile)=>{
+      profile.progress.bestScore = best;
+      profile.progress.furthestStage = furthest;
+      profile.progress.endlessUnlocked = endlessUnlocked;
+      profile.progress.bestEndlessWave = Math.max(profile.progress.bestEndlessWave || 0, bestEndlessWave || 0);
+      return profile;
+    }, "progress:legacy-sync");
     syncBestEndlessStats();
   }catch(e){}
 }
@@ -3899,9 +4576,13 @@ function updateUI(){
   bestScoreStat.textContent=String(Number(localStorage.getItem("sdcBestScore")||0));
   furthestStageStat.textContent=String(Number(localStorage.getItem("sdcFurthestStage")||1));
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
+  if(lootInboxStat) lootInboxStat.textContent=String(rewardInbox.itemCount());
+  updateInventoryBadges();
+  updateHeroSkillBadges();
 
-  startWaveBtn.disabled=waveActive || lives<=0 || isPaused;
+  startWaveBtn.disabled=waveActive || lives<=0 || isPaused || !runStateMachine.can("START_WAVE");
   if(pauseBtn){
+    pauseBtn.disabled = !runStateMachine.can("PAUSE") && !runStateMachine.can("RESUME");
     pauseBtn.innerHTML = isPaused
       ? '<span class="resume-icon">▶</span><span class="btn-label">Resume</span>'
       : '<span class="pause-icon-wrap" aria-hidden="true"></span><span class="btn-label">Pause</span>';
@@ -3919,6 +4600,7 @@ function updateUI(){
   checkAchievements();
   updateSpellButtons();
   updateHintChip();
+  heroSystem.syncUi();
 }
 
 function resetAchievementsUI(){}
@@ -3929,10 +4611,11 @@ function applyStage(stageNumber, resetRun=false){
   pathCells=buildPathCells(path);
 
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[]; impactBursts=[]; screenFlashes=[];
+  heroSystem.resetForStage();
   comboCount = 0; comboTimer = 0; comboPop = 0; comboBest = 0;
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
-  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; bossTelegraphTimer=0; bossTelegraphType=""; bossTelegraphStage=null; bossCastTimer=0; bossCastText=""; bossCastColor="#f8fafc"; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1; waveCallBonus=0; waveCallBonusMax=0;
-  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingEndlessBossPair = []; lastEndlessBossPairKey = ""; hideAuraRewardOverlay(); hideEndlessUnlockOverlay();
+  waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; bossTelegraphTimer=0; bossTelegraphType=""; bossTelegraphStage=null; bossTelegraphEnemyId=null; bossTelegraphColor=""; bossCastTimer=0; bossCastText=""; bossCastColor="#f8fafc"; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1; waveCallBonus=0; waveCallBonusMax=0;
+  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingLootReward = null; pendingEndlessBossPair = []; lastEndlessBossPairKey = ""; hideAuraRewardOverlay(); hideEndlessUnlockOverlay(); renderBossLootReward();
   stopBossLoop();
   syncAmbientAudio();
   cancelSpellSelection();
@@ -3941,6 +4624,8 @@ function applyStage(stageNumber, resetRun=false){
   spellCooldown.bomb = 0;
 
   if(resetRun){
+    resetRunRng();
+    announcedEnemyTraits = new Set();
     reservePool={ archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
     money=START_MONEY + leyStartGoldBonus() + (stageNumber-1)*60;
     lives=getMaxLives(); score=0; bonusScore=0; kills=0; wave=1;
@@ -3951,6 +4636,11 @@ function applyStage(stageNumber, resetRun=false){
     Object.keys(achievements).forEach(k=>achievements[k]=false);
     resetAchievementsUI(); clearNotifications();
     currentMode="campaign";
+    runStateMachine.send("RESET", {
+      mode: currentMode,
+      daily: dailyChallengeActive,
+      reason: "stage-reset"
+    });
 
     // Daily Challenge economy / lives overrides (only when a run is active).
     if(dailyChallengeActive && activeDailyChallenge){
@@ -3977,10 +4667,20 @@ function applyStage(stageNumber, resetRun=false){
   console.log("[Dark Defense] New stage started — Auto Play disabled.");
   updateUI();
 }
-const resetGame=()=>{ clearSavedRun(); exitDailyChallenge(); showHintChip(); resetCamera(); applyStage(1,true); prewarmLeaderboardRun("campaign"); };
+const resetGame=()=>{
+  clearSavedRun();
+  exitDailyChallenge();
+  showHintChip();
+  resetCamera();
+  applyStage(1,true);
+  startRunFlow("run-reset");
+  prewarmLeaderboardRun("campaign");
+  updateUI();
+};
 
 function startWave(autoTriggered=false){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
+  if(!runStateMachine.send("START_WAVE", { reason:autoTriggered ? "auto-play" : "player" }).accepted) return;
   ensureAudio();
   const stage=STAGES[currentStage];
   const threatProfile = getWaveThreatProfile();
@@ -4016,7 +4716,10 @@ function startWave(autoTriggered=false){
 }
 function togglePause(){
   if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution) return;
-  isPaused=!isPaused;
+  const changed = isPaused
+    ? resumeRunFlow("player")
+    : pauseRunFlow("player");
+  if(!changed) return;
   if(isPaused) cancelSpellSelection();
   setMessage(isPaused?"Game paused. Spells are disabled while paused.":"Game resumed.");
   updateUI();
@@ -4064,7 +4767,7 @@ function enemyTemplateForSpawn(indexFromEnd){
       return {type:"armored", hpMult:1.55*stage.difficulty, speed:.082+currentStage*.0025, reward:26};
     }
   }
-  const roll=Math.random();
+  const roll=runRng.next();
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
     const difficultyWave = getDifficultyWaveNumber();
@@ -4091,6 +4794,8 @@ function spawnEnemy(){
   const endlessHpMult = (currentMode === "endless" && t.type !== "boss") ? 2 : 1;
   const scaledHp = hpBase*t.hpMult*dcHp*endlessHpMult;
   const enemy = { id:idCounter++, hp:scaledHp, maxHp:scaledHp, speed:t.speed*dcSpd, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
+  enemyBehaviorSystem.initialize(enemy);
+  if(enemy.type==="boss") bossPhaseSystem.initialize(enemy);
   enemies.push(enemy);
   if(enemy.type==="boss") startBossLoop();
 }
@@ -4457,8 +5162,7 @@ function applySplashDamage(center,radius,damage,projectileType){
   for(const enemy of enemies){
     const pos=getPathPosition(enemy.progress);
     if(distance(center,pos)<=radius){
-      const finalDamage = damage * getDamageMultiplierAgainstEnemy(enemy, projectileType);
-      enemy.hp -= finalDamage;
+      const finalDamage = dealDamageToEnemy(enemy, damage, projectileType);
       addHitParticles(pos.x,pos.y,projectileType==="bomb"?6:4,projectileType==="bomb"?"#fb923c":"#c4b5fd");
       showPopup(pos.x,pos.y-10,`-${Math.round(finalDamage)}`,projectileType==="bomb"?"#fb923c":"#c4b5fd");
     }
@@ -4470,6 +5174,12 @@ function getKillRewardMultiplier(){
   return 1 + stageBonus + endlessBonus;
 }
 function rewardKill(enemy,pos){
+  if(enemy.type === "boss" && enemy.id === bossTelegraphEnemyId){
+    bossTelegraphTimer = 0;
+    bossTelegraphEnemyId = null;
+    bossTelegraphColor = "";
+  }
+  heroSystem.onEnemyDefeated(enemy);
   const scaledBase = Math.max(1, Math.round(enemy.reward * getKillRewardMultiplier() * leyKillGoldMult() * dcKillGoldMult()));
   let reward = scaledBase;
   let scoreGain = 0;
@@ -4513,66 +5223,76 @@ function rewardKill(enemy,pos){
     playDeathSound(enemy.type);
   }
 }
-function triggerBossAbility(enemy){
+function triggerBossPhase(enemy, phase){
   const bossStage = enemy?.bossStage || currentStage;
-  const ability=STAGES[bossStage].bossAbility;
+  const ability = phase?.ability || STAGES[bossStage].bossAbility;
+  const intensity = Math.max(1, Math.floor(phase?.intensity || 1));
   const meta = getBossAbilityMeta(bossStage);
   if(ability==="summon"){
     const minionHp = bossStage === 3 ? 48 * STAGES[bossStage].difficulty : 40 * STAGES[bossStage].difficulty;
     const minionSpeed = bossStage === 3 ? .125 : .13;
-    const summonCount = bossStage === 3 ? 3 : 2;
-    for(let i=0;i<summonCount;i++) enemies.push({ id:idCounter++, hp:minionHp, maxHp:minionHp, speed:minionSpeed, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8, abilityUsed:true });
+    const summonCount = (bossStage === 3 ? 3 : 2) + (intensity - 1) * 2;
+    for(let i=0;i<summonCount;i++){
+      const minion = { id:idCounter++, hp:minionHp, maxHp:minionHp, speed:minionSpeed, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8 };
+      enemyBehaviorSystem.initialize(minion);
+      enemies.push(minion);
+    }
     bossFxType = "summon";
     bossFxTimer = 1.0;
-    startBossCastBanner(meta.label, meta.color);
-    showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned minions!`,"#fca5a5");
+    startBossCastBanner(phase?.name || meta.label, phase?.color || meta.color);
+    showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} summoned ${summonCount} minions!`,"#fca5a5");
   }
   if(ability==="rage"){
-    const speedMultiplier = bossStage === 5 ? 1.75 : 1.68;
-    const bonusHp = bossStage === 5 ? .18 : .15;
-    enemy.speed*=speedMultiplier; enemy.hp += enemy.maxHp*bonusHp;
+    const speedMultiplier = intensity > 1 ? 1.18 : (bossStage === 5 ? 1.3 : 1.24);
+    const bonusHp = (intensity > 1 ? .12 : .08) + (bossStage === 5 ? .03 : 0);
+    enemy.speed *= speedMultiplier;
+    enemy.hp = Math.min(enemy.maxHp, enemy.hp + enemy.maxHp * bonusHp);
     enemy.rageFxTimer = 2.4;
     bossFxType = "rage";
     bossFxTimer = 1.0;
-    startBossCastBanner(meta.label, meta.color);
-    showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered rage mode!`,"#fca5a5");
+    startBossCastBanner(phase?.name || meta.label, phase?.color || meta.color);
+    showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered ${intensity > 1 ? "frenzy" : "rage"}!`,"#fca5a5");
   }
   if(ability==="shield"){
-    const shieldAmount = bossStage === 6 ? .25 : (bossStage === 4 ? .30 : .25);
-    enemy.hp += enemy.maxHp*shieldAmount;
+    const shieldRatio = (bossStage === 6 ? .22 : .18) + intensity * .06;
+    enemy.shieldHp = Math.min(enemy.maxHp * .65, (enemy.shieldHp || 0) + enemy.maxHp * shieldRatio);
+    enemy.shieldMax = Math.max(enemy.shieldMax || 0, enemy.shieldHp);
     enemy.shieldFxTimer = 2.8;
     bossFxType = "shield";
     bossFxTimer = 1.0;
-    startBossCastBanner(meta.label, meta.color);
-    showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained a shield!`,"#93c5fd");
+    startBossCastBanner(phase?.name || meta.label, phase?.color || meta.color);
+    showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} gained ${Math.round(enemy.maxHp * shieldRatio)} shield!`,"#93c5fd");
   }
   if(ability==="roots"){
     const activeUnits = units.filter(unit => (unit.snareTimer || 0) <= 0);
     if(activeUnits.length){
-      let rootedUnit = null;
-      let bestDistance = Infinity;
       const bossPos = getPathPosition(enemy.progress);
-      for(const unit of activeUnits){
-        const unitPos = cellCenter(unit.c, unit.r);
-        const d = distance(unitPos, bossPos);
-        if(d < bestDistance){
-          bestDistance = d;
-          rootedUnit = unit;
-        }
-      }
-      if(rootedUnit){
+      const rootedUnits = activeUnits
+        .map(unit => ({ unit, distance:distance(cellCenter(unit.c, unit.r), bossPos) }))
+        .sort((a,b)=>a.distance-b.distance)
+        .slice(0, intensity)
+        .map(item => item.unit);
+      for(const rootedUnit of rootedUnits){
         rootedUnit.snareTimer = 3.5;
         rootedUnit.cooldown = Math.max(rootedUnit.cooldown || 0, 0.35);
         const rootedPos = cellCenter(rootedUnit.c, rootedUnit.r);
-        bossFxType = "roots";
-        bossFxTimer = 1.0;
-        startBossCastBanner(meta.label, meta.color);
         showPopup(rootedPos.x, rootedPos.y - 26, "Rooted!", "#86efac");
-        showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entangled a tower!`,"#86efac");
       }
+      bossFxType = "roots";
+      bossFxTimer = 1.0;
+      startBossCastBanner(phase?.name || meta.label, phase?.color || meta.color);
+      showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entangled ${rootedUnits.length} ${rootedUnits.length === 1 ? "tower" : "towers"}!`,"#86efac");
     }
   }
-  enemy.abilityUsed=true;
+}
+
+function triggerBossAbility(enemy){
+  triggerBossPhase(enemy, {
+    id: "legacy_ability",
+    name: getBossAbilityMeta(enemy?.bossStage || currentStage).label,
+    ability: STAGES[enemy?.bossStage || currentStage].bossAbility,
+    intensity: 1
+  });
 }
 
 function update(dt){
@@ -4615,6 +5335,11 @@ function update(dt){
       beginBossAuraReward();
     }
   }
+  heroSystem.update(dt, {
+    active: hasStarted && lives > 0,
+    paused: isPaused,
+    difficulty: STAGES[currentStage]?.difficulty || 1
+  });
   if(lives<=0 || isPaused) return;
   spellCooldown.slow = Math.max(0, spellCooldown.slow - dt);
   spellCooldown.damage = Math.max(0, spellCooldown.damage - dt);
@@ -4624,6 +5349,8 @@ function update(dt){
     spawnTimer += dt;
     if(spawnTimer>=.68){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
   }
+
+  enemyBehaviorSystem.updateAll(enemies);
 
   for(let i=enemies.length-1;i>=0;i--){
     const enemy=enemies[i];
@@ -4658,9 +5385,9 @@ function update(dt){
     }
     if(enemy.burnTimer){
       enemy.burnTimer = Math.max(0, enemy.burnTimer - dt);
-      const burnDamage = (enemy.burnDps || 0) * dt * getBrittleDamageMultiplier(enemy);
+      const burnDamage = (enemy.burnDps || 0) * dt;
       if(burnDamage > 0){
-        enemy.hp -= burnDamage;
+        dealDamageToEnemy(enemy, burnDamage, "burn");
       }
     }
     if(enemy.shieldFxTimer){
@@ -4675,19 +5402,10 @@ function update(dt){
     const cryoSlowFactor = enemy.cryoSlowTimer > 0 ? (enemy.cryoSlowFactor || 1) : 1;
     const freezeFactor = enemy.freezeTimer > 0 ? 0 : 1;
     const stunFactor = enemy.stunTimer > 0 ? 0 : 1;
-    enemy.progress += enemy.speed * spellSlowFactor * auraSlowFactor * specSlowFactor * cryoSlowFactor * freezeFactor * stunFactor * dt;
-    if(enemy.type==="boss" && !enemy.abilityUsed){
-      const bossStage = enemy.bossStage || currentStage;
-      if(!enemy.bossTelegraphShown && enemy.hp < enemy.maxHp * 0.68 && enemy.hp >= enemy.maxHp * 0.55){
-        const meta = getBossAbilityMeta(bossStage);
-        enemy.bossTelegraphShown = true;
-        bossTelegraphType = STAGES[bossStage].bossAbility;
-        bossTelegraphStage = bossStage;
-        bossTelegraphTimer = 1.15;
-        startBossCastBanner(`${meta.short} incoming`, meta.color, 1.15);
-      }
-      if(enemy.hp<enemy.maxHp*.55) triggerBossAbility(enemy);
-    }
+    const heroBlockFactor = enemy.blockedByHeroId ? 0 : 1;
+    const controlMultiplier = spellSlowFactor * auraSlowFactor * specSlowFactor * cryoSlowFactor * freezeFactor * stunFactor * heroBlockFactor;
+    enemy.progress += enemy.speed * enemyBehaviorSystem.getMovementMultiplier(enemy, controlMultiplier) * dt;
+    if(enemy.type==="boss") bossPhaseSystem.update(enemy, dt);
     if(enemy.progress>=1){
       enemies.splice(i,1);
       if(enemy.type==="boss") syncBossLoop();
@@ -4696,6 +5414,7 @@ function update(dt){
       if(lives<=0 && !gameOverTriggered){
         gameOverTriggered = true;
         waveActive=false;
+        runStateMachine.send("GAME_OVER", { reason:"gate-breached" });
         clearSavedRun();
         setGameSpeed(1);
         openGameOverOverlay();
@@ -4788,8 +5507,7 @@ function update(dt){
       else {
         if(owner?.type === "cryo") applyCryoBrittle(target, owner, targetPos);
         const damageMult = getDamageMultiplierAgainstEnemy(target, projectile.projectileType);
-        const finalDamage = projectile.damage * damageMult;
-        target.hp-=finalDamage;
+        const finalDamage = dealDamageToEnemy(target, projectile.damage, projectile.projectileType);
         if(owner) markEnemyHit(target, owner, finalDamage);
         applyAuraStatusOnEnemy(target, owner, targetPos, finalDamage);
         applySpecializationStatusOnEnemy(target, owner, targetPos, finalDamage);
@@ -4821,14 +5539,16 @@ function update(dt){
       if(defeatedEnemy.type==="splitter" && !defeatedEnemy.fragment){
         const fragHp = Math.max(12, defeatedEnemy.maxHp * 0.34);
         for(let f=0; f<2; f++){
-          enemies.push({
+          const fragment = {
             id:idCounter++, hp:fragHp, maxHp:fragHp,
             speed:defeatedEnemy.speed * 1.4,
             progress:Math.max(0, defeatedEnemy.progress - 0.006 - f * 0.012),
             wobble:Math.random()*Math.PI*2,
             type:"splitter", fragment:true, reward:6,
             abilityUsed:true, bossTelegraphShown:true
-          });
+          };
+          enemyBehaviorSystem.initialize(fragment);
+          enemies.push(fragment);
         }
         showPopup(pos.x, pos.y - 26, "Split!", "#5eead4");
       }
@@ -4895,6 +5615,7 @@ function update(dt){
       return;
     }
 
+    runStateMachine.send("WAVE_CLEARED", { reason:"wave-cleared" });
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
@@ -6620,9 +7341,9 @@ function drawEnemy(enemy){
     ctx.stroke();
     ctx.restore();
   }
-  if(enemy.type === "boss" && enemy.shieldFxTimer > 0){
+  if(enemy.type === "boss" && (enemy.shieldFxTimer > 0 || enemy.shieldHp > 0)){
     ctx.save();
-    ctx.globalAlpha = Math.min(0.7, enemy.shieldFxTimer / 2.8 * 0.7);
+    ctx.globalAlpha = enemy.shieldHp > 0 ? 0.58 : Math.min(0.7, enemy.shieldFxTimer / 2.8 * 0.7);
     ctx.strokeStyle = "#93c5fd";
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -6713,6 +7434,7 @@ function drawEnemy(enemy){
   ctx.fillStyle = "rgba(15,23,42,.95)"; roundRect(hpX, hpY, hpWidth, 6, 4); ctx.fill();
   ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b")) : enemy.type === "tank" ? "#fb7185" : enemy.type === "armored" ? "#94a3b8" : enemy.type === "splitter" ? "#2dd4bf" : enemy.type === "fast" ? "#38bdf8" : "#22c55e";
   roundRect(hpX, hpY, hpWidth * hpPct, 6, 4); ctx.fill();
+  enemyBehaviorSystem.drawIndicator(ctx, enemy, { x, y });
 }
 const drawEnemies=()=>enemies.forEach(drawEnemy);
 
@@ -7046,6 +7768,7 @@ function drawBossHealthBar(){
   if(!boss) return;
   const pct = Math.max(0, boss.hp / boss.maxHp);
   const meta = getBossAbilityMeta(boss.bossStage || currentStage);
+  const phaseState = bossPhaseSystem.getDisplayState(boss);
   const x = canvas.width/2 - 190, y = 12, w = 380, h = 22;
   ctx.fillStyle = "rgba(8,17,31,.84)";
   roundRect(x,y,w,h,10); ctx.fill();
@@ -7061,9 +7784,13 @@ function drawBossHealthBar(){
   ctx.font = `700 12px ${FONT_DISPLAY}`;
   ctx.textAlign = "center";
   ctx.fillText(boss.bossName || "BOSS HP", canvas.width/2, y+15);
-  ctx.fillStyle = meta.color;
+  ctx.fillStyle = bossTelegraphTimer > 0 && bossTelegraphColor ? bossTelegraphColor : meta.color;
   ctx.font = `700 10px ${FONT_UI}`;
-  ctx.fillText(`Trait: ${meta.short}`, canvas.width/2, y + h + 18);
+  const phaseLabel = phaseState?.pendingName
+    ? `${phaseState.pendingName} · ${Math.max(0.1, phaseState.pendingSeconds).toFixed(1)}s`
+    : `Phase ${(phaseState?.activeIndex || 0) + 1}/${(phaseState?.total || 0) + 1} · ${phaseState?.activeName || meta.short}`;
+  const shieldLabel = boss.shieldHp > 0 ? ` · Shield ${Math.ceil(boss.shieldHp)}` : "";
+  ctx.fillText(`${phaseLabel}${shieldLabel}`, canvas.width/2, y + h + 18);
   ctx.textAlign = "start";
 }
 
@@ -7383,17 +8110,18 @@ function drawStageQuoteCinematic(){
 
 function drawBossAbilityFx(){
   if(bossTelegraphTimer > 0 && bossTelegraphType){
-    const boss = enemies.find(e => e.type === "boss");
+    const boss = enemies.find(e => e.id === bossTelegraphEnemyId) || enemies.find(e => e.type === "boss");
     const meta = getBossAbilityMeta(bossTelegraphStage || boss?.bossStage || currentStage);
+    const telegraphColor = bossTelegraphColor || meta.color;
     const alpha = Math.min(1, bossTelegraphTimer / 0.25, bossTelegraphTimer);
     ctx.save();
     ctx.globalAlpha = 0.16 * alpha;
-    ctx.fillStyle = meta.color;
+    ctx.fillStyle = telegraphColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if(boss){
       const pos = getPathPosition(boss.progress);
       ctx.globalAlpha = 0.72 * alpha;
-      ctx.strokeStyle = meta.color;
+      ctx.strokeStyle = telegraphColor;
       ctx.lineWidth = 2.2;
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, 30 + Math.sin(performance.now() * 0.02) * 5, 0, Math.PI * 2);
@@ -7475,6 +8203,7 @@ function draw(){
   drawTerrainFeatures();
   drawPlacementPreview();
   drawUnits();
+  heroSystem.draw(ctx);
   drawEnemies();
   drawProjectiles();
   drawPlacementEffects();
@@ -7542,6 +8271,11 @@ canvas.addEventListener("mouseleave",()=>{ hoveredCell=null; });
 canvas.addEventListener("click",(event)=>{
   ensureAudio(); hasStarted=true; if(isMusicEnabled() && !ambientState.track) syncAmbientAudio();
   const {x,y,c,r}=getMousePos(event);
+
+  if(heroSystem.isCommanding()){
+    heroSystem.commandToWorld(x, y);
+    return;
+  }
 
   if(pendingAuraChoice){
     for(const unit of units){
@@ -7658,12 +8392,29 @@ function toggleSpellSelection(spell){
     setMessage(`${SPELL_LABELS[spell]} is still recharging.`);
     return;
   }
+  heroSystem.cancelCommand();
   selectedSpell = selectedSpell === spell ? null : spell;
   setMessage(selectedSpell === spell
     ? `Choose the target area for ${SPELL_LABELS[spell]}.`
     : "Spell canceled.");
   updateSpellButtons();
 }
+
+heroCommandBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(pendingAuraChoice){
+    setMessage("Bind the selected aura before moving the hero.");
+    return;
+  }
+  cancelSpellSelection();
+  heroSystem.toggleCommandMode();
+});
+
+heroAbilityBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  heroSystem.cancelCommand();
+  heroSystem.activateAbility();
+});
 
 spellSlowBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
@@ -7687,6 +8438,63 @@ resetCameraBtn?.addEventListener("click",(event)=>{
   updateUI();
 });
 
+openInventoryBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  openInventoryOverlay();
+});
+panelHeaderInventoryBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  openInventoryOverlay();
+});
+closeInventoryBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  closeInventoryOverlay();
+});
+inventoryOverlay?.addEventListener("click",(event)=>{
+  if(event.target === inventoryOverlay) closeInventoryOverlay();
+});
+claimAllLootBtn?.addEventListener("click",()=>{
+  handleInventoryClaim(inventorySystem.claimAll());
+});
+lootCacheList?.addEventListener("click",(event)=>{
+  const button = event.target.closest("[data-claim-bundle]");
+  if(button) handleInventoryClaim(inventorySystem.claimBundle(button.dataset.claimBundle));
+});
+inventoryItems?.addEventListener("click",(event)=>{
+  const button = event.target.closest("[data-equip-item]");
+  if(button && !button.disabled) equipInventoryItem(button.dataset.equipItem);
+});
+equipmentSlots?.addEventListener("click",(event)=>{
+  const button = event.target.closest("[data-unequip-slot]");
+  if(button) unequipInventorySlot(button.dataset.unequipSlot);
+});
+inventoryFilter?.addEventListener("change",renderInventoryOverlay);
+inventorySort?.addEventListener("change",renderInventoryOverlay);
+openHeroSkillsBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  openHeroSkillsOverlay();
+});
+panelHeaderSkillsBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  openHeroSkillsOverlay();
+});
+closeHeroSkillsBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  closeHeroSkillsOverlay();
+});
+heroSkillDoneBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  closeHeroSkillsOverlay();
+});
+heroSkillsOverlay?.addEventListener("click",(event)=>{
+  if(event.target === heroSkillsOverlay) closeHeroSkillsOverlay();
+});
+heroSkillBranches?.addEventListener("click",(event)=>{
+  const button = event.target.closest("[data-buy-hero-skill]");
+  if(button && !button.disabled) purchaseHeroSkill(button.dataset.buyHeroSkill);
+});
+heroSkillRespecBtn?.addEventListener("click",handleHeroSkillRespec);
+
 startGameBtn.addEventListener("click",()=>{
   // A fresh Play always starts a new run — any old snapshot is discarded.
   clearSavedRun();
@@ -7695,11 +8503,14 @@ startGameBtn.addEventListener("click",()=>{
     exitDailyChallenge();
     applyStage(1, true);
   }
-  hasStarted=true; ensureAudio(); syncAmbientAudio();
+  hasStarted=true;
+  startRunFlow("campaign-started");
+  ensureAudio(); syncAmbientAudio();
   startOverlay.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
   setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
+  updateUI();
 });
 
 
@@ -7717,6 +8528,8 @@ restartFromGameOverBtn.addEventListener("click",()=>{
     startDailyChallenge();
   } else {
     applyStage(currentStage, true);
+    startRunFlow("game-over-restart");
+    updateUI();
   }
   if(hasStarted && isMusicEnabled()) syncAmbientAudio();
 });
@@ -7724,6 +8537,8 @@ restartFromGameOverBtn.addEventListener("click",()=>{
 returnToMenuBtn?.addEventListener("click",()=>{
   gameOverOverlay.classList.add("hidden");
   resetGame();
+  hasStarted = false;
+  runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"main-menu" });
   startOverlay.classList.remove("hidden");
   setMessage("Returned to the main menu.");
 });
@@ -7739,6 +8554,8 @@ dailyChallengeBtn?.addEventListener("click", ()=>{
 backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
   hideEndlessUnlockOverlay();
   resetGame();
+  hasStarted = false;
+  runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"main-menu" });
   startOverlay.classList.remove("hidden");
   setMessage("Returned to the main menu.");
 });
@@ -7823,6 +8640,18 @@ document.addEventListener("keydown",(event)=>{
   const activeTag = document.activeElement?.tagName;
   if(activeTag === "INPUT" || activeTag === "TEXTAREA") return;
 
+  if(isInventoryOverlayOpen()){
+    event.preventDefault();
+    if(event.key === "Escape") closeInventoryOverlay();
+    return;
+  }
+
+  if(isHeroSkillsOverlayOpen()){
+    event.preventDefault();
+    if(event.key === "Escape") closeHeroSkillsOverlay();
+    return;
+  }
+
   // While the resume screen is up, Space/Enter resumes; everything else waits.
   if(isResumeOverlayOpen()){
     if(event.key === " " || event.key === "Enter"){
@@ -7833,6 +8662,18 @@ document.addEventListener("keydown",(event)=>{
   }
 
   const key = event.key.toLowerCase();
+
+  if(key === "i"){
+    event.preventDefault();
+    openInventoryOverlay();
+    return;
+  }
+
+  if(key === "k"){
+    event.preventDefault();
+    openHeroSkillsOverlay();
+    return;
+  }
 
   if(event.key === " "){
     event.preventDefault();
@@ -7847,6 +8688,12 @@ document.addEventListener("keydown",(event)=>{
 
   if(key === "r"){
     resetGame();
+    return;
+  }
+
+  if(key === "c"){
+    heroSystem.cancelCommand();
+    heroSystem.activateAbility();
     return;
   }
 
@@ -7884,6 +8731,7 @@ document.addEventListener("keydown",(event)=>{
     selectedPlacedUnitId = null;
     hideTowerMenu();
     hideUnitInfoPanel();
+    heroSystem.cancelCommand();
     cancelSpellSelection();
     updateUI();
     return;
@@ -8084,11 +8932,9 @@ mobileLayoutMedia.addEventListener?.("change", syncMobileHudLayout);
 panelHeaderLogoutBtn?.addEventListener("click", async (event)=>{
   event.preventDefault();
   try{
-    const response = await fetch("/.netlify/functions/logout", {
-      method: "POST",
+    await apiClient.post("logout", null, {
       credentials: "include"
     });
-    if(!response.ok) return;
     window.location.reload();
   }catch(_){}
 });

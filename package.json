@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "test": "node --test \"tests/*.test.js\"",
+    "check": "node --check game.js && node --check js/core/event-bus.js && node --check js/core/profile-store.js && node --check js/core/api-client.js && node --check js/core/run-state-machine.js && node --check js/core/run-rng.js && node --check js/content/combat-content.js && node --check js/content/reward-content.js && node --check js/content/hero-skill-content.js && node --check js/systems/enemy-behavior-system.js && node --check js/systems/boss-phase-system.js && node --check js/systems/hero-system.js && node --check js/systems/reward-generator.js && node --check js/systems/reward-inbox.js && node --check js/systems/inventory-system.js && node --check js/systems/equipment-system.js && node --check js/systems/hero-stat-pipeline.js && node --check js/systems/hero-skill-tree-system.js"
+  },
   "dependencies": {
     "@netlify/neon": "^0.1.2"
   }

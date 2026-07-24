@@ -388,6 +388,7 @@
           <a class="gd-ghost" href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span>Command Table</a>
         </div>
       </div>
+
     </section>
 
     <div class="gd-tabs" role="tablist" aria-label="Guide chapters">
@@ -546,7 +547,7 @@
     <!-- Enemies -->
     <section class="gd-panel" id="panel-enemies" role="tabpanel" aria-labelledby="tab-enemies" hidden>
       <h2>Enemy types</h2>
-      <p class="gd-lede">Every wave mixes these enemies. Each has a different balance of health and speed, so your ideal answer changes with what's coming.</p>
+      <p class="gd-lede">Every wave mixes enemies with readable combat traits. Break formations, prioritize support units, and keep hard control for dangerous phase changes.</p>
 
       <div class="gd-enemies">
 
@@ -561,21 +562,21 @@
           <img src="assets/guide/mob_fast.png" alt="" loading="lazy" />
           <div class="gd-enemy-name">Runner</div>
           <div class="gd-tags"><span>Low HP</span><span>Very fast</span><span>+16 gold</span></div>
-          <p class="gd-enemy-desc">Rushes the gate before slow towers can react. Cover the whole path or lean on fast and tracking towers.</p>
+          <p class="gd-enemy-desc"><b>Pack Hunter:</b> gains 16% speed near another Runner. Frost Nova and Cryo split the formation so tracking towers can finish it.</p>
         </article>
 
         <article class="gd-enemy">
           <img src="assets/guide/mob_tank.png" alt="" loading="lazy" />
           <div class="gd-enemy-name">Tank</div>
           <div class="gd-tags"><span>2&times; HP</span><span>Slow</span><span>+28 gold</span></div>
-          <p class="gd-enemy-desc">A slow damage sponge. Focus fire and single-target burst beat it faster than spreading shots.</p>
+          <p class="gd-enemy-desc"><b>Last Stand:</b> below 40% HP it accelerates and resists slows. Stuns and freezes still stop it completely.</p>
         </article>
 
         <article class="gd-enemy">
           <img src="assets/guide/mob_armored.png" alt="" loading="lazy" />
           <div class="gd-enemy-name">Armored</div>
           <div class="gd-tags"><span>~1.5&times; HP</span><span>Steady</span><span>+26 gold</span></div>
-          <p class="gd-enemy-desc">Arrives in clusters at the front of waves. High effective health &mdash; Brittle stacks from Cryo make it melt much faster.</p>
+          <p class="gd-enemy-desc"><b>Bulwark:</b> nearby allies take 18% less damage. Destroy the armored carrier first with magic, bombs, and Brittle.</p>
         </article>
 
         <article class="gd-enemy">
@@ -593,7 +594,7 @@
     <!-- Bosses -->
     <section class="gd-panel" id="panel-bosses" role="tabpanel" aria-labelledby="tab-bosses" hidden>
       <h2>Bosses &amp; their abilities</h2>
-      <p class="gd-lede">Each campaign stage ends with a unique boss that has a huge health pool and a special ability. In Endless, bosses arrive in pairs every tenth wave &mdash; escorted by a full horde &mdash; and get tougher each cycle.</p>
+      <p class="gd-lede">Every boss now fights through three phases. Phase changes are telegraphed for 1.2 seconds, giving you time to cast, reposition Varyn, or change target priority. In Endless, both bosses keep their own phase state.</p>
 
       <div class="gd-bosses">
 
@@ -605,7 +606,7 @@
           <div class="gd-boss-body">
             <div class="gd-boss-name">Ancient Treant Skull</div>
             <div class="gd-boss-meta">Forest &middot; difficulty &times;1.0</div>
-            <p class="gd-boss-ability"><b>Root Grasp</b> &mdash; snares one of your towers, briefly disabling it. Keep a backup tower covering the same lane.</p>
+            <p class="gd-boss-ability"><b>Root Grasp &rarr; Ancient Overgrowth</b> &mdash; first snares one tower, then two. Keep overlapping kill zones.</p>
           </div>
         </article>
 
@@ -617,7 +618,7 @@
           <div class="gd-boss-body">
             <div class="gd-boss-name">Ruin Warden</div>
             <div class="gd-boss-meta">Ruins &middot; difficulty &times;1.35</div>
-            <p class="gd-boss-ability"><b>Blood Rage</b> &mdash; surges into a burst of speed. Have a slow spell ready to blunt the charge.</p>
+            <p class="gd-boss-ability"><b>Warden Rage &rarr; Ruin Frenzy</b> &mdash; two escalating speed surges. Hard control is strongest during the telegraph.</p>
           </div>
         </article>
 
@@ -629,7 +630,7 @@
           <div class="gd-boss-body">
             <div class="gd-boss-name">Grave Necromancer</div>
             <div class="gd-boss-meta">Graveyard &middot; difficulty &times;1.7</div>
-            <p class="gd-boss-ability"><b>Grave Summons</b> &mdash; spawns extra minions on the road mid-fight. Splash towers keep the adds from overwhelming you.</p>
+            <p class="gd-boss-ability"><b>Grave Call &rarr; Legion Rising</b> &mdash; summons increasingly large Runner packs. Save splash damage for the adds.</p>
           </div>
         </article>
 
@@ -641,7 +642,7 @@
           <div class="gd-boss-body">
             <div class="gd-boss-name">Iron Castellan</div>
             <div class="gd-boss-meta">Castle &middot; difficulty &times;2.15</div>
-            <p class="gd-boss-ability"><b>Void Bulwark</b> &mdash; forms a defensive shell that absorbs damage. Save burst and spells for after it drops.</p>
+            <p class="gd-boss-ability"><b>Iron Bulwark &rarr; Last Bastion</b> &mdash; gains two real damage-absorbing shields. Do not waste cooldowns into the telegraph.</p>
           </div>
         </article>
 
@@ -653,7 +654,7 @@
           <div class="gd-boss-body">
             <div class="gd-boss-name">Catacomb Devourer</div>
             <div class="gd-boss-meta">Catacombs &middot; difficulty &times;2.55</div>
-            <p class="gd-boss-ability"><b>Blood Rage</b> &mdash; a faster, deadlier surge than stage 2. Layered kill zones and a ready slow are essential.</p>
+            <p class="gd-boss-ability"><b>Devourer's Hunger &rarr; Blood Feast</b> &mdash; heals and accelerates twice. Layered control is essential.</p>
           </div>
         </article>
 
@@ -665,11 +666,12 @@
           <div class="gd-boss-body">
             <div class="gd-boss-name">Dark Portal Overlord</div>
             <div class="gd-boss-meta">Dark Portal &middot; difficulty &times;3.0</div>
-            <p class="gd-boss-ability"><b>Void Bulwark</b> &mdash; the final boss shields itself at the worst moments. Maximum single-target uptime plus saved spells win the run.</p>
+            <p class="gd-boss-ability"><b>Void Shell &rarr; Portal Breach</b> &mdash; shields first, then opens the portal for a large Runner pack.</p>
           </div>
         </article>
 
       </div>
+      <div class="gd-note"><strong>Boss loot:</strong> every defeated boss secures one deterministic equipment item in your persistent Loot Cache. Open <strong>Inventory &amp; Equipment</strong> with the Bag button or <kbd>I</kbd>, claim the reward, then equip it to Varyn. Equipment changes combat stats immediately, persists after reload, and can be removed without losing the item. Separate Campaign, Endless, and Daily pity counters guarantee a Rare after a short dry streak and an Epic after a longer one; duplicate rewards never advance the counters.</div>
     </section>
 
     <!-- Ascension -->
@@ -683,6 +685,7 @@
         <li><strong>&#10052; Special Towers</strong> &mdash; unlock Cryo (150 Crystals), then its four upgrades: <em>Deep Frost</em> (stronger chill), <em>Glacial Reach</em> (range &amp; field), <em>Frostbite</em> (damage), <em>Shatterpoint</em> (extra Brittle) &mdash; each with four ranks at 300 / 600 / 1000 / 1600.</li>
       </ul>
       <div class="gd-note">Node costs rise with each rank, so early attunements are cheap catch-up power, while the deepest upgrades &mdash; especially the Cryo tree &mdash; are long-term goals worth grinding toward.</div>
+      <div class="gd-note"><strong>Hero Skill Tree:</strong> Varyn earns one skill point for every level after Level 1. Open it with the <strong>Skills</strong> button or <kbd>K</kbd>, then build into Warden's Blade for attacks, Riftcaller for Rift Pulse, or Last Bastion for survival and mobility. Skill bonuses combine with equipment immediately. Respec requires a second confirmation and refunds every spent point without resetting hero XP or gear.</div>
     </section>
 
     <!-- Endless -->
