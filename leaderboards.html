@@ -348,10 +348,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
     </section>
 
     <div class="rk-tabs" role="tablist" aria-label="Leaderboard type">
-      <button class="rk-tab" role="tab" id="tab-power" aria-controls="panel-power" aria-selected="true" type="button">
-        <span class="ico" aria-hidden="true">&#9889;</span>Power
-      </button>
-      <button class="rk-tab" role="tab" id="tab-endless" aria-controls="panel-endless" aria-selected="false" type="button">
+      <button class="rk-tab" role="tab" id="tab-endless" aria-controls="panel-endless" aria-selected="true" type="button">
         <span class="ico" aria-hidden="true">&#8734;</span>Endless
       </button>
       <button class="rk-tab" role="tab" id="tab-story" aria-controls="panel-story" aria-selected="false" type="button">
@@ -360,9 +357,12 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       <button class="rk-tab" role="tab" id="tab-daily" aria-controls="panel-daily" aria-selected="false" type="button">
         <span class="ico" aria-hidden="true">&#128197;</span>Daily
       </button>
+      <button class="rk-tab" role="tab" id="tab-power" aria-controls="panel-power" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#9889;</span>Power
+      </button>
     </div>
 
-    <section class="rk-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless" hidden>
+    <section class="rk-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless">
       <div class="rk-panel-head">
         <div>
           <h2>Endless survival</h2>
@@ -410,7 +410,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       </div>
     </section>
 
-    <section class="rk-panel" id="panel-power" role="tabpanel" aria-labelledby="tab-power">
+    <section class="rk-panel" id="panel-power" role="tabpanel" aria-labelledby="tab-power" hidden>
       <div class="rk-panel-head">
         <div>
           <h2>Hero Power</h2>

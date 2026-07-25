@@ -4083,42 +4083,7 @@ function syncUnitSelectors(){
   });
 }
 
-let towerMenuFadeTimer = null;
-let towerMenuHideTimer = null;
-
-function clearTowerMenuAutoHide(){
-  if(towerMenuFadeTimer){ clearTimeout(towerMenuFadeTimer); towerMenuFadeTimer = null; }
-  if(towerMenuHideTimer){ clearTimeout(towerMenuHideTimer); towerMenuHideTimer = null; }
-  towerMenu?.classList.remove("fading");
-}
-
-// When the selected tower can't be upgraded or specialized because you're out
-// of gold, fade the menu out and deselect after a moment — so you don't have to
-// click elsewhere or press Escape (which in fullscreen also exits fullscreen).
-function scheduleTowerMenuAutoHide(canAct){
-  if(canAct){
-    // Affordable again (e.g. gold came in) — cancel any pending fade.
-    clearTowerMenuAutoHide();
-    return;
-  }
-  // Already counting down; don't restart on every UI refresh or the menu would
-  // never actually fade while you stay broke.
-  if(towerMenuFadeTimer || towerMenuHideTimer) return;
-  towerMenuFadeTimer = setTimeout(()=>{
-    towerMenuFadeTimer = null;
-    if(!towerMenu || towerMenu.classList.contains("hidden")) return;
-    towerMenu.classList.add("fading");
-    towerMenuHideTimer = setTimeout(()=>{
-      towerMenuHideTimer = null;
-      selectedPlacedUnitId = null;
-      hideTowerMenu();
-      updateUI();
-    }, 500);
-  }, 1600);
-}
-
 function hideTowerMenu(){
-  clearTowerMenuAutoHide();
   towerMenu?.classList.add("hidden");
 }
 
@@ -4196,12 +4161,6 @@ function showTowerMenu(unit){
   towerMenu.style.left = `${clampedMenu.left}px`;
   towerMenu.style.top = `${clampedMenu.top}px`;
   syncMobileHudLayout();
-
-  // If the player can neither upgrade nor specialize (out of gold), let the
-  // menu fade away on its own instead of forcing a manual dismiss.
-  const canSpec = canChooseSpecialization(unit) && money >= getSpecializationCost(unit);
-  const canUpgrade = !canChooseSpecialization(unit) && money >= Math.round(unit.nextUpgradeCost);
-  scheduleTowerMenuAutoHide(canSpec || canUpgrade);
 }
 
 
@@ -8568,7 +8527,6 @@ canvas.addEventListener("click",(event)=>{
       return;
     }
     selectedPlacedUnitId=clickedUnit.id;
-    clearTowerMenuAutoHide();
     setMessage(`You selected ${clickedUnit.name}.`);
     updateUI();
     return;

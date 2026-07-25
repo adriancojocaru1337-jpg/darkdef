@@ -121,13 +121,3 @@ v0.9.2e Rename propagation:
 - no new SQL migration: relies on leaderboard_scores.user_id (already added by
   setup_auth.sql) and daily_key (setup_daily_leaderboard.sql)
 - validation: 64 unit tests pass; all six functions syntax-checked
-
-v0.9.2f Tower menu auto-hide, leaderboard order, HUD redesign:
-- tower upgrade menu now fades out and deselects on its own when you can't afford
-  the upgrade/specialization — no need to click away or press Escape (which in
-  fullscreen also exits fullscreen). Re-selecting or earning gold cancels the fade.
-- Power leaderboard tab is now first (before Endless/Story/Daily) and the default
-- redesigned the three HUD buttons (Skills / Bag / Shop) as a cohesive pill set:
-  icon chip + label + count badge, per-button accent color, refined hover glow;
-  the crystals button now reads "Shop" with a ✦ icon
-- validation: 64 unit tests pass; game.js, leaderboards script and CSS checked
