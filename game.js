@@ -1680,14 +1680,46 @@ function computeHeroPowerPayload(){
   return { power, equipmentPower, skillPoints };
 }
 
+function computeHeroLoadout(){
+  const items = {};
+  try{
+    const loadout = equipmentSystem.getLoadout();
+    for(const slot of window.DarkDefense.EQUIPMENT_SLOTS){
+      const it = loadout[slot.id];
+      items[slot.id] = it ? {
+        name: it.name,
+        rarity: it.rarity,
+        power: Math.max(0, Math.round(Number(it.power) || 0)),
+        icon: it.icon || slot.icon
+      } : null;
+    }
+  }catch(_){}
+  const skills = [];
+  try{
+    const ranks = heroSkillTreeSystem.getState().ranks || {};
+    for(const [id, rank] of Object.entries(ranks)){
+      if(rank > 0){
+        const def = window.DarkDefense.HERO_SKILL_DEFINITIONS[id];
+        skills.push({ name: def?.name || id, rank });
+      }
+    }
+  }catch(_){}
+  return { items, skills };
+}
+
 async function pushHeroPower(){
   if(!leyAccountAuthed) return;
   const payload = computeHeroPowerPayload();
-  if(lastSubmittedPower === payload.power) return;
+  const changed = lastSubmittedPower !== payload.power;
   try{
-    const data = await apiClient.post("submit-power", payload, { credentials: "include" });
-    if(data?.ok) lastSubmittedPower = payload.power;
-  }catch(_){ /* non-fatal: leaderboard is best-effort */ }
+    if(changed){
+      const data = await apiClient.post("submit-power", payload, { credentials: "include" });
+      if(data?.ok) lastSubmittedPower = payload.power;
+    }
+    // Loadout can change without power changing (e.g. swapping two equal-power
+    // items), so submit it whenever we sync; it's cheap and rate-limited.
+    await apiClient.post("submit-loadout", { ...payload, loadout: computeHeroLoadout() }, { credentials: "include" });
+  }catch(_){ /* non-fatal: profile sync is best-effort */ }
 }
 
 function submitHeroPower(delayMs = 2000){

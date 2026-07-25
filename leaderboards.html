@@ -501,7 +501,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
     }
     function profileHref(row){
       const u = String(row?.profile_username || "").trim();
-      return u ? `/profile.html?user=${encodeURIComponent(u)}` : "";
+      return u ? `/command-table.html?user=${encodeURIComponent(u)}` : "";
     }
     function isOwn(row){
       return ownName && String(row?.player_name || "").toLowerCase() === ownName;

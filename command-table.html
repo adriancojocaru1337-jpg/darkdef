@@ -176,6 +176,40 @@
 .ct-account-state{ font-size:12.5px; color:var(--muted); line-height:1.6; }
 .ct-account-state a{ color:var(--accent); }
 
+/* Hero loadout */
+.ct-hero-power{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.ct-hero-stat{
+  flex:1 1 120px; padding:10px 12px; border-radius:12px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06);
+}
+.ct-hero-stat .label{ display:block; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+.ct-hero-stat .value{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ct-hero-slots{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:8px; }
+.ct-hero-slot{
+  display:flex; align-items:center; gap:10px;
+  padding:9px 11px; border-radius:12px;
+  background:rgba(8,13,24,.6);
+  border:1px solid color-mix(in srgb, var(--rar, #64748b) 34%, transparent);
+}
+.ct-hero-slot.empty{ border-color:rgba(148,163,184,.14); opacity:.6; }
+.ct-slot-ico{
+  flex:0 0 auto; width:34px; height:34px; display:grid; place-items:center;
+  border-radius:9px; font-size:16px;
+  background:color-mix(in srgb, var(--rar, #64748b) 16%, rgba(8,13,24,.7));
+}
+.ct-slot-body{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.ct-slot-name{ font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ct-slot-meta{ font-size:10.5px; color:var(--muted); }
+.ct-slot-rar{ text-transform:capitalize; font-weight:700; }
+.ct-hero-subhead{ font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin:16px 0 8px; }
+.ct-hero-skills{ display:flex; flex-wrap:wrap; gap:6px; }
+.ct-skill-chip{
+  padding:4px 10px; border-radius:999px; font-size:11.5px;
+  background:rgba(94,234,212,.08); border:1px solid rgba(94,234,212,.24); color:#a7f3e4;
+}
+.ct-skill-chip b{ color:#5eead4; }
+.ct-hero-empty{ color:var(--muted); font-size:13px; padding:8px 0; }
+
 /* Honours */
 .ct-ach{
   display:grid;
@@ -274,7 +308,7 @@
   <div class="ct-grid">
 
     <!-- Local records -->
-    <section class="ct-card">
+    <section class="ct-card" data-own-only>
       <div class="ct-card-head">
         <h2 class="ct-card-title">War record</h2>
         <span class="ct-card-note">This device</span>
@@ -299,6 +333,24 @@
         <div class="ct-stat"><span class="label">Total kills</span><span class="value" id="ctKills">0</span></div>
       </div>
       <p class="ct-account-state" id="ctAccountState">Checking your session…</p>
+    </section>
+
+    <!-- Hero loadout -->
+    <section class="ct-card full" id="ctHeroCard" hidden>
+      <div class="ct-card-head">
+        <h2 class="ct-card-title">Hero — Varyn</h2>
+        <span class="ct-card-note" id="ctHeroNote"></span>
+      </div>
+      <div class="ct-hero-power">
+        <div class="ct-hero-stat"><span class="label">Hero Power</span><span class="value" id="ctHeroPower">0</span></div>
+        <div class="ct-hero-stat"><span class="label">Gear Power</span><span class="value" id="ctHeroGear">0</span></div>
+        <div class="ct-hero-stat"><span class="label">Skill Points</span><span class="value" id="ctHeroSkillPts">0</span></div>
+      </div>
+      <div class="ct-hero-slots" id="ctHeroSlots"></div>
+      <div class="ct-hero-skills-wrap" id="ctHeroSkillsWrap" hidden>
+        <div class="ct-hero-subhead">Skills</div>
+        <div class="ct-hero-skills" id="ctHeroSkills"></div>
+      </div>
     </section>
 
     <!-- Honours -->
@@ -328,6 +380,7 @@
   </div>
 </main>
 
+<script src="/crest.js"></script>
 <script>
 (function(){
   const readInt = (key) => {
@@ -424,28 +477,142 @@
   });
   $("ctAchCount").textContent = `${earned} / ${ACH.length} earned`;
 
+  /* ---- Hero loadout (own = localStorage, others = server) ---- */
+  const RARITY_COLOR = {
+    common:"#cbd5e1", uncommon:"#86efac", rare:"#60a5fa", epic:"#c084fc", legendary:"#fbbf24"
+  };
+  const SLOT_META = [
+    { id:"weapon", name:"Weapon", icon:"⚔" },
+    { id:"armor",  name:"Armor",  icon:"🛡" },
+    { id:"boots",  name:"Boots",  icon:"🥾" },
+    { id:"ring",   name:"Ring",   icon:"💍" },
+    { id:"charm",  name:"Charm",  icon:"🔷" }
+  ];
+  const HERO_ID = "varyn";
+  const SKILL_POINT_POWER = 25;
+  function prettifySkill(id){
+    return String(id||"").replace(/[_-]+/g," ").replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  function ownLoadoutFromLocal(){
+    try{
+      const raw = localStorage.getItem("darkDefense.profile");
+      if(!raw) return null;
+      const p = JSON.parse(raw);
+      const equipped = (p.equipment?.heroes?.[HERO_ID]) || {};
+      const items = Array.isArray(p.inventory?.items) ? p.inventory.items : [];
+      const byId = {};
+      items.forEach(it => { if(it && it.instanceId) byId[it.instanceId] = it; });
+      const outItems = {}; let gear = 0;
+      SLOT_META.forEach(slot => {
+        const it = byId[equipped[slot.id]];
+        outItems[slot.id] = it ? {
+          name: it.name, rarity: it.rarity,
+          power: Math.max(0, Math.round(Number(it.power)||0)), icon: it.icon || slot.icon
+        } : null;
+        if(it) gear += Math.max(0, Math.round(Number(it.power)||0));
+      });
+      const ranks = (p.skillTrees?.heroes?.[HERO_ID]?.ranks) || {};
+      let skillPts = 0; const skills = [];
+      Object.entries(ranks).forEach(([id,rank])=>{ if(rank>0){ skillPts += rank; skills.push({ name: prettifySkill(id), rank }); } });
+      return { power: gear + skillPts*SKILL_POINT_POWER, equipmentPower: gear, skillPoints: skillPts, items: outItems, skills };
+    }catch(e){ return null; }
+  }
+
+  function renderHero(loadout, label){
+    const card = $("ctHeroCard");
+    if(!loadout){ card.hidden = true; return; }
+    card.hidden = false;
+    $("ctHeroNote").textContent = label || "";
+    $("ctHeroPower").textContent = fmt(loadout.power);
+    $("ctHeroGear").textContent = fmt(loadout.equipmentPower);
+    $("ctHeroSkillPts").textContent = fmt(loadout.skillPoints);
+
+    const slots = $("ctHeroSlots");
+    slots.innerHTML = "";
+    SLOT_META.forEach(slot => {
+      const it = (loadout.items || {})[slot.id];
+      const el = document.createElement("div");
+      el.className = "ct-hero-slot" + (it ? "" : " empty");
+      if(it){
+        const col = RARITY_COLOR[it.rarity] || "#cbd5e1";
+        el.style.setProperty("--rar", col);
+        el.innerHTML =
+          `<span class="ct-slot-ico">${it.icon || slot.icon}</span>`+
+          `<span class="ct-slot-body"><span class="ct-slot-name">${escapeHtml(it.name)}</span>`+
+          `<span class="ct-slot-meta"><span class="ct-slot-rar" style="color:${col}">${it.rarity}</span> · ${fmt(it.power)} pwr</span></span>`;
+      } else {
+        el.innerHTML =
+          `<span class="ct-slot-ico">${slot.icon}</span>`+
+          `<span class="ct-slot-body"><span class="ct-slot-name">${slot.name}</span>`+
+          `<span class="ct-slot-meta">Empty</span></span>`;
+      }
+      slots.appendChild(el);
+    });
+
+    const skills = Array.isArray(loadout.skills) ? loadout.skills.filter(s => (s.rank||0) > 0) : [];
+    const wrap = $("ctHeroSkillsWrap");
+    if(skills.length){
+      wrap.hidden = false;
+      $("ctHeroSkills").innerHTML = skills.map(s =>
+        `<span class="ct-skill-chip">${escapeHtml(s.name)} <b>${s.rank}</b></span>`).join("");
+    } else {
+      wrap.hidden = true;
+    }
+  }
+
+  function escapeHtml(s){
+    return String(s==null?"":s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
   /* ---- Account: same endpoints the old profile page used ---- */
   async function loadAccount(){
     const state = $("ctAccountState");
     const stats = $("ctAccountStats");
     const note  = $("ctAccountNote");
+
+    const params = new URLSearchParams(location.search);
+    const viewUser = (params.get("user") || "").trim();
+
+    // Who is signed in (if anyone)?
+    let me = null;
     try {
-      const me = await fetch('/.netlify/functions/me', { credentials:'include', cache:'no-store' });
-      if (!me.ok) throw new Error('no session');
-      const data = await me.json();
-      if (!data.authenticated || !data.user) throw new Error('guest');
+      const meRes = await fetch('/.netlify/functions/me', { credentials:'include', cache:'no-store' });
+      if (meRes.ok) { const d = await meRes.json(); if (d.authenticated && d.user) me = d.user; }
+    } catch(e){}
 
-      $("ctName").textContent = data.user.username || "Commander";
-      if (data.user.crest) {
-        const crest = $("ctCrest");
-        crest.innerHTML = "";
-        const img = document.createElement("img");
-        img.src = data.user.crest;
-        img.alt = "";
-        crest.appendChild(img);
+    const isOwnView = !viewUser || (me && me.username && me.username.toLowerCase() === viewUser.toLowerCase());
+    const targetUser = viewUser || (me && me.username) || "";
+
+    if (viewUser && !isOwnView) {
+      // Viewing another commander — swap the page into "public profile" mode.
+      $("ctName").textContent = viewUser;
+      document.querySelectorAll('[data-own-only]').forEach(el => el.hidden = true);
+    }
+
+    if (isOwnView && me) {
+      $("ctName").textContent = me.username || "Commander";
+      if (me.crest) {
+        const crest = $("ctCrest"); crest.innerHTML = "";
+        const img = document.createElement("img"); img.src = me.crest; img.alt = ""; crest.appendChild(img);
       }
+    }
 
-      const res = await fetch(`/.netlify/functions/get-profile?username=${encodeURIComponent(data.user.username)}`,
+    // Hero card: own view reads live localStorage; other view uses server loadout.
+    if (isOwnView) {
+      renderHero(ownLoadoutFromLocal(), "This device");
+    }
+
+    if (!targetUser) {
+      note.textContent = "Guest";
+      state.innerHTML =
+        'Playing as a guest — your records live on this device only. ' +
+        '<a href="/account.html">Sign in</a> to save your progress online and appear on the leaderboards.';
+      return;
+    }
+
+    try {
+      const res = await fetch(`/.netlify/functions/get-profile?username=${encodeURIComponent(targetUser)}`,
                               { credentials:'include', cache:'no-store' });
       if (!res.ok) throw new Error('profile unavailable');
       const p = (await res.json()).profile || {};
@@ -455,15 +622,32 @@
       $("ctOnlineEndless").textContent = fmt(s.bestEndlessScore);
       $("ctOnlineStory").textContent   = fmt(s.bestStoryStage || 1);
       $("ctKills").textContent         = fmt(s.totalKills);
-
       stats.classList.remove("hidden");
       state.classList.add("hidden");
-      note.textContent = "Signed in";
+      note.textContent = isOwnView ? "Signed in" : "Public profile";
+
+      if (p.crestId && !isOwnView) {
+        const crest = $("ctCrest");
+        if (window.DarkDefenseCrest && crest) {
+          crest.innerHTML = window.DarkDefenseCrest.markup(targetUser, "", p.crestId) || "";
+        }
+      }
+
+      // Other player's hero comes from the server loadout snapshot.
+      if (!isOwnView) {
+        renderHero(p.loadout, p.loadout ? "As last synced" : null);
+        if (!p.loadout) { $("ctHeroCard").hidden = false; $("ctHeroNote").textContent = "No loadout synced yet"; $("ctHeroSlots").innerHTML = '<div class="ct-hero-empty">This commander hasn\u2019t synced a loadout yet.</div>'; }
+      }
     } catch (err) {
-      note.textContent = "Guest";
-      state.innerHTML =
-        'Playing as a guest — your records live on this device only. ' +
-        '<a href="/account.html">Sign in</a> to save your progress online and appear on the leaderboards.';
+      if (viewUser && !isOwnView) {
+        note.textContent = "Not found";
+        state.textContent = `No commander named "${viewUser}" was found.`;
+      } else {
+        note.textContent = "Guest";
+        state.innerHTML =
+          'Playing as a guest — your records live on this device only. ' +
+          '<a href="/account.html">Sign in</a> to save your progress online and appear on the leaderboards.';
+      }
     }
   }
   loadAccount();

@@ -71,6 +71,27 @@ exports.handler = async function handler(event) {
           limit 8
         `;
 
+    let loadout = null;
+    try {
+      const rows = await sql`
+        select power, equipment_power, skill_points, loadout, updated_at
+        from hero_loadouts where user_id = ${user.id} limit 1
+      `;
+      if (rows.length) {
+        const r = rows[0];
+        loadout = {
+          power: r.power || 0,
+          equipmentPower: r.equipment_power || 0,
+          skillPoints: r.skill_points || 0,
+          items: (r.loadout && r.loadout.items) || {},
+          skills: (r.loadout && r.loadout.skills) || [],
+          updatedAt: r.updated_at
+        };
+      }
+    } catch (_) {
+      loadout = null;
+    }
+
     return json(200, {
       profile: {
         username: user.username,
@@ -84,6 +105,7 @@ exports.handler = async function handler(event) {
           totalKills: user.total_kills || 0,
           totalRuns: user.total_runs || 0
         },
+        loadout,
         recentRuns: recentRuns || []
       }
     });

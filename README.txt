@@ -203,3 +203,25 @@ v0.9.2l Compact campaign header:
 - both size to content with equal height; they wrap to stacked only on narrow
   screens
 - validation: 64 unit tests pass; CSS balanced, game.js checked
+
+v0.9.2m Compact campaign buttons:
+- shrank the World Map and Challenge of the Day buttons ~15% (smaller icons,
+  tighter padding) and stripped them to icon + short name
+- removed the "Campaign"/"Challenge of the Day" kickers and the "Open ▸"/"Play ▸"
+  CTAs and the best-score line — the buttons are now compact pills
+- daily challenge name is capped and ellipsised so long names stay small
+- validation: 64 unit tests pass; CSS balanced, game.js checked
+
+v0.9.2n Command Table as profile + hero loadout + public profiles:
+- command-table now shows your Hero (Varyn): equipment in all 5 slots with
+  rarity colors + power, a skills list, and Hero/Gear/Skill-point totals
+- your own hero reads live from localStorage; another player's comes from the server
+- clicking a name on the leaderboards now opens THEIR command-table
+  (/command-table.html?user=NAME) showing their synced hero + public stats
+- to make others' gear visible, the client now syncs the loadout to the server:
+  * new SQL: setup_hero_loadout.sql (one row per user, JSON) — apply before deploy
+  * new function submit-loadout (auth, sanitized+bounded JSON, rate-limited)
+  * get-profile now returns the loadout; device-only cards hide on public view
+- NOTE: like power, the loadout is client-computed → trust-on-submit, not verified;
+  it's a display convenience. Equipment/skills become public for signed-in players.
+- validation: 64 unit tests pass; all HTML scripts + functions syntax-checked
