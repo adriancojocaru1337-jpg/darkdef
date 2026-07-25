@@ -225,3 +225,17 @@ v0.9.2n Command Table as profile + hero loadout + public profiles:
 - NOTE: like power, the loadout is client-computed → trust-on-submit, not verified;
   it's a display convenience. Equipment/skills become public for signed-in players.
 - validation: 64 unit tests pass; all HTML scripts + functions syntax-checked
+
+v0.9.2o Fix BATTLEFIELD label overlap:
+- the "BATTLEFIELD" kicker was absolutely positioned at the header's center,
+  so it overlapped the Skills/Bag buttons on the right
+- moved it into normal flow on its own row above the World Map / Challenge
+  buttons (its logical place), clearing the right-side buttons entirely
+- buttons kept their compact size; no resizing needed
+- validation: 64 unit tests pass; CSS balanced, game.js checked
+
+v0.9.2p Fix: Challenge of the Day from the world map:
+- clicking Challenge of the Day while the world map was open did nothing visible —
+  the daily run started underneath but the world map layer stayed on top
+- startDailyChallenge now closes the world map (like region-select and resume do)
+- validation: 64 unit tests pass; game.js checked

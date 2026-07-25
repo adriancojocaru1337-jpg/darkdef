@@ -4412,6 +4412,7 @@ function startDailyChallenge(){
   prewarmLeaderboardRun("daily");
   syncAmbientAudio();
   startOverlay?.classList.add("hidden");
+  closeWorldMap();
   hideEndlessUnlockOverlay();
   showHintChip();
   resetCamera();

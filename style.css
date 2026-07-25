@@ -4450,7 +4450,7 @@ body.pseudo-fs-active{ overflow:hidden; }
 }
 
 /* Center the "Battlefield" kicker + challenge button as a header block */
-.panel-header-lead{ display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; gap:10px; padding-top:26px; }
+.panel-header-lead{ display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; gap:10px 10px; padding-top:4px; }
 
 .worldmap-open-btn{
   display:inline-flex;
@@ -4493,8 +4493,8 @@ body.pseudo-fs-active{ overflow:hidden; }
   .worldmap-open-emoji{ width:34px;height:34px;font-size:18px; }
 }
 .panel-header-lead .panel-kicker{
-  position:absolute; top:14px; left:50%; transform:translateX(-50%);
-  margin:0; z-index:1; white-space:nowrap;
+  margin:0 0 2px 2px; z-index:1; white-space:nowrap; align-self:flex-start;
+  flex-basis:100%;
 }
 .panel-header-lead .daily-challenge-btn{ margin-top:0; }
 
