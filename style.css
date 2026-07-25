@@ -574,6 +574,13 @@ body::after {
   z-index:12;
   /* Positioning is handled in JS with clamping so the panel stays inside the map. */
   transform:none;
+  opacity:1;
+  transition:opacity .45s ease;
+}
+
+.tower-menu.fading{
+  opacity:0;
+  pointer-events:none;
 }
 
 .tower-menu.hidden{
@@ -4164,74 +4171,92 @@ body.pseudo-fs-active{ overflow:hidden; }
 }
 .panel-header-user:hover .dd-crest-header{filter:brightness(1.1)}
 
+/* ============================================================
+   HUD action buttons — Skills / Bag / Shop
+   Unified pill design with a themed accent per button.
+   ============================================================ */
+.panel-header-skills,
+.panel-header-inventory,
 .panel-header-ley{
-  display:inline-flex;align-items:center;gap:6px;
-  min-height:44px;padding:10px 16px;border-radius:999px;
-  font-weight:800;font-size:14px;letter-spacing:.03em;
-  color:#5eead4;cursor:pointer;
-  border:1px solid rgba(94,234,212,.30);
-  background:linear-gradient(180deg, rgba(15,28,26,.92), rgba(9,16,15,.90));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.18);
-  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  --phb-accent:#94a3b8;
+  --phb-accent-soft:rgba(148,163,184,.16);
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  padding:9px 15px 9px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  font:800 13px Inter,Arial,sans-serif;
+  letter-spacing:.02em;
+  color:#f1f5f9;
+  border:1px solid color-mix(in srgb,var(--phb-accent) 34%,transparent);
+  background:
+    radial-gradient(120% 120% at 20% 0%, color-mix(in srgb,var(--phb-accent) 14%,transparent), transparent 60%),
+    linear-gradient(180deg, rgba(19,26,40,.94), rgba(10,15,24,.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 8px 22px rgba(0,0,0,.22);
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
+.panel-header-skills:hover,
+.panel-header-inventory:hover,
 .panel-header-ley:hover{
   transform:translateY(-1px);
-  border-color:rgba(94,234,212,.55);
-  box-shadow:0 4px 16px rgba(94,234,212,.16);
+  border-color:color-mix(in srgb,var(--phb-accent) 62%,transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 10px 26px rgba(0,0,0,.26),
+    0 0 20px color-mix(in srgb,var(--phb-accent) 22%,transparent);
 }
+.panel-header-skills:active,
+.panel-header-inventory:active,
 .panel-header-ley:active{transform:translateY(0)}
 
-.panel-header-inventory{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  min-height:44px;
-  padding:10px 15px;
-  border-radius:999px;
-  border:1px solid rgba(192,132,252,.3);
-  background:linear-gradient(180deg,rgba(32,22,43,.92),rgba(17,12,24,.92));
-  color:#e9d5ff;
-  font:800 13px Inter,Arial,sans-serif;
-  cursor:pointer;
-  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+.phb-ico{
+  display:grid;
+  place-items:center;
+  width:24px;height:24px;
+  border-radius:50%;
+  font-size:13px;line-height:1;
+  color:var(--phb-accent);
+  background:var(--phb-accent-soft);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--phb-accent) 24%,transparent);
 }
-.panel-header-inventory span{
+.phb-label{color:#e2e8f0;font-weight:800}
+.phb-count{
   min-width:22px;
-  padding:2px 7px;
+  padding:2px 8px;
   border-radius:999px;
-  background:rgba(192,132,252,.14);
-  color:#d8b4fe;
+  text-align:center;
+  font-weight:800;
+  color:var(--phb-accent);
+  background:var(--phb-accent-soft);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--phb-accent) 20%,transparent);
 }
-.panel-header-inventory:hover{
-  transform:translateY(-1px);
-  border-color:rgba(192,132,252,.58);
-}
-.panel-header-inventory.has-loot{
-  border-color:rgba(251,191,36,.58);
-  box-shadow:0 0 18px rgba(251,191,36,.13);
-}
+
 .panel-header-skills{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  min-height:44px;
-  padding:10px 15px;
-  border-radius:999px;
-  border:1px solid rgba(245,158,11,.28);
-  background:linear-gradient(180deg,rgba(40,27,12,.92),rgba(22,15,9,.92));
-  color:#fde68a;
-  font:800 13px Inter,Arial,sans-serif;
-  cursor:pointer;
-  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+  --phb-accent:#fbbf24;
+  --phb-accent-soft:rgba(245,158,11,.16);
 }
-.panel-header-skills span{
-  min-width:22px;
-  padding:2px 7px;
-  border-radius:999px;
-  background:rgba(245,158,11,.14);
+.panel-header-inventory{
+  --phb-accent:#c084fc;
+  --phb-accent-soft:rgba(192,132,252,.16);
+}
+.panel-header-ley{
+  --phb-accent:#5eead4;
+  --phb-accent-soft:rgba(94,234,212,.16);
+}
+
+.panel-header-inventory.has-loot{
+  border-color:rgba(251,191,36,.6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 0 18px rgba(251,191,36,.18);
+}
+.panel-header-inventory.has-loot .phb-ico{
   color:#fbbf24;
+  background:rgba(251,191,36,.16);
 }
-.panel-header-skills:hover{transform:translateY(-1px);border-color:rgba(245,158,11,.55)}
 .panel-header-skills.has-points{
   border-color:rgba(251,191,36,.72);
   animation:skillPointGlow 1.9s ease-in-out infinite;
@@ -4242,7 +4267,8 @@ body.pseudo-fs-active{ overflow:hidden; }
 }
 
 @media (max-width:860px){
-  .panel-header-ley,.panel-header-inventory,.panel-header-skills{min-height:38px;padding:8px 13px;font-size:13px}
+  .panel-header-ley,.panel-header-inventory,.panel-header-skills{min-height:38px;padding:7px 12px 7px 9px;font-size:12px;gap:6px}
+  .phb-ico{width:21px;height:21px;font-size:12px}
   .dd-crest-header{width:28px;height:28px;font-size:10px}
 }
 
