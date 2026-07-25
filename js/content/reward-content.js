@@ -221,4 +221,26 @@
     boss_endless: Object.freeze({ rare: 4, epic: 9 }),
     boss_daily: Object.freeze({ rare: 3, epic: 8 })
   });
+
+  // Essence granted when an item is salvaged. Deterministic function of
+  // rarity and power so the same item always yields the same value.
+  DarkDefense.SALVAGE_RARITY_ESSENCE = Object.freeze({
+    common: 2,
+    uncommon: 4,
+    rare: 8,
+    epic: 16,
+    legendary: 32
+  });
+
+  DarkDefense.salvageValue = function salvageValue(item) {
+    if (!item || typeof item !== "object") return 0;
+    const rarityId = typeof item.rarity === "string" ? item.rarity : "common";
+    const base = DarkDefense.SALVAGE_RARITY_ESSENCE[rarityId]
+      || DarkDefense.SALVAGE_RARITY_ESSENCE.common;
+    const power = Math.max(0, Math.floor(Number(item.power) || 0));
+    return Math.max(1, base + Math.floor(power / 20));
+  };
+
+  // Essence required to craft a single Crystal.
+  DarkDefense.CRYSTAL_ESSENCE_COST = 100;
 })(typeof window !== "undefined" ? window : globalThis);

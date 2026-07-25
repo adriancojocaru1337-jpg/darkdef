@@ -80,3 +80,29 @@ v0.9.2 Hero Skill Tree and Reward Pity:
 - profile schema v4 sanitizes hero skill ranks and persists migrations immediately
 - responsive Hero Skill Tree overlay, header badge and K keyboard shortcut
 - validation: 54 unit tests plus purchase/reload/respec desktop and 390x844 browser checks
+
+v0.9.2c Salvage, Essence, Crystals & Shop:
+- salvage inventory items into persistent Essence; Discard removes them outright
+- craft 100 Essence into 1 Crystal (manual button in the Inventory overlay)
+- crafted Crystals feed the SAME wallet as Ascension Crystals (1:1, no multiplier)
+- the "Ascension" overlay is now the "Shop" with three tabs:
+  * Ascension — Radiance, Bastion and Arcana permanent talents
+  * Tower — Special Towers (Cryo unlock and upgrades)
+  * Rename — change your leaderboard username for 150 Crystals each time
+- new Netlify Function: rename-username (auth-gated, uniqueness-checked); Crystals
+  are only spent after the server confirms the new name, so a taken name costs nothing
+- no new SQL migration required (users.username already exists and is unique)
+- validation: 64 unit tests plus salvage/craft/reload and Shop tab browser checks
+
+v0.9.2d Hero Power leaderboard:
+- new global online board ranking players by total Hero Power (equipment + skills)
+- total power = equipment power + spent skill points × 25
+- new SQL: setup_power_leaderboard.sql (one row per user) — apply before deploy
+- new Netlify Functions:
+  * submit-power (auth-gated, plausibility-capped, rate-limited) — one row per user, upserted
+  * get-power-leaderboard (top 10 by power)
+- client submits current power (debounced) on equip/unequip/skill purchase/respec and on sign-in
+- new "Power" tab on leaderboards.html with podium and Gear/Skills/Power columns
+- NOTE: power is computed client-side, so this board is trust-on-submit — auth, a
+  plausibility cap and rate limits only stop trivial abuse, not a determined cheater
+- validation: 64 unit tests still pass; new functions and inline script syntax-checked

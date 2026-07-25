@@ -64,6 +64,9 @@ const panelHeaderInventoryCount = document.getElementById("panelHeaderInventoryC
 const closeInventoryBtn = document.getElementById("closeInventoryBtn");
 const inventoryCapacityStat = document.getElementById("inventoryCapacityStat");
 const inventoryCacheStat = document.getElementById("inventoryCacheStat");
+const inventoryEssenceStat = document.getElementById("inventoryEssenceStat");
+const inventoryCrystalStat = document.getElementById("inventoryCrystalStat");
+const craftCrystalBtn = document.getElementById("craftCrystalBtn");
 const inventoryPowerStat = document.getElementById("inventoryPowerStat");
 const inventoryDamageStat = document.getElementById("inventoryDamageStat");
 const inventoryHpStat = document.getElementById("inventoryHpStat");
@@ -230,6 +233,7 @@ async function loadPanelUserSession(){
     panelHeaderLogoutBtn?.classList.remove("hidden");
     leyAccountAuthed = true;
     syncLeyMetaWithAccount();
+    submitHeroPower();
   }catch(_){
     setPanelUserLabel("Guest");
   }
@@ -1220,7 +1224,9 @@ const rewardInbox = window.DarkDefense.createRewardInbox({
 
 const inventorySystem = window.DarkDefense.createInventorySystem({
   profileStore,
-  events: window.DarkDefense.events
+  events: window.DarkDefense.events,
+  salvageValue: window.DarkDefense.salvageValue,
+  isEquipped: (instanceId) => equipmentSystem.isEquipped(instanceId)
 });
 
 const equipmentSystem = window.DarkDefense.createEquipmentSystem({
@@ -1411,7 +1417,7 @@ const LEY_STORAGE_KEYS = { crystals:"sdcLeyCrystals", talents:"sdcLeyTalents" };
 
 const LEY_TALENT_BRANCHES = [
   {
-    id:"radiance", name:"Radiance", icon:"🔆", color:"#fbbf24",
+    id:"radiance", name:"Radiance", icon:"🔆", color:"#fbbf24", category:"ascension",
     tagline:"Channel ley light into raw firepower.",
     nodes:[
       { id:"radiant_edge", name:"Radiant Edge", maxRank:3, costs:[20,45,90],
@@ -1426,7 +1432,7 @@ const LEY_TALENT_BRANCHES = [
     ]
   },
   {
-    id:"bastion", name:"Bastion", icon:"🛡️", color:"#5eead4",
+    id:"bastion", name:"Bastion", icon:"🛡️", color:"#5eead4", category:"ascension",
     tagline:"Fortify the gate and your war chest.",
     nodes:[
       { id:"golden_veins", name:"Golden Veins", maxRank:3, costs:[20,40,80],
@@ -1441,7 +1447,7 @@ const LEY_TALENT_BRANCHES = [
     ]
   },
   {
-    id:"arcana", name:"Arcana", icon:"🔮", color:"#c084fc",
+    id:"arcana", name:"Arcana", icon:"🔮", color:"#c084fc", category:"ascension",
     tagline:"Bend spells, auras and the ley itself.",
     nodes:[
       { id:"attuned_casting", name:"Attuned Casting", maxRank:2, costs:[40,85],
@@ -1457,7 +1463,7 @@ const LEY_TALENT_BRANCHES = [
     ]
   },
   {
-    id:"special_towers", name:"Special Towers", icon:"❄", color:"#38bdf8",
+    id:"special_towers", name:"Special Towers", icon:"❄", color:"#38bdf8", category:"tower",
     tagline:"Unlock rare defenses with Crystals.",
     nodes:[
       { id:"cryo_tower", name:"Cryo Tower", maxRank:1, costs:[150],
@@ -1549,7 +1555,9 @@ function cryoDamageMult(){ return 1 + 0.10 * getLeyRank("cryo_power"); }
 function cryoBonusBrittle(){ return getLeyRank("cryo_brittle"); }
 
 function awardLeyCrystals(base, label, opts={}){
-  const amount = Math.max(1, Math.round(base * leyCrystalGainMult()));
+  const amount = opts.exact
+    ? Math.max(0, Math.round(base))
+    : Math.max(1, Math.round(base * leyCrystalGainMult()));
   leyCrystals += amount;
   leyEarnedTotal += amount;
   runLeyCrystalsEarned += amount;
@@ -1640,6 +1648,91 @@ window.addEventListener("pagehide", ()=>{
   }catch(_){}
 });
 
+/* ---- Hero Power leaderboard ----------------------------
+   Total Hero Power = equipment power + skill investment.
+   Submitted only for signed-in players, debounced, whenever
+   the loadout or skill tree changes. Power is client-side,
+   so the server only guards auth, a plausibility cap and
+   rate limits — see submit-power.js. */
+const SKILL_POINT_POWER = 25;
+let powerSubmitTimer = null;
+let lastSubmittedPower = null;
+
+function computeHeroPowerPayload(){
+  let equipmentPower = 0;
+  try{ equipmentPower = Math.max(0, Math.round(Number(heroSystem.getStats().equipmentPower) || 0)); }catch(_){}
+  let skillPoints = 0;
+  try{ skillPoints = Math.max(0, Math.floor(Number(heroSkillTreeSystem.getState().spentPoints) || 0)); }catch(_){}
+  const power = equipmentPower + skillPoints * SKILL_POINT_POWER;
+  return { power, equipmentPower, skillPoints };
+}
+
+async function pushHeroPower(){
+  if(!leyAccountAuthed) return;
+  const payload = computeHeroPowerPayload();
+  if(lastSubmittedPower === payload.power) return;
+  try{
+    const data = await apiClient.post("submit-power", payload, { credentials: "include" });
+    if(data?.ok) lastSubmittedPower = payload.power;
+  }catch(_){ /* non-fatal: leaderboard is best-effort */ }
+}
+
+function submitHeroPower(delayMs = 2000){
+  if(!leyAccountAuthed) return;
+  if(powerSubmitTimer) clearTimeout(powerSubmitTimer);
+  powerSubmitTimer = setTimeout(()=>{ powerSubmitTimer = null; pushHeroPower(); }, delayMs);
+}
+
+function setRenameFeedback(message){
+  const el = document.getElementById("renameFeedback");
+  if(el) el.textContent = message || "";
+}
+
+let renameInFlight = false;
+async function buyRename(){
+  if(renameInFlight) return;
+  if(leyCrystals < RENAME_CRYSTAL_COST){
+    setRenameFeedback(`Not enough Crystals. Rename needs ✦ ${RENAME_CRYSTAL_COST}.`);
+    return;
+  }
+  const raw = window.prompt("Enter your new username (3–20 characters):", "");
+  if(raw === null) return;
+  const next = String(raw).trim();
+  if(next.length < 3){
+    setRenameFeedback("Username must have at least 3 characters.");
+    return;
+  }
+
+  renameInFlight = true;
+  setRenameFeedback("Renaming…");
+  try{
+    const data = await apiClient.post("rename-username", { username: next }, { credentials: "include" });
+    if(data?.ok && data?.username){
+      // Charge only after the server confirms the new name.
+      leyCrystals = Math.max(0, leyCrystals - RENAME_CRYSTAL_COST);
+      saveLeyState();
+      scheduleLeySyncPush();
+      setPanelUserLabel(data.username, null);
+      tone("sine", 620, 940, .12, .03);
+      pushNotification("achievement","Renamed",`You are now ${data.username}. −${RENAME_CRYSTAL_COST} ✦`);
+      setRenameFeedback(`Done — you are now ${data.username}.`);
+      renderLeyOverlay();
+      updateLeyBadges();
+    }else{
+      setRenameFeedback(data?.error || "Rename failed. No Crystals were spent.");
+    }
+  }catch(err){
+    const serverMsg = err?.details?.error || err?.message;
+    const msg = err?.status === 409 ? "That username is already taken."
+      : err?.status === 401 ? "Sign in to change your username."
+      : (serverMsg && err?.status === 400) ? serverMsg
+      : "Rename failed. No Crystals were spent.";
+    setRenameFeedback(msg);
+  }finally{
+    renameInFlight = false;
+  }
+}
+
 function buyLeyTalent(nodeId){
   const def = getLeyNodeDef(nodeId);
   if(!def) return false;
@@ -1708,11 +1801,21 @@ function updateLeyBadges(){
   refreshUnitShopCards();
 }
 
+const RENAME_CRYSTAL_COST = 150;
+let activeShopTab = "ascension";
+
 function renderLeyOverlay(){
   if(!leyBranchesEl) return;
   updateLeyBadges();
   leyBranchesEl.innerHTML = "";
-  for(const branch of LEY_TALENT_BRANCHES){
+
+  if(activeShopTab === "rename"){
+    renderRenameCategory();
+    return;
+  }
+
+  const branches = LEY_TALENT_BRANCHES.filter(b => (b.category || "ascension") === activeShopTab);
+  for(const branch of branches){
     const branchEl = document.createElement("div");
     branchEl.className = "ley-branch";
     branchEl.style.setProperty("--branch-color", branch.color);
@@ -1755,7 +1858,41 @@ function renderLeyOverlay(){
   });
 }
 
+function renderRenameCategory(){
+  const affordable = leyCrystals >= RENAME_CRYSTAL_COST;
+  const branchEl = document.createElement("div");
+  branchEl.className = "ley-branch";
+  branchEl.style.setProperty("--branch-color", "#f472b6");
+  branchEl.innerHTML = `
+    <div class="ley-branch-head">
+      <span class="ley-branch-icon">✎</span>
+      <div>
+        <div class="ley-branch-name">Rename</div>
+        <div class="ley-branch-tagline">Change your leaderboard username.</div>
+      </div>
+    </div>
+    <div class="ley-branch-nodes">
+      <div class="ley-node">
+        <div class="ley-node-head">
+          <span class="ley-node-name">Change Username</span>
+        </div>
+        <p class="ley-node-desc">Pick a new name shown on every leaderboard. Costs ✦ ${RENAME_CRYSTAL_COST} each time.</p>
+        <p class="ley-node-next" id="renameFeedback"></p>
+        <button class="btn ley-buy-btn${affordable?" btn-primary":" ley-buy-locked"}" id="renameBuyBtn">
+          <span class="ley-buy-label">Rename</span><span class="ley-buy-cost">✦ ${RENAME_CRYSTAL_COST}</span>
+        </button>
+      </div>
+    </div>`;
+  leyBranchesEl.appendChild(branchEl);
+  const btn = branchEl.querySelector("#renameBuyBtn");
+  btn?.addEventListener("click",(event)=>{ event.stopPropagation(); buyRename(); });
+}
+
 function openLeyOverlay(){
+  activeShopTab = "ascension";
+  shopTabs?.querySelectorAll("[data-shop-tab]").forEach(t=>{
+    t.classList.toggle("is-active", t.getAttribute("data-shop-tab") === activeShopTab);
+  });
   renderLeyOverlay();
   leyOverlay?.classList.remove("hidden");
   if(hasStarted && lives > 0 && !isPaused){
@@ -1771,6 +1908,18 @@ function closeLeyOverlay(){
     updateUI();
   }
 }
+
+const shopTabs = document.getElementById("shopTabs");
+shopTabs?.addEventListener("click",(event)=>{
+  const tab = event.target.closest("[data-shop-tab]");
+  if(!tab) return;
+  event.stopPropagation();
+  activeShopTab = tab.getAttribute("data-shop-tab");
+  shopTabs.querySelectorAll("[data-shop-tab]").forEach(t=>{
+    t.classList.toggle("is-active", t === tab);
+  });
+  renderLeyOverlay();
+});
 
 openLeyBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
 openLeyFromGameOverBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); openLeyOverlay(); });
@@ -2135,6 +2284,7 @@ function equipmentSlotPrompt(slotId){
 function inventoryItemCard(item){
   const equipped = equipmentSystem.isEquipped(item.instanceId);
   const color = safeItemColor(item.rarityColor);
+  const salvageAmount = Math.max(0, Math.floor(Number(window.DarkDefense.salvageValue(item)) || 0));
   const statLines = itemStatLines(item).map((stat) => `
     <div class="inventory-item-stat${stat.core ? " core" : ""}">
       <span>${escapeInventoryHtml(stat.label)}</span>
@@ -2151,10 +2301,22 @@ function inventoryItemCard(item){
       <h3>${escapeInventoryHtml(item.name || item.definitionId)}</h3>
       <div class="inventory-item-meta">Lv.${Math.max(1, Math.floor(Number(item.level) || 1))} · ${escapeInventoryHtml(item.slot || "unknown")}</div>
       <div class="inventory-item-stats">${statLines}</div>
-      <button class="btn ${equipped ? "btn-secondary" : "btn-primary"} inventory-equip-btn"
-        type="button" data-equip-item="${escapeInventoryHtml(item.instanceId)}" ${equipped ? "disabled" : ""}>
-        ${equipped ? "Equipped" : `Equip ${escapeInventoryHtml(item.slot || "")}`}
-      </button>
+      <div class="inventory-item-actions">
+        <button class="btn ${equipped ? "btn-secondary" : "btn-primary"} inventory-equip-btn"
+          type="button" data-equip-item="${escapeInventoryHtml(item.instanceId)}" ${equipped ? "disabled" : ""}>
+          ${equipped ? "Equipped" : `Equip ${escapeInventoryHtml(item.slot || "")}`}
+        </button>
+        ${equipped ? "" : `
+          <div class="inventory-item-disposal">
+            <button class="btn btn-ghost inventory-salvage-btn" type="button"
+              data-salvage-item="${escapeInventoryHtml(item.instanceId)}"
+              title="Salvage for ${salvageAmount} essence">Salvage +${salvageAmount}✦</button>
+            <button class="btn btn-ghost inventory-discard-btn" type="button"
+              data-discard-item="${escapeInventoryHtml(item.instanceId)}"
+              title="Discard permanently">Discard</button>
+          </div>
+        `}
+      </div>
     </article>
   `;
 }
@@ -2188,6 +2350,15 @@ function renderInventoryOverlay(){
 
   if(inventoryCapacityStat) inventoryCapacityStat.textContent = `${status.count} / ${status.capacity}`;
   if(inventoryCacheStat) inventoryCacheStat.textContent = String(cacheCount);
+  const currency = inventorySystem.getCurrency();
+  if(inventoryEssenceStat) inventoryEssenceStat.textContent = String(currency.essence);
+  if(inventoryCrystalStat) inventoryCrystalStat.textContent = String(leyCrystals);
+  if(craftCrystalBtn){
+    const canCraft = currency.craftableCrystals > 0;
+    craftCrystalBtn.disabled = !canCraft;
+    craftCrystalBtn.textContent = canCraft ? "Craft ◆" : `${currency.essenceToNextCrystal} to ◆`;
+    craftCrystalBtn.title = `${currency.crystalCost} essence = 1 Ascension Crystal. You have ${currency.essence} essence.`;
+  }
   if(inventoryPowerStat) inventoryPowerStat.textContent = String(stats.equipmentPower || 0);
   if(inventoryDamageStat) inventoryDamageStat.textContent = String(Math.round(stats.damage * 10) / 10);
   if(inventoryHpStat) inventoryHpStat.textContent = String(stats.maxHp);
@@ -2277,6 +2448,7 @@ function equipInventoryItem(instanceId){
     const nextStats = heroSystem.refreshStats(previousStats);
     setInventoryFeedback(`${result.item.name} equipped in ${result.slotId}. Hero Power is now ${nextStats.equipmentPower}.`, "success");
     tone("sine", 560, 840, .1, .025);
+    submitHeroPower();
   }else{
     setInventoryFeedback(result.reason === "already_equipped"
       ? "That item is already equipped."
@@ -2292,8 +2464,54 @@ function unequipInventorySlot(slotId){
   if(result.accepted){
     heroSystem.refreshStats(previousStats);
     setInventoryFeedback(`${itemStatLabel(slotId)} slot cleared. The item remains safely in Inventory.`, "success");
+    submitHeroPower();
   }else{
     setInventoryFeedback("That equipment slot is already empty.", "warning");
+  }
+  renderInventoryOverlay();
+  updateUI();
+}
+
+function salvageInventoryItem(instanceId){
+  const item = inventorySystem.getItem(instanceId);
+  const result = inventorySystem.salvage(instanceId);
+  if(result.accepted){
+    setInventoryFeedback(`${result.item.name} salvaged for ${result.essence} essence.`, "success");
+    tone("sine", 480, 720, .1, .022);
+  }else if(result.reason === "equipped"){
+    setInventoryFeedback("Unequip the item before salvaging it.", "warning");
+  }else{
+    setInventoryFeedback("That item could not be salvaged.", "warning");
+  }
+  renderInventoryOverlay();
+  updateUI();
+}
+
+function discardInventoryItem(instanceId){
+  const item = inventorySystem.getItem(instanceId);
+  if(item && !window.confirm(`Discard ${item.name} permanently? This cannot be undone.`)) return;
+  const result = inventorySystem.discard(instanceId);
+  if(result.accepted){
+    setInventoryFeedback(`${result.item.name} discarded.`, "success");
+  }else if(result.reason === "equipped"){
+    setInventoryFeedback("Unequip the item before discarding it.", "warning");
+  }else{
+    setInventoryFeedback("That item could not be discarded.", "warning");
+  }
+  renderInventoryOverlay();
+  updateUI();
+}
+
+function craftCrystalFromEssence(){
+  const result = inventorySystem.craftCrystal(1);
+  if(result.accepted){
+    awardLeyCrystals(result.crafted, "Crafted from essence", { exact:true });
+    setInventoryFeedback(`Crafted ${result.crafted} crystal for ${result.essenceSpent} essence. Spend it in the Shop.`, "success");
+    tone("sine", 620, 940, .12, .03);
+  }else if(result.reason === "insufficient_essence"){
+    setInventoryFeedback(`Not enough essence. You need ${result.required} for a crystal.`, "warning");
+  }else{
+    setInventoryFeedback("The crystal could not be crafted.", "warning");
   }
   renderInventoryOverlay();
   updateUI();
@@ -2427,6 +2645,7 @@ function purchaseHeroSkill(skillId){
     setHeroSkillFeedback(`${result.definition.name} reached Rank ${result.rank}/${result.definition.maxRank}. Damage: ${Math.round(nextStats.damage * 10) / 10}.`, "success");
     pushNotification("achievement", "Hero skill learned", `${result.definition.name} · Rank ${result.rank}.`);
     tone("sine", 620, 920, .12, .02);
+    submitHeroPower();
   }else{
     setHeroSkillFeedback(result.reason === "no_points"
       ? "Varyn needs another hero level for a new skill point."
@@ -2451,6 +2670,7 @@ function handleHeroSkillRespec(){
   if(result.accepted){
     heroSystem.refreshStats(previousStats);
     setHeroSkillFeedback(`${result.refundedPoints} skill points returned. Equipment and hero XP were not changed.`, "success");
+    submitHeroPower();
   }else{
     setHeroSkillFeedback("The skill tree could not be reset.", "warning");
   }
@@ -4803,7 +5023,7 @@ function spawnEnemy(){
 function placeUnit(c,r){
   if(lives<=0) return;
   if(selectedUnitType === "cryo" && !hasCryoUnlock()){
-    setMessage("Cryo is locked. Unlock it permanently with 150 Crystals in Ascension.");
+    setMessage("Cryo is locked. Unlock it permanently with 150 Crystals in the Shop (Tower tab).");
     openLeyOverlay();
     return;
   }
@@ -8461,8 +8681,12 @@ lootCacheList?.addEventListener("click",(event)=>{
   if(button) handleInventoryClaim(inventorySystem.claimBundle(button.dataset.claimBundle));
 });
 inventoryItems?.addEventListener("click",(event)=>{
-  const button = event.target.closest("[data-equip-item]");
-  if(button && !button.disabled) equipInventoryItem(button.dataset.equipItem);
+  const equipBtn = event.target.closest("[data-equip-item]");
+  if(equipBtn && !equipBtn.disabled){ equipInventoryItem(equipBtn.dataset.equipItem); return; }
+  const salvageBtn = event.target.closest("[data-salvage-item]");
+  if(salvageBtn){ salvageInventoryItem(salvageBtn.dataset.salvageItem); return; }
+  const discardBtn = event.target.closest("[data-discard-item]");
+  if(discardBtn){ discardInventoryItem(discardBtn.dataset.discardItem); return; }
 });
 equipmentSlots?.addEventListener("click",(event)=>{
   const button = event.target.closest("[data-unequip-slot]");
@@ -8470,6 +8694,7 @@ equipmentSlots?.addEventListener("click",(event)=>{
 });
 inventoryFilter?.addEventListener("change",renderInventoryOverlay);
 inventorySort?.addEventListener("change",renderInventoryOverlay);
+craftCrystalBtn?.addEventListener("click",craftCrystalFromEssence);
 openHeroSkillsBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   openHeroSkillsOverlay();

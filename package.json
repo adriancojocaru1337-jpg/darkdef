@@ -5,5 +5,8 @@
   },
   "dependencies": {
     "@netlify/neon": "^0.1.2"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.0"
   }
 }

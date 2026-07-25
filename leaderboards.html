@@ -357,6 +357,9 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       <button class="rk-tab" role="tab" id="tab-daily" aria-controls="panel-daily" aria-selected="false" type="button">
         <span class="ico" aria-hidden="true">&#128197;</span>Daily
       </button>
+      <button class="rk-tab" role="tab" id="tab-power" aria-controls="panel-power" aria-selected="false" type="button">
+        <span class="ico" aria-hidden="true">&#9889;</span>Power
+      </button>
     </div>
 
     <section class="rk-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless">
@@ -407,6 +410,22 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       </div>
     </section>
 
+    <section class="rk-panel" id="panel-power" role="tabpanel" aria-labelledby="tab-power" hidden>
+      <div class="rk-panel-head">
+        <div>
+          <h2>Hero Power</h2>
+          <p class="rk-rule">Ranked by total Hero Power — equipment plus skill investment. Updates when signed-in players change their loadout.</p>
+        </div>
+      </div>
+      <div class="rk-podium" id="powerPodium"></div>
+      <div class="rk-table">
+        <div class="rk-thead">
+          <div>Rank</div><div>Commander</div><div>Gear</div><div>Skills</div><div>Power</div>
+        </div>
+        <div id="powerLeaderboardRows"></div>
+      </div>
+    </section>
+
     <nav class="rk-strip" aria-label="Elsewhere">
       <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
       <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
@@ -424,6 +443,8 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
     const endlessPodEl  = document.getElementById("endlessPodium");
     const storyPodEl    = document.getElementById("storyPodium");
     const dailyPodEl    = document.getElementById("dailyPodium");
+    const powerRowsEl   = document.getElementById("powerLeaderboardRows");
+    const powerPodEl    = document.getElementById("powerPodium");
     const dailyBoardCopyEl = document.getElementById("dailyBoardCopy");
     const refreshLeaderboardsBtn = document.getElementById("refreshLeaderboardsBtn");
 
@@ -490,12 +511,14 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
     const PRIMARY = {
       endless: (r) => `+${formatNumber(r.bonus_score)}`,
       story:   (r) => formatNumber(r.score_total),
-      daily:   (r) => `Wave ${formatNumber(r.wave_reached)}`
+      daily:   (r) => `Wave ${formatNumber(r.wave_reached)}`,
+      power:   (r) => `${formatNumber(r.power)} PWR`
     };
     const SECONDARY = {
       endless: (r) => `Wave ${formatNumber(r.wave_reached)}`,
       story:   (r) => `Stage ${formatNumber(r.wave_reached)}`,
-      daily:   (r) => `+${formatNumber(r.bonus_score)} bonus`
+      daily:   (r) => `+${formatNumber(r.bonus_score)} bonus`,
+      power:   (r) => `${formatNumber(r.equipment_power)} gear · ${formatNumber(r.skill_points)} skills`
     };
 
     function renderPodium(target, rows, type){
@@ -547,6 +570,10 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
           c3 = formatNumber(row.wave_reached);
           c4 = `<span class="rk-hi">+${formatNumber(row.bonus_score)}</span>`;
           c5 = formatNumber(row.kills);
+        } else if (type === "power") {
+          c3 = formatNumber(row.equipment_power);
+          c4 = formatNumber(row.skill_points);
+          c5 = `<span class="rk-hi">${formatNumber(row.power)}</span>`;
         } else {
           c3 = formatNumber(row.wave_reached);
           c4 = `<span class="rk-hi">+${formatNumber(row.bonus_score)}</span>`;
@@ -572,8 +599,8 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       if (dailyBoardCopyEl) {
         dailyBoardCopyEl.textContent = `Today: ${getTodayChallengeLabel()} \u2014 ranked by deepest wave survived, then bonus score. Best run per player, fresh challenge every midnight.`;
       }
-      [endlessRowsEl, storyRowsEl, dailyRowsEl].forEach(showSkeleton);
-      [endlessPodEl, storyPodEl, dailyPodEl].forEach((el) => { if(el) el.innerHTML = ""; });
+      [endlessRowsEl, storyRowsEl, dailyRowsEl, powerRowsEl].forEach(showSkeleton);
+      [endlessPodEl, storyPodEl, dailyPodEl, powerPodEl].forEach((el) => { if(el) el.innerHTML = ""; });
 
       const mainBoards = (async () => {
         try {
@@ -609,7 +636,24 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
         }
       })();
 
-      await Promise.all([mainBoards, dailyBoard]);
+      const powerBoard = (async () => {
+        try {
+          const response = await fetch("/.netlify/functions/get-power-leaderboard", { cache: "no-store" });
+          if (!response.ok) throw new Error("power unavailable");
+          const data = await response.json();
+          const rows = data.power || [];
+          if (!Array.isArray(rows) || rows.length === 0) {
+            powerRowsEl.innerHTML = '<div class="rk-empty">No Hero Power posted yet &mdash; sign in and gear up to claim the top spot.</div>';
+          } else {
+            renderPodium(powerPodEl, rows, "power");
+            renderRows(powerRowsEl, rows, "power");
+          }
+        } catch (error) {
+          powerRowsEl.innerHTML = '<div class="rk-empty">The Power ladder is temporarily unavailable.</div>';
+        }
+      })();
+
+      await Promise.all([mainBoards, dailyBoard, powerBoard]);
       if (refreshLeaderboardsBtn) {
         refreshLeaderboardsBtn.disabled = false;
         refreshLeaderboardsBtn.innerHTML = '<span class="ico" aria-hidden="true">\u21BB</span>Refresh';

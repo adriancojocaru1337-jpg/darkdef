@@ -77,7 +77,7 @@
       </div>
       <div class="overlay-actions">
         <button class="btn btn-primary" id="startGameBtn">Play</button>
-        <button class="btn btn-secondary btn-ley" id="openLeyBtn">Ascension <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
+        <button class="btn btn-secondary btn-ley" id="openLeyBtn">Shop <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
         <button class="btn btn-secondary btn-inventory" id="openInventoryBtn" type="button">Inventory <span class="inventory-chip" id="inventoryBtnCount">0 / 40</span></button>
         <button class="btn btn-secondary btn-skills" id="openHeroSkillsBtn" type="button">Hero Skills <span class="skill-points-chip" id="skillBtnPoints">0</span></button>
         <a href="/command-table.html" class="btn btn-secondary">Command Table</a>
@@ -112,7 +112,7 @@
       </div>
       <div class="overlay-actions gameover-actions two-buttons">
         <button class="btn btn-primary" id="restartFromGameOverBtn">Rise Again</button>
-        <button class="btn btn-secondary btn-ley" id="openLeyFromGameOverBtn">Ascension</button>
+        <button class="btn btn-secondary btn-ley" id="openLeyFromGameOverBtn">Shop</button>
         <button class="btn btn-secondary" id="returnToMenuBtn">Main Menu</button>
       </div>
     </div>
@@ -147,10 +147,15 @@
 
   <div class="screen-overlay hidden" id="leyOverlay">
     <div class="overlay-card ley-card">
-      <div class="reward-kicker">Meta Progression</div>
-      <h1>Ascension</h1>
-      <p class="ley-intro">Every run — victory or defeat — leaves behind Crystals. Spend them here on permanent upgrades that carry into every future run, growing stronger with each ascent.</p>
+      <div class="reward-kicker">Crystal Shop</div>
+      <h1>Shop</h1>
+      <p class="ley-intro">Every run — victory or defeat — leaves behind Crystals, and you can craft more from salvaged essence. Spend them here on permanent upgrades and services.</p>
       <div class="ley-balance">✦ <span id="leyCrystalBalance">0</span> <span class="ley-balance-label">Crystals</span></div>
+      <div class="shop-tabs" id="shopTabs" role="tablist">
+        <button class="shop-tab is-active" type="button" data-shop-tab="ascension" role="tab">Ascension</button>
+        <button class="shop-tab" type="button" data-shop-tab="tower" role="tab">Tower</button>
+        <button class="shop-tab" type="button" data-shop-tab="rename" role="tab">Rename</button>
+      </div>
       <div class="ley-branches" id="leyBranches"></div>
       <div class="overlay-actions">
         <button class="btn btn-secondary" id="closeLeyBtn">Close</button>
@@ -172,6 +177,12 @@
       <div class="inventory-summary" aria-live="polite">
         <div><span>Bag</span><strong id="inventoryCapacityStat">0 / 40</strong></div>
         <div><span>Loot Cache</span><strong id="inventoryCacheStat">0</strong></div>
+        <div><span>Essence</span><strong id="inventoryEssenceStat">0</strong></div>
+        <div class="inventory-crystal-cell">
+          <span>Ascension ◆</span>
+          <strong id="inventoryCrystalStat">0</strong>
+          <button class="inventory-craft-btn" id="craftCrystalBtn" type="button" disabled>Craft ◆</button>
+        </div>
         <div><span>Equipped Power</span><strong id="inventoryPowerStat">0</strong></div>
         <div><span>Hero Damage</span><strong id="inventoryDamageStat">26</strong></div>
         <div><span>Hero HP</span><strong id="inventoryHpStat">230</strong></div>
@@ -270,8 +281,10 @@
   <div class="screen-overlay hidden gameover-overlay endless-unlocked-overlay" id="endlessUnlockOverlay">
     <div class="endless-unlocked-artwork" aria-label="Campaign complete. Endless mode unlocked.">
       <img src="assets/ui/endless-unlocked.jpg" alt="Campaign Complete. Endless Mode Unlocked." />
-      <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;You thought you’d seen it all. You were wrong.&rdquo;</p>
-      <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Final stage clear reward: +200 gold</p>
+      <div class="endless-unlocked-textstack">
+        <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;You thought you’d seen it all. You were wrong.&rdquo;</p>
+        <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Final stage clear reward: +200 gold</p>
+      </div>
       <button class="artwork-hitbox artwork-hitbox-enter" id="enterEndlessBtn" aria-label="Enter Endless">Enter Endless</button>
       <button class="artwork-hitbox artwork-hitbox-menu" id="backToMenuFromEndlessBtn" aria-label="Back to Menu">Back to Menu</button>
     </div>
@@ -345,7 +358,7 @@
           <div class="panel-header-user-actions">
             <button class="panel-header-skills" id="panelHeaderSkillsBtn" type="button" title="Hero Skill Tree (K)">Skills <span id="panelHeaderSkillPoints">0</span></button>
             <button class="panel-header-inventory" id="panelHeaderInventoryBtn" type="button" title="Inventory &amp; Equipment (I)">Bag <span id="panelHeaderInventoryCount">0</span></button>
-            <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Ascension — talent tree">✦ <span id="panelHeaderLeyBalance">0</span></button>
+            <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Shop — spend Crystals">✦ <span id="panelHeaderLeyBalance">0</span></button>
             <a class="panel-header-user" id="panelHeaderUserLink" aria-live="polite" href="/account.html">
               <span class="panel-header-user-crest" id="panelHeaderUserCrest" aria-hidden="true"></span>
               <span class="panel-header-user-label">Player</span>
@@ -403,7 +416,7 @@
               <div class="badge lives" id="livesBadge">❤️ 20</div>
               <div class="badge wave" id="waveBadge">🌊 Wave 1</div>
               <div class="badge level" id="stageBadge">🗺️ Stage 1 · Forest</div>
-              <button class="badge ley" id="leyHudBadge" title="Ascension — spend Crystals">✦ 0</button>
+              <button class="badge ley" id="leyHudBadge" title="Shop — spend Crystals">✦ 0</button>
             </div>
           </div>
 
