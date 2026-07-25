@@ -121,3 +121,85 @@ v0.9.2e Rename propagation:
 - no new SQL migration: relies on leaderboard_scores.user_id (already added by
   setup_auth.sql) and daily_key (setup_daily_leaderboard.sql)
 - validation: 64 unit tests pass; all six functions syntax-checked
+
+v0.9.2f Tower menu auto-hide, leaderboard order, HUD redesign:
+- tower upgrade menu now fades out and deselects on its own when you can't afford
+  the upgrade/specialization — no need to click away or press Escape (which in
+  fullscreen also exits fullscreen). Re-selecting or earning gold cancels the fade.
+- Power leaderboard tab is now first (before Endless/Story/Daily) and the default
+- redesigned the three HUD buttons (Skills / Bag / Shop) as a cohesive pill set:
+  icon chip + label + count badge, per-button accent color, refined hover glow;
+  the crystals button now reads "Shop" with a ✦ icon
+- validation: 64 unit tests pass; game.js, leaderboards script and CSS checked
+
+v0.9.2g Removed the start menu:
+- the game now boots straight into the battlefield, ready to place towers
+- root cause of "sometimes it shows, sometimes not": the start overlay stayed
+  visible over the battlefield because nothing hid it on direct boot; a saved run
+  showed the Resume overlay instead, which is why it appeared inconsistently
+- removed the start overlay entirely (index.html). Play is no longer needed;
+  Shop/Bag/Skills already live in the battlefield HUD, and the page's other nav
+  already links Command Table / About / Guide / Leaderboards / Account
+- saved-run behaviour is unchanged: on boot with a saved run you still get the
+  Resume overlay (continue where you left off)
+- "Main Menu" (game over) and "Back to Menu" (endless unlock) now drop into a
+  fresh battlefield instead of the removed menu; Space-to-start does too
+- validation: 64 unit tests pass; game.js syntax-checked
+
+v0.9.2h World map (winding trail):
+- the game now opens on a world map with the six campaign regions
+  (Forest, Ruins, Graveyard, Castle, Catacombs, Dark Portal)
+- regions unlock progressively: only Forest is open at first; clearing a region
+  unlocks the next and returns you to the map (you play one region at a time)
+- the map logic already existed in this build but had NO styling and the Resume
+  button did nothing — this pass adds the visuals and wires Resume:
+  * winding adventure-map layout: nodes alternate left/right down an SVG trail,
+    the cleared portion of the trail is drawn brighter, current region pulses
+  * locked regions show a padlock and a "clear the previous region" hint
+  * world map Resume now restores the saved run (restoreRunState + finishResumeRun)
+- Space no longer bypasses the map — you pick a region to start
+- saved-run Resume overlay on boot is unchanged
+- validation: 64 unit tests pass; game.js + CSS checked
+
+v0.9.2i World Map button:
+- added a "World Map" button in the battlefield header, placed before the
+  Daily Challenge button, so you can open the map any time to switch regions
+- teal-themed to match the HUD, distinct from the amber Daily button
+- opening the map mid-run snapshots the current run first, so the map's
+  "Resume Run" button brings you straight back if you don't pick a new region
+- validation: 64 unit tests pass; game.js + CSS checked
+
+v0.9.2j Illustrated world map inside the battlefield:
+- the world map is no longer a separate full-screen overlay — it now renders
+  INSIDE the battlefield frame (over the canvas), using the hand-drawn map art
+  (assets/ui/world-map.png) as the background
+- six clickable hotspots sit exactly over the region banners (Forest, Ruins,
+  Graveyard, Castle, Catacombs, Dark Portal); positions verified against the art
+- hotspots are invisible until hover (respecting the artwork): teal glow on
+  hover, amber pulse on the current region, and a dark vignette + gray outline
+  on locked regions
+- image + hotspots share a shrink-wrapped frame so they always align regardless
+  of the battlefield's shape (letterboxed, never cropped-misaligned)
+- in-game HUD chips/toggles hide while the map is open; Resume chip (top-right)
+  appears if a saved run exists
+- replaces the previous CSS winding-trail map
+- validation: 64 unit tests pass; game.js + CSS checked; hotspot alignment
+  verified against the map image
+
+v0.9.2k World map polish — softer hotspots:
+- replaced the hard rectangular outline boxes over each banner with soft radial
+  glows: hover lights the region up (teal), the current region has a gentle
+  breathing amber aura, cleared shows a small green tick pill
+- locked regions get a soft blurred vignette that visibly dims them (no box)
+- status pills are smaller and more discrete
+- unlock logic verified: fresh player (furthestStage=1) shows only Forest
+  playable, regions 2-6 locked; the "everything unlocked" look in testing is
+  just saved progress (sdcFurthestStage), not a bug
+- validation: 64 unit tests pass; game.js + CSS checked
+
+v0.9.2l Compact campaign header:
+- the World Map and Challenge of the Day buttons now sit side by side instead of
+  stacked, so the header no longer stretches down the page
+- both size to content with equal height; they wrap to stacked only on narrow
+  screens
+- validation: 64 unit tests pass; CSS balanced, game.js checked

@@ -131,6 +131,9 @@ const bonusLeaderboardList = document.getElementById("bonusLeaderboardList");
 const bonusLeaderboardSubtitle = document.getElementById("bonusLeaderboardSubtitle");
 
 const startOverlay = document.getElementById("startOverlay");
+const worldMapOverlay = document.getElementById("worldMapLayer");
+const worldMapBoard = document.getElementById("worldMapHotspots");
+const worldMapResumeBtn = document.getElementById("worldMapResumeBtn");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const leaderboardNameOverlay = document.getElementById("leaderboardNameOverlay");
 const leaderboardNameTitle = document.getElementById("leaderboardNameTitle");
@@ -140,6 +143,7 @@ const leaderboardNameSubmitBtn = document.getElementById("leaderboardNameSubmitB
 const leaderboardNameCancelBtn = document.getElementById("leaderboardNameCancelBtn");
 const startGameBtn = document.getElementById("startGameBtn");
 const dailyChallengeBtn = document.getElementById("dailyChallengeBtn");
+const openWorldMapBtn = document.getElementById("openWorldMapBtn");
 const dailyChallengeEmoji = document.getElementById("dailyChallengeEmoji");
 const dailyChallengeName = document.getElementById("dailyChallengeName");
 const dailyChallengeBest = document.getElementById("dailyChallengeBest");
@@ -510,6 +514,15 @@ const STAGES = {
     blocked:[{c:4,r:3},{c:9,r:3},{c:7,r:6},{c:16,r:1},{c:11,r:4}], ley:[{c:6,r:4,kind:"damage"},{c:10,r:1,kind:"range"}],
     grassPatches:[{x:86,y:42,w:120,h:62},{x:752,y:344,w:166,h:84},{x:500,y:458,w:124,h:52}],
     ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]}
+};
+
+const WORLDMAP_META = {
+  1: { icon:"🌲", color:"#84cc16", blurb:"Where it begins. Ancient roots stir." },
+  2: { icon:"🏛️", color:"#f59e0b", blurb:"Fallen halls, restless and enraged." },
+  3: { icon:"⚰️", color:"#a78bfa", blurb:"The dead do not rest easily here." },
+  4: { icon:"🏰", color:"#60a5fa", blurb:"Shielded walls guard a dark throne." },
+  5: { icon:"💀", color:"#f43f5e", blurb:"Deep tunnels seething with fury." },
+  6: { icon:"🌀", color:"#c084fc", blurb:"The rift itself. The final stand." }
 };
 
 const stageFxState = {
@@ -2837,11 +2850,25 @@ function resolveBossWaveCompletion(){
       bonusScore += Math.round(clearReward * 0.5);
       pushNotification("gold","Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
     }
-    moveUnitsToReserve();
-    applyStage(resolution.nextStage,false);
-    pushNotification("stage","Stage Clear",`You reached Stage ${currentStage} — ${STAGES[currentStage].name}. Your towers were moved to reserve.`);
+    // Unlock the next region on the world map (furthest = highest reached).
+    submitStoryLeaderboardScore(clearedStage);
+    try{
+      const prev = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
+      localStorage.setItem("sdcFurthestStage", String(Math.max(prev, resolution.nextStage)));
+    }catch(e){}
+    profileStore.update((profile)=>{
+      profile.progress.furthestStage = Math.max(profile.progress.furthestStage || 1, resolution.nextStage);
+      return profile;
+    }, "progress:stage-unlock");
+    clearSavedRun();
+    hasStarted = false;
+    runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"stage-cleared" });
+    pushNotification("stage","Region Cleared",`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared — ${STAGES[resolution.nextStage]?.name || "the next region"} unlocked!`);
     saveProgress();
-    setMessage(`Stage clear! +${clearReward} gold. You reached Stage ${currentStage} — ${STAGES[currentStage].name}.`);
+    setMessage(`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared! +${clearReward} gold. ${STAGES[resolution.nextStage]?.name || "Next region"} unlocked.`);
+    openWorldMap();
+    updateUI();
+    return;
   } else if(resolution.type === "unlock-endless") {
     const clearedStage = currentStage;
     const clearReward = getStageClearGoldReward(clearedStage);
@@ -2854,6 +2881,7 @@ function resolveBossWaveCompletion(){
     }
     endlessUnlocked = true;
     try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
+    try { localStorage.setItem("sdcFurthestStage", String(Object.keys(STAGES).length)); } catch(e){}
     pushNotification("stage","Endless Mode unlocked",`You finished the campaign. Endless Mode is now unlocked!`);
     saveProgress();
     setMessage(`You finished the main campaign. +${clearReward} gold. Endless Mode has been unlocked.`);
@@ -4083,7 +4111,42 @@ function syncUnitSelectors(){
   });
 }
 
+let towerMenuFadeTimer = null;
+let towerMenuHideTimer = null;
+
+function clearTowerMenuAutoHide(){
+  if(towerMenuFadeTimer){ clearTimeout(towerMenuFadeTimer); towerMenuFadeTimer = null; }
+  if(towerMenuHideTimer){ clearTimeout(towerMenuHideTimer); towerMenuHideTimer = null; }
+  towerMenu?.classList.remove("fading");
+}
+
+// When the selected tower can't be upgraded or specialized because you're out
+// of gold, fade the menu out and deselect after a moment — so you don't have to
+// click elsewhere or press Escape (which in fullscreen also exits fullscreen).
+function scheduleTowerMenuAutoHide(canAct){
+  if(canAct){
+    // Affordable again (e.g. gold came in) — cancel any pending fade.
+    clearTowerMenuAutoHide();
+    return;
+  }
+  // Already counting down; don't restart on every UI refresh or the menu would
+  // never actually fade while you stay broke.
+  if(towerMenuFadeTimer || towerMenuHideTimer) return;
+  towerMenuFadeTimer = setTimeout(()=>{
+    towerMenuFadeTimer = null;
+    if(!towerMenu || towerMenu.classList.contains("hidden")) return;
+    towerMenu.classList.add("fading");
+    towerMenuHideTimer = setTimeout(()=>{
+      towerMenuHideTimer = null;
+      selectedPlacedUnitId = null;
+      hideTowerMenu();
+      updateUI();
+    }, 500);
+  }, 1600);
+}
+
 function hideTowerMenu(){
+  clearTowerMenuAutoHide();
   towerMenu?.classList.add("hidden");
 }
 
@@ -4161,6 +4224,12 @@ function showTowerMenu(unit){
   towerMenu.style.left = `${clampedMenu.left}px`;
   towerMenu.style.top = `${clampedMenu.top}px`;
   syncMobileHudLayout();
+
+  // If the player can neither upgrade nor specialize (out of gold), let the
+  // menu fade away on its own instead of forcing a manual dismiss.
+  const canSpec = canChooseSpecialization(unit) && money >= getSpecializationCost(unit);
+  const canUpgrade = !canChooseSpecialization(unit) && money >= Math.round(unit.nextUpgradeCost);
+  scheduleTowerMenuAutoHide(canSpec || canUpgrade);
 }
 
 
@@ -8527,6 +8596,7 @@ canvas.addEventListener("click",(event)=>{
       return;
     }
     selectedPlacedUnitId=clickedUnit.id;
+    clearTowerMenuAutoHide();
     setMessage(`You selected ${clickedUnit.name}.`);
     updateUI();
     return;
@@ -8720,10 +8790,144 @@ heroSkillBranches?.addEventListener("click",(event)=>{
 });
 heroSkillRespecBtn?.addEventListener("click",handleHeroSkillRespec);
 
-startGameBtn.addEventListener("click",()=>{
+/* ---- World Map -----------------------------------------
+   Six campaign regions unlocked progressively. Region N is
+   unlocked once you've cleared N-1 (tracked by furthestStage).
+   Selecting a region plays only that stage; clearing it
+   unlocks the next and returns you to the map. */
+function highestUnlockedStage(){
+  const total = Object.keys(STAGES).length;
+  const furthest = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
+  // furthest = the highest stage reached; that stage and all before it are
+  // unlocked. Clearing stage k bumps furthest to k+1, unlocking the next.
+  return Math.min(total, furthest);
+}
+
+function isStageUnlocked(stage){
+  return stage <= highestUnlockedStage();
+}
+
+function isStageCleared(stage){
+  // A stage counts as cleared once you've unlocked something beyond it.
+  return stage < highestUnlockedStage() || (stage === Object.keys(STAGES).length && endlessUnlocked);
+}
+
+// Banner positions on the world map image, as percentages of its box.
+// Tuned to sit over each region's banner/number in assets/ui/world-map.png.
+const WORLDMAP_HOTSPOTS = {
+  1: { x: 14,   y: 20 },
+  2: { x: 48,   y: 16.5 },
+  3: { x: 40,   y: 51 },
+  4: { x: 78,   y: 50.5 },
+  5: { x: 27,   y: 80 },
+  6: { x: 70,   y: 81 }
+};
+
+function renderWorldMap(){
+  if(!worldMapBoard) return;
+  const total = Object.keys(STAGES).length;
+  const highest = highestUnlockedStage();
+  worldMapBoard.innerHTML = "";
+
+  for(let stage=1; stage<=total; stage++){
+    const meta = WORLDMAP_META[stage] || {};
+    const info = STAGES[stage] || {};
+    const unlocked = isStageUnlocked(stage);
+    const cleared = isStageCleared(stage);
+    const isNext = unlocked && !cleared && stage === highest;
+    const pos = WORLDMAP_HOTSPOTS[stage] || { x:50, y:(stage/total)*100 };
+    const node = document.createElement("button");
+    node.type = "button";
+    node.className = `worldmap-hotspot${unlocked ? "" : " locked"}${cleared ? " cleared" : ""}${isNext ? " current" : ""}`;
+    node.style.left = `${pos.x}%`;
+    node.style.top = `${pos.y}%`;
+    node.disabled = !unlocked;
+    node.setAttribute("data-worldmap-stage", String(stage));
+    node.setAttribute("aria-label", `${info.name || `Stage ${stage}`}${unlocked ? (cleared ? " — cleared" : "") : " — locked"}`);
+    node.innerHTML = `
+      <span class="worldmap-hotspot-ring"></span>
+      <span class="worldmap-hotspot-label">
+        <span class="worldmap-hotspot-status">${cleared ? "✓ Cleared" : unlocked ? "Play ▸" : "🔒 Locked"}</span>
+      </span>`;
+    worldMapBoard.appendChild(node);
+  }
+  worldMapBoard.querySelectorAll("[data-worldmap-stage]").forEach((btn)=>{
+    btn.addEventListener("click",(event)=>{
+      event.stopPropagation();
+      const stage = Number(btn.getAttribute("data-worldmap-stage"));
+      if(isStageUnlocked(stage)) playStageFromMap(stage);
+    });
+  });
+}
+
+function openWorldMap(){
+  // Offer Resume only if a saved run exists.
+  if(worldMapResumeBtn){
+    const hasSave = !!loadSavedRun();
+    worldMapResumeBtn.classList.toggle("hidden", !hasSave);
+  }
+  renderWorldMap();
+  worldMapOverlay?.classList.remove("hidden");
+  canvasWrap?.classList.add("worldmap-active");
+}
+
+function closeWorldMap(){
+  worldMapOverlay?.classList.add("hidden");
+  canvasWrap?.classList.remove("worldmap-active");
+}
+
+worldMapResumeBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  const save = loadSavedRun();
+  if(!save){ renderWorldMap(); return; }
+  try{
+    restoreRunState(save);
+  }catch(e){
+    clearSavedRun();
+    renderWorldMap();
+    return;
+  }
+  closeWorldMap();
+  finishResumeRun();
+});
+
+function playStageFromMap(stage){
+  closeWorldMap();
+  clearSavedRun();
+  if(dailyChallengeActive || currentMode !== "campaign"){
+    exitDailyChallenge();
+  }
+  currentMode = "campaign";
+  applyStage(stage, true);
+  hasStarted = true;
+  startRunFlow("campaign-started");
+  ensureAudio(); syncAmbientAudio();
+  loadProgressNotice();
+  loadBonusLeaderboard();
+  setMessage(`${STAGES[stage]?.name || `Stage ${stage}`} — place towers, start the wave, and hold the line.`);
+  updateUI();
+}
+
+function enterBattlefieldDirect(){
+  // The start menu is gone: a fresh boot with no saved run drops straight into
+  // the battlefield, ready to place towers. Audio is NOT started here — browsers
+  // block it until the first interaction, so it kicks in on the first click/key.
+  clearSavedRun();
+  if(dailyChallengeActive || currentMode !== "campaign"){
+    exitDailyChallenge();
+    applyStage(1, true);
+  }
+  hasStarted = true;
+  startRunFlow("campaign-started");
+  loadProgressNotice();
+  loadBonusLeaderboard();
+  setMessage("Place towers, start the wave, and use spells when needed.");
+  updateUI();
+}
+
+function startGameFromMenu(){
   // A fresh Play always starts a new run — any old snapshot is discarded.
   clearSavedRun();
-  // If a daily challenge was previously active, drop back to a clean campaign.
   if(dailyChallengeActive || currentMode !== "campaign"){
     exitDailyChallenge();
     applyStage(1, true);
@@ -8731,12 +8935,13 @@ startGameBtn.addEventListener("click",()=>{
   hasStarted=true;
   startRunFlow("campaign-started");
   ensureAudio(); syncAmbientAudio();
-  startOverlay.classList.add("hidden");
+  startOverlay?.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
   setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
   updateUI();
-});
+}
+startGameBtn?.addEventListener("click", startGameFromMenu);
 
 
 resumeRunBtn?.addEventListener("click",()=>{ finishResumeRun(); });
@@ -8764,12 +8969,19 @@ returnToMenuBtn?.addEventListener("click",()=>{
   resetGame();
   hasStarted = false;
   runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"main-menu" });
-  startOverlay.classList.remove("hidden");
-  setMessage("Returned to the main menu.");
+  openWorldMap();
 });
 
 enterEndlessBtn?.addEventListener("click", ()=>{
   enterEndlessModeFromUnlock();
+});
+
+openWorldMapBtn?.addEventListener("click", ()=>{
+  // If a run is live, snapshot it first so the map's Resume can bring you back.
+  if(hasStarted && lives > 0){
+    try{ saveRunState(); }catch(e){}
+  }
+  openWorldMap();
 });
 
 dailyChallengeBtn?.addEventListener("click", ()=>{
@@ -8781,8 +8993,7 @@ backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
   resetGame();
   hasStarted = false;
   runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"main-menu" });
-  startOverlay.classList.remove("hidden");
-  setMessage("Returned to the main menu.");
+  openWorldMap();
 });
 
 window.addEventListener("resize", syncEndlessUnlockArtworkBounds);
@@ -8793,7 +9004,9 @@ updateAutoPlayUI();
 updateSpeedUI();
 applyHudVisibility();
 applyStage(1,true);
-maybeShowResumeOverlay();
+if(!maybeShowResumeOverlay()){
+  openWorldMap();
+}
 loadPanelUserSession();
 loadBonusLeaderboard();
 prewarmLeaderboardRun("campaign");
@@ -8903,7 +9116,9 @@ document.addEventListener("keydown",(event)=>{
   if(event.key === " "){
     event.preventDefault();
     if(!hasStarted){
-      startGameBtn?.click();
+      // On the world map you choose a region to start — Space shouldn't skip it.
+      if(worldMapOverlay && !worldMapOverlay.classList.contains("hidden")) return;
+      enterBattlefieldDirect();
       return;
     }
     if(waveActive) togglePause();
@@ -9053,7 +9268,6 @@ function disablePseudoFullscreen(){
    We relocate them into #canvasWrap on enter and put them back
    exactly where they were on exit. */
 const FULLSCREEN_OVERLAY_IDS = [
-  "startOverlay",
   "gameOverOverlay",
   "leaderboardNameOverlay",
   "auraRewardOverlay",

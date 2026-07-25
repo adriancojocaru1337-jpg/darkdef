@@ -433,6 +433,128 @@ body::after {
 }
 .overlay-danger{ border-color:rgba(251,113,133,.24); }
 
+/* ============================================================
+   World Map — full illustrated map inside the battlefield frame
+   ============================================================ */
+.worldmap-layer{
+  position:absolute; inset:0; z-index:20;
+  display:flex; align-items:center; justify-content:center;
+  background:#05070f;
+  overflow:hidden;
+}
+.worldmap-layer.hidden{ display:none; }
+/* The frame shrink-wraps the letterboxed image; hotspots overlay it exactly,
+   so a hotspot at x%/y% always lands on the same banner regardless of the
+   battlefield frame's shape. */
+.worldmap-frame{
+  position:relative;
+  display:flex;
+  max-width:100%; max-height:100%;
+}
+.worldmap-image{
+  display:block;
+  max-width:100%; max-height:100%;
+  width:auto; height:auto;
+  object-fit:contain;
+  user-select:none; -webkit-user-drag:none; pointer-events:none;
+}
+.worldmap-hotspots{ position:absolute; inset:0; }
+
+.worldmap-hotspot{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  width:150px; height:96px;
+  padding:0; border:0; background:none; cursor:pointer;
+  z-index:2;
+}
+/* The glow sits BEHIND the banner (the art already draws the banner), so hover
+   reads as the region lighting up — not a hard box stuck on top of it. */
+.worldmap-hotspot-ring{
+  position:absolute; left:50%; top:44%;
+  transform:translate(-50%,-50%);
+  width:130px; height:130px; border-radius:50%;
+  background:radial-gradient(circle, rgba(56,189,248,0) 0%, rgba(56,189,248,0) 100%);
+  opacity:0;
+  transition:opacity .2s ease, background .2s ease;
+  pointer-events:none;
+}
+.worldmap-hotspot-label{
+  position:absolute; left:50%; bottom:2px; transform:translate(-50%,100%);
+  display:flex; align-items:center; gap:4px;
+  padding:3px 10px; border-radius:999px;
+  background:rgba(6,10,20,.9);
+  border:1px solid rgba(148,163,184,.3);
+  box-shadow:0 4px 12px rgba(0,0,0,.5);
+  opacity:0; pointer-events:none; white-space:nowrap;
+  transition:opacity .16s ease;
+  z-index:3;
+}
+.worldmap-hotspot-status{ font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#7dd3fc; }
+
+.worldmap-hotspot:hover:not(.locked) .worldmap-hotspot-ring,
+.worldmap-hotspot:focus-visible:not(.locked) .worldmap-hotspot-ring{
+  opacity:1;
+  background:radial-gradient(circle, rgba(125,211,252,.34) 0%, rgba(56,189,248,.12) 45%, rgba(56,189,248,0) 70%);
+}
+.worldmap-hotspot:hover:not(.locked) .worldmap-hotspot-label,
+.worldmap-hotspot:focus-visible:not(.locked) .worldmap-hotspot-label{ opacity:1; }
+
+/* Current region: a soft amber aura that gently breathes — no hard outline. */
+.worldmap-hotspot.current .worldmap-hotspot-ring{
+  opacity:1;
+  background:radial-gradient(circle, rgba(251,191,36,.32) 0%, rgba(251,191,36,.1) 46%, rgba(251,191,36,0) 70%);
+  animation:worldmapAura 2.2s ease-in-out infinite;
+}
+.worldmap-hotspot.current .worldmap-hotspot-label{ opacity:1; }
+.worldmap-hotspot.current .worldmap-hotspot-status{ color:#fbbf24; }
+@keyframes worldmapAura{
+  0%,100%{ opacity:.62; }
+  50%{ opacity:1; }
+}
+
+.worldmap-hotspot.cleared .worldmap-hotspot-status{ color:#6ee7b7; }
+.worldmap-hotspot.cleared:hover .worldmap-hotspot-ring{
+  background:radial-gradient(circle, rgba(110,231,183,.28) 0%, rgba(110,231,183,.1) 45%, rgba(110,231,183,0) 70%);
+}
+
+/* Locked: darken the region with a soft vignette, no outline box. */
+.worldmap-hotspot.locked{ cursor:not-allowed; }
+.worldmap-hotspot.locked .worldmap-hotspot-label{ opacity:1; background:rgba(4,6,12,.92); }
+.worldmap-hotspot.locked .worldmap-hotspot-status{ color:#94a3b8; }
+.worldmap-hotspot.locked::before{
+  content:""; position:absolute; left:50%; top:46%;
+  width:300px; height:270px; transform:translate(-50%,-50%);
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(3,5,12,.82) 0%, rgba(3,5,12,.55) 42%, rgba(3,5,12,0) 70%);
+  z-index:-1; pointer-events:none;
+}
+
+.worldmap-resume-chip{
+  position:absolute; top:12px; right:12px; z-index:3;
+  padding:9px 16px; border-radius:999px; cursor:pointer;
+  font-size:13px; font-weight:800; letter-spacing:.03em; color:#5eead4;
+  background:rgba(6,12,16,.9);
+  border:1px solid rgba(94,234,212,.42);
+  box-shadow:0 8px 22px rgba(0,0,0,.45);
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.worldmap-resume-chip:hover{ transform:translateY(-1px); border-color:rgba(94,234,212,.8); box-shadow:0 0 20px rgba(94,234,212,.25); }
+.worldmap-resume-chip.hidden{ display:none; }
+
+.canvas-wrap.worldmap-active .canvas-overlay,
+.canvas-wrap.worldmap-active .settings-toggle,
+.canvas-wrap.worldmap-active .speed-toggle,
+.canvas-wrap.worldmap-active .fullscreen-toggle,
+.canvas-wrap.worldmap-active .tower-menu,
+.canvas-wrap.worldmap-active .unit-info-panel{
+  display:none !important;
+}
+
+@media (max-width:640px){
+  .worldmap-hotspot{ width:118px; height:78px; }
+  .worldmap-hotspot-ring{ width:104px; height:104px; }
+}
+
 .overlay-kicker{margin-bottom:10px;font-size:12px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#d8b789}
 .overlay-kicker-danger{color:#ffb3b3}
 .gameover-overlay{overflow:hidden}
@@ -574,6 +696,13 @@ body::after {
   z-index:12;
   /* Positioning is handled in JS with clamping so the panel stays inside the map. */
   transform:none;
+  opacity:1;
+  transition:opacity .45s ease;
+}
+
+.tower-menu.fading{
+  opacity:0;
+  pointer-events:none;
 }
 
 .tower-menu.hidden{
@@ -4164,74 +4293,92 @@ body.pseudo-fs-active{ overflow:hidden; }
 }
 .panel-header-user:hover .dd-crest-header{filter:brightness(1.1)}
 
+/* ============================================================
+   HUD action buttons — Skills / Bag / Shop
+   Unified pill design with a themed accent per button.
+   ============================================================ */
+.panel-header-skills,
+.panel-header-inventory,
 .panel-header-ley{
-  display:inline-flex;align-items:center;gap:6px;
-  min-height:44px;padding:10px 16px;border-radius:999px;
-  font-weight:800;font-size:14px;letter-spacing:.03em;
-  color:#5eead4;cursor:pointer;
-  border:1px solid rgba(94,234,212,.30);
-  background:linear-gradient(180deg, rgba(15,28,26,.92), rgba(9,16,15,.90));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 10px 24px rgba(0,0,0,.18);
-  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  --phb-accent:#94a3b8;
+  --phb-accent-soft:rgba(148,163,184,.16);
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  min-height:44px;
+  padding:9px 15px 9px 12px;
+  border-radius:999px;
+  cursor:pointer;
+  font:800 13px Inter,Arial,sans-serif;
+  letter-spacing:.02em;
+  color:#f1f5f9;
+  border:1px solid color-mix(in srgb,var(--phb-accent) 34%,transparent);
+  background:
+    radial-gradient(120% 120% at 20% 0%, color-mix(in srgb,var(--phb-accent) 14%,transparent), transparent 60%),
+    linear-gradient(180deg, rgba(19,26,40,.94), rgba(10,15,24,.94));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 8px 22px rgba(0,0,0,.22);
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
+.panel-header-skills:hover,
+.panel-header-inventory:hover,
 .panel-header-ley:hover{
   transform:translateY(-1px);
-  border-color:rgba(94,234,212,.55);
-  box-shadow:0 4px 16px rgba(94,234,212,.16);
+  border-color:color-mix(in srgb,var(--phb-accent) 62%,transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.06),
+    0 10px 26px rgba(0,0,0,.26),
+    0 0 20px color-mix(in srgb,var(--phb-accent) 22%,transparent);
 }
+.panel-header-skills:active,
+.panel-header-inventory:active,
 .panel-header-ley:active{transform:translateY(0)}
 
-.panel-header-inventory{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  min-height:44px;
-  padding:10px 15px;
-  border-radius:999px;
-  border:1px solid rgba(192,132,252,.3);
-  background:linear-gradient(180deg,rgba(32,22,43,.92),rgba(17,12,24,.92));
-  color:#e9d5ff;
-  font:800 13px Inter,Arial,sans-serif;
-  cursor:pointer;
-  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+.phb-ico{
+  display:grid;
+  place-items:center;
+  width:24px;height:24px;
+  border-radius:50%;
+  font-size:13px;line-height:1;
+  color:var(--phb-accent);
+  background:var(--phb-accent-soft);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--phb-accent) 24%,transparent);
 }
-.panel-header-inventory span{
+.phb-label{color:#e2e8f0;font-weight:800}
+.phb-count{
   min-width:22px;
-  padding:2px 7px;
+  padding:2px 8px;
   border-radius:999px;
-  background:rgba(192,132,252,.14);
-  color:#d8b4fe;
+  text-align:center;
+  font-weight:800;
+  color:var(--phb-accent);
+  background:var(--phb-accent-soft);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--phb-accent) 20%,transparent);
 }
-.panel-header-inventory:hover{
-  transform:translateY(-1px);
-  border-color:rgba(192,132,252,.58);
-}
-.panel-header-inventory.has-loot{
-  border-color:rgba(251,191,36,.58);
-  box-shadow:0 0 18px rgba(251,191,36,.13);
-}
+
 .panel-header-skills{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  min-height:44px;
-  padding:10px 15px;
-  border-radius:999px;
-  border:1px solid rgba(245,158,11,.28);
-  background:linear-gradient(180deg,rgba(40,27,12,.92),rgba(22,15,9,.92));
-  color:#fde68a;
-  font:800 13px Inter,Arial,sans-serif;
-  cursor:pointer;
-  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+  --phb-accent:#fbbf24;
+  --phb-accent-soft:rgba(245,158,11,.16);
 }
-.panel-header-skills span{
-  min-width:22px;
-  padding:2px 7px;
-  border-radius:999px;
-  background:rgba(245,158,11,.14);
+.panel-header-inventory{
+  --phb-accent:#c084fc;
+  --phb-accent-soft:rgba(192,132,252,.16);
+}
+.panel-header-ley{
+  --phb-accent:#5eead4;
+  --phb-accent-soft:rgba(94,234,212,.16);
+}
+
+.panel-header-inventory.has-loot{
+  border-color:rgba(251,191,36,.6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 0 18px rgba(251,191,36,.18);
+}
+.panel-header-inventory.has-loot .phb-ico{
   color:#fbbf24;
+  background:rgba(251,191,36,.16);
 }
-.panel-header-skills:hover{transform:translateY(-1px);border-color:rgba(245,158,11,.55)}
 .panel-header-skills.has-points{
   border-color:rgba(251,191,36,.72);
   animation:skillPointGlow 1.9s ease-in-out infinite;
@@ -4242,7 +4389,8 @@ body.pseudo-fs-active{ overflow:hidden; }
 }
 
 @media (max-width:860px){
-  .panel-header-ley,.panel-header-inventory,.panel-header-skills{min-height:38px;padding:8px 13px;font-size:13px}
+  .panel-header-ley,.panel-header-inventory,.panel-header-skills{min-height:38px;padding:7px 12px 7px 9px;font-size:12px;gap:6px}
+  .phb-ico{width:21px;height:21px;font-size:12px}
   .dd-crest-header{width:28px;height:28px;font-size:10px}
 }
 
@@ -4250,12 +4398,11 @@ body.pseudo-fs-active{ overflow:hidden; }
    Challenge of the Day button
    ============================================================ */
 .daily-challenge-btn{
-  margin-top:26px;
   display:inline-flex;
   align-items:center;
   gap:14px;
-  width:100%;
-  max-width:520px;
+  flex:1 1 300px;
+  max-width:420px;
   padding:12px 16px;
   border-radius:16px;
   cursor:pointer;
@@ -4312,7 +4459,56 @@ body.pseudo-fs-active{ overflow:hidden; }
 }
 
 /* Center the "Battlefield" kicker + challenge button as a header block */
-.panel-header-lead{ display:flex; flex-direction:column; align-items:flex-start; }
+.panel-header-lead{ display:flex; flex-direction:row; flex-wrap:wrap; align-items:stretch; gap:10px; padding-top:26px; }
+
+.worldmap-open-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:12px;
+  flex:1 1 240px;
+  max-width:340px;
+  padding:11px 15px;
+  border-radius:16px;
+  cursor:pointer;
+  text-align:left;
+  color:var(--text);
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(56,189,248,0.16), transparent 60%),
+    linear-gradient(180deg, rgba(16,24,40,0.94), rgba(9,14,24,0.95));
+  border:1px solid rgba(94,234,212,0.34);
+  box-shadow:0 12px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(190,240,255,0.06);
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.worldmap-open-btn:hover{
+  transform:translateY(-2px);
+  border-color:rgba(125,211,252,0.7);
+  box-shadow:0 16px 40px rgba(0,0,0,0.5), 0 0 22px rgba(56,189,248,0.18), inset 0 1px 0 rgba(190,240,255,0.12);
+}
+.worldmap-open-btn:active{ transform:translateY(0); }
+.worldmap-open-emoji{
+  flex:0 0 auto;
+  display:grid;place-items:center;
+  width:38px;height:38px;
+  border-radius:12px;
+  font-size:20px;line-height:1;
+  background:rgba(56,189,248,0.14);
+  box-shadow:inset 0 0 0 1px rgba(94,234,212,0.28);
+}
+.worldmap-open-copy{ display:flex; flex-direction:column; gap:1px; min-width:0; flex:1; }
+.worldmap-open-kicker{
+  font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+  color:#7dd3fc;
+}
+.worldmap-open-name{ font-size:15px;font-weight:800;color:#f1f5f9;line-height:1.1; }
+.worldmap-open-cta{
+  flex:0 0 auto;
+  font-size:12px;font-weight:800;letter-spacing:.04em;
+  color:#7dd3fc;
+}
+@media (max-width:640px){
+  .worldmap-open-btn{ gap:10px; padding:9px 12px; }
+  .worldmap-open-emoji{ width:34px;height:34px;font-size:18px; }
+}
 .panel-header-lead .panel-kicker{
   position:absolute; top:14px; left:50%; transform:translateX(-50%);
   margin:0; z-index:1; white-space:nowrap;

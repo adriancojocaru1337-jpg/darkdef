@@ -52,43 +52,6 @@
 <body>
   <div class="page-shell"></div>
 
-  <div class="screen-overlay visible" id="startOverlay">
-    <div class="overlay-card">
-      <h1>Dark Defense</h1>
-      <p>
-        Fantasy tower defense in your browser. Defend the road, defeat bosses, upgrade towers, use spells, and climb the ranks in Endless Mode with a secure leaderboard.
-      </p>
-      <div class="overlay-quick-guide">
-        <div class="quick-guide-title">Shortcuts</div>
-        <div class="quick-guide-grid">
-          <span><kbd>Space</kbd> Start / Pause</span>
-          <span><kbd>1</kbd>&ndash;<kbd>5</kbd> Pick tower</span>
-          <span><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd> Cast spells</span>
-          <span><kbd>C</kbd> Hero ability</span>
-          <span><kbd>I</kbd> Inventory</span>
-          <span><kbd>K</kbd> Hero Skills</span>
-          <span><kbd>F</kbd> Game speed</span>
-          <span><kbd>G</kbd> Fullscreen</span>
-          <span><kbd>R</kbd> Reset run</span>
-          <span><kbd>V</kbd> Unit panel</span>
-          <span><kbd>H</kbd> Hide / Show HUD</span>
-          <span><kbd>Esc</kbd> Close menus</span>
-        </div>
-      </div>
-      <div class="overlay-actions">
-        <button class="btn btn-primary" id="startGameBtn">Play</button>
-        <button class="btn btn-secondary btn-ley" id="openLeyBtn">Shop <span class="ley-chip" id="leyBtnBalance">✦ 0</span></button>
-        <button class="btn btn-secondary btn-inventory" id="openInventoryBtn" type="button">Inventory <span class="inventory-chip" id="inventoryBtnCount">0 / 40</span></button>
-        <button class="btn btn-secondary btn-skills" id="openHeroSkillsBtn" type="button">Hero Skills <span class="skill-points-chip" id="skillBtnPoints">0</span></button>
-        <a href="/command-table.html" class="btn btn-secondary">Command Table</a>
-        <a href="/about.html" class="btn btn-secondary">About</a>
-        <a href="/guide.html" class="btn btn-secondary">Complete Guide</a>
-        <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
-        <a href="/account.html" class="btn btn-secondary">Account</a>
-      </div>
-    </div>
-  </div>
-
   <div class="screen-overlay hidden gameover-overlay" id="gameOverOverlay">
     <div class="gameover-media" aria-hidden="true">
       <img src="assets/ui/dark-defense-defeat.jpg" alt="" />
@@ -344,6 +307,14 @@
         <header class="panel-header">
           <div class="panel-header-lead">
             <div class="panel-kicker">Battlefield</div>
+            <button class="worldmap-open-btn" id="openWorldMapBtn" type="button" title="Open the world map — choose a region">
+              <span class="worldmap-open-emoji" aria-hidden="true">🗺️</span>
+              <span class="worldmap-open-copy">
+                <span class="worldmap-open-kicker">Campaign</span>
+                <span class="worldmap-open-name">World Map</span>
+              </span>
+              <span class="worldmap-open-cta" aria-hidden="true">Open ▸</span>
+            </button>
             <button class="daily-challenge-btn" id="dailyChallengeBtn" type="button" title="Play today's Challenge of the Day">
               <span class="daily-challenge-emoji" id="dailyChallengeEmoji" aria-hidden="true">🗓️</span>
               <span class="daily-streak-chip hidden" id="dailyStreakChip"></span>
@@ -356,9 +327,9 @@
             </button>
           </div>
           <div class="panel-header-user-actions">
-            <button class="panel-header-skills" id="panelHeaderSkillsBtn" type="button" title="Hero Skill Tree (K)">Skills <span id="panelHeaderSkillPoints">0</span></button>
-            <button class="panel-header-inventory" id="panelHeaderInventoryBtn" type="button" title="Inventory &amp; Equipment (I)">Bag <span id="panelHeaderInventoryCount">0</span></button>
-            <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Shop — spend Crystals">✦ <span id="panelHeaderLeyBalance">0</span></button>
+            <button class="panel-header-skills" id="panelHeaderSkillsBtn" type="button" title="Hero Skill Tree (K)"><span class="phb-ico" aria-hidden="true">🌳</span><span class="phb-label">Skills</span><span class="phb-count" id="panelHeaderSkillPoints">0</span></button>
+            <button class="panel-header-inventory" id="panelHeaderInventoryBtn" type="button" title="Inventory &amp; Equipment (I)"><span class="phb-ico" aria-hidden="true">🎒</span><span class="phb-label">Bag</span><span class="phb-count" id="panelHeaderInventoryCount">0</span></button>
+            <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Shop — spend Crystals"><span class="phb-ico" aria-hidden="true">✦</span><span class="phb-label">Shop</span><span class="phb-count" id="panelHeaderLeyBalance">0</span></button>
             <a class="panel-header-user" id="panelHeaderUserLink" aria-live="polite" href="/account.html">
               <span class="panel-header-user-crest" id="panelHeaderUserCrest" aria-hidden="true"></span>
               <span class="panel-header-user-label">Player</span>
@@ -409,6 +380,13 @@
           <button class="speed-toggle" id="speedBtn" type="button" aria-label="Game speed" title="Game speed ×1 · click or press F to change">×1</button>
           <button class="fullscreen-toggle" id="fullscreenBtn" type="button" aria-label="Fullscreen (G)" title="Fullscreen (G)">⤢</button>
           <canvas id="gameCanvas" width="1008" height="560"></canvas>
+          <div class="worldmap-layer hidden" id="worldMapLayer" aria-label="World map — choose a region">
+            <div class="worldmap-frame">
+              <img class="worldmap-image" id="worldMapImage" src="assets/ui/world-map.png" alt="World map of Ashen Bastion" />
+              <div class="worldmap-hotspots" id="worldMapHotspots"></div>
+            </div>
+            <button class="worldmap-resume-chip hidden" id="worldMapResumeBtn" type="button">▶ Resume Run</button>
+          </div>
           <div class="canvas-overlay">
             <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
             <div class="canvas-top-hud single-row">
