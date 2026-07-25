@@ -8,7 +8,7 @@ exports.handler = async function handler() {
     try {
       rows = await sql`
         select
-          pl.player_name,
+          coalesce(u.username, pl.player_name) as player_name,
           pl.power,
           pl.equipment_power,
           pl.skill_points,
@@ -24,7 +24,7 @@ exports.handler = async function handler() {
     } catch (_) {
       rows = await sql`
         select
-          pl.player_name,
+          coalesce(u.username, pl.player_name) as player_name,
           pl.power,
           pl.equipment_power,
           pl.skill_points,

@@ -43,6 +43,23 @@ exports.handler = async function handler(event) {
       return json(500, { error: "Failed to update username." });
     }
 
+    // Refresh the frozen name copies so any query that still reads player_name
+    // directly (and the power board's own row) stays consistent immediately.
+    // Best-effort: the leaderboards already resolve the current name by user_id,
+    // so a failure here never blocks the rename.
+    try {
+      await sql`
+        update leaderboard_scores set player_name = ${username}
+        where user_id = ${session.user_id}
+      `;
+    } catch (_) { /* ignore */ }
+    try {
+      await sql`
+        update power_leaderboard set player_name = ${username}
+        where user_id = ${session.user_id}
+      `;
+    } catch (_) { /* ignore */ }
+
     return json(200, { ok: true, username: updated[0].username });
   } catch (error) {
     const message = String(error?.message || "").toLowerCase();

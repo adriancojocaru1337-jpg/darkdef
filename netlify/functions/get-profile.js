@@ -66,7 +66,7 @@ exports.handler = async function handler(event) {
       : await sql`
           select mode, score_total, bonus_score, wave_reached, kills, created_at
           from leaderboard_scores
-          where lower(player_name) = lower(${user.username})
+          where user_id = ${user.id}
           order by created_at desc
           limit 8
         `;

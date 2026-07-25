@@ -10,7 +10,7 @@ exports.handler = async function handler() {
       [endlessRows, storyRows] = await Promise.all([
         sql`
           select
-            ls.player_name,
+            coalesce(u.username, ls.player_name) as player_name,
             ls.score_total,
             ls.bonus_score,
             ls.wave_reached,
@@ -19,7 +19,7 @@ exports.handler = async function handler() {
             u.username as profile_username,
             p.crest_id as profile_crest_id
           from leaderboard_scores ls
-          left join users u on lower(u.username) = lower(ls.player_name)
+          left join users u on u.id = ls.user_id
           left join user_profiles p on p.user_id = u.id
           where ls.mode = 'endless'
           order by ls.bonus_score desc, ls.wave_reached desc, ls.score_total desc, ls.created_at asc
@@ -27,7 +27,7 @@ exports.handler = async function handler() {
         `,
         sql`
           select
-            ls.player_name,
+            coalesce(u.username, ls.player_name) as player_name,
             ls.score_total,
             ls.bonus_score,
             ls.wave_reached,
@@ -36,7 +36,7 @@ exports.handler = async function handler() {
             u.username as profile_username,
             p.crest_id as profile_crest_id
           from leaderboard_scores ls
-          left join users u on lower(u.username) = lower(ls.player_name)
+          left join users u on u.id = ls.user_id
           left join user_profiles p on p.user_id = u.id
           where ls.mode = 'campaign'
           order by ls.wave_reached desc, ls.score_total desc, ls.bonus_score desc, ls.created_at asc
@@ -47,7 +47,7 @@ exports.handler = async function handler() {
       [endlessRows, storyRows] = await Promise.all([
         sql`
           select
-            ls.player_name,
+            coalesce(u.username, ls.player_name) as player_name,
             ls.score_total,
             ls.bonus_score,
             ls.wave_reached,
@@ -56,14 +56,14 @@ exports.handler = async function handler() {
             u.username as profile_username,
             null::text as profile_crest_id
           from leaderboard_scores ls
-          left join users u on lower(u.username) = lower(ls.player_name)
+          left join users u on u.id = ls.user_id
           where ls.mode = 'endless'
           order by ls.bonus_score desc, ls.wave_reached desc, ls.score_total desc, ls.created_at asc
           limit 10
         `,
         sql`
           select
-            ls.player_name,
+            coalesce(u.username, ls.player_name) as player_name,
             ls.score_total,
             ls.bonus_score,
             ls.wave_reached,
@@ -72,7 +72,7 @@ exports.handler = async function handler() {
             u.username as profile_username,
             null::text as profile_crest_id
           from leaderboard_scores ls
-          left join users u on lower(u.username) = lower(ls.player_name)
+          left join users u on u.id = ls.user_id
           where ls.mode = 'campaign'
           order by ls.wave_reached desc, ls.score_total desc, ls.bonus_score desc, ls.created_at asc
           limit 10

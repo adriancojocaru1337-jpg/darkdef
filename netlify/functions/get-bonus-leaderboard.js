@@ -8,13 +8,13 @@ exports.handler = async function handler() {
     try {
       rows = await sql`
         select
-          ls.player_name,
+          coalesce(u.username, ls.player_name) as player_name,
           ls.bonus_score,
           ls.wave_reached,
           ls.created_at,
           p.crest_id as profile_crest_id
         from leaderboard_scores ls
-        left join users u on lower(u.username) = lower(ls.player_name)
+        left join users u on u.id = ls.user_id
         left join user_profiles p on p.user_id = u.id
         where ls.mode = 'endless'
         order by ls.bonus_score desc, ls.wave_reached desc, ls.created_at asc
@@ -23,13 +23,13 @@ exports.handler = async function handler() {
     } catch (_) {
       rows = await sql`
         select
-          ls.player_name,
+          coalesce(u.username, ls.player_name) as player_name,
           ls.bonus_score,
           ls.wave_reached,
           ls.created_at,
           null::text as profile_crest_id
         from leaderboard_scores ls
-        left join users u on lower(u.username) = lower(ls.player_name)
+        left join users u on u.id = ls.user_id
         where ls.mode = 'endless'
         order by ls.bonus_score desc, ls.wave_reached desc, ls.created_at asc
         limit 5

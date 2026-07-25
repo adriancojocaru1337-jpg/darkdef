@@ -28,8 +28,8 @@ exports.handler = async function handler(event) {
     let rows;
     try {
       rows = await sql`
-        select distinct on (lower(ls.player_name))
-          ls.player_name,
+        select distinct on (coalesce(ls.user_id::text, lower(ls.player_name)))
+          coalesce(u.username, ls.player_name) as player_name,
           ls.score_total,
           ls.bonus_score,
           ls.wave_reached,
@@ -38,27 +38,28 @@ exports.handler = async function handler(event) {
           u.username as profile_username,
           p.crest_id as profile_crest_id
         from leaderboard_scores ls
-        left join users u on lower(u.username) = lower(ls.player_name)
+        left join users u on u.id = ls.user_id
         left join user_profiles p on p.user_id = u.id
         where ls.mode = 'daily'
           and ls.daily_key = ${day}
-        order by lower(ls.player_name), ls.wave_reached desc, ls.bonus_score desc, ls.created_at asc
+        order by coalesce(ls.user_id::text, lower(ls.player_name)), ls.wave_reached desc, ls.bonus_score desc, ls.created_at asc
       `;
     } catch (_) {
       rows = await sql`
-        select distinct on (lower(ls.player_name))
-          ls.player_name,
+        select distinct on (coalesce(ls.user_id::text, lower(ls.player_name)))
+          coalesce(u.username, ls.player_name) as player_name,
           ls.score_total,
           ls.bonus_score,
           ls.wave_reached,
           ls.kills,
           ls.created_at,
-          null::text as profile_username,
+          u.username as profile_username,
           null::text as profile_crest_id
         from leaderboard_scores ls
+        left join users u on u.id = ls.user_id
         where ls.mode = 'daily'
           and ls.daily_key = ${day}
-        order by lower(ls.player_name), ls.wave_reached desc, ls.bonus_score desc, ls.created_at asc
+        order by coalesce(ls.user_id::text, lower(ls.player_name)), ls.wave_reached desc, ls.bonus_score desc, ls.created_at asc
       `;
     }
 

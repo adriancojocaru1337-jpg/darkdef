@@ -106,3 +106,18 @@ v0.9.2d Hero Power leaderboard:
 - NOTE: power is computed client-side, so this board is trust-on-submit — auth, a
   plausibility cap and rate limits only stop trivial abuse, not a determined cheater
 - validation: 64 unit tests still pass; new functions and inline script syntax-checked
+
+v0.9.2e Rename propagation:
+- renaming now updates the name EVERYWHERE, and old scores/records are preserved
+- root cause: leaderboards linked players to crests/profiles by matching the
+  frozen player_name text, so a rename broke the link and showed the old name
+- fix part 1 (display): all leaderboard reads now link by user_id and show the
+  current username via coalesce(u.username, ls.player_name); anonymous scores
+  keep their frozen name. Updated: get-leaderboards, get-daily-leaderboard,
+  get-bonus-leaderboard, get-power-leaderboard, get-profile
+- fix part 2 (data): rename-username also refreshes the frozen player_name on the
+  player's rows in leaderboard_scores and power_leaderboard (best-effort)
+- daily board now dedupes best-run-per-player by user identity, not by name
+- no new SQL migration: relies on leaderboard_scores.user_id (already added by
+  setup_auth.sql) and daily_key (setup_daily_leaderboard.sql)
+- validation: 64 unit tests pass; all six functions syntax-checked
