@@ -27,12 +27,20 @@
     return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
   }
 
-  function build(value, presetId) {
+  // accountFallback: the row belongs to a registered player who never picked a
+  // crest. Give them a stable preset derived from the name, so the initials
+  // tile is left to mean exactly one thing: this score was posted as a guest.
+  function build(value, presetId, accountFallback) {
     const safeValue = String(value || "Guest").trim() || "Guest";
-    const preset = PRESETS[presetId] || null;
+    let resolvedId = presetId;
+    if (!PRESETS[resolvedId] && accountFallback) {
+      const ids = Object.keys(PRESETS);
+      resolvedId = ids[hashName(safeValue) % ids.length];
+    }
+    const preset = PRESETS[resolvedId] || null;
     if (preset) {
       const style = `--crest-hue:${preset.hue};--crest-hue-alt:${preset.hueAlt};`;
-      return { initials: preset.symbol, style, label: safeValue, presetId, presetLabel: preset.label, assetPath: preset.assetPath || null };
+      return { initials: preset.symbol, style, label: safeValue, presetId: resolvedId, presetLabel: preset.label, assetPath: preset.assetPath || null };
     }
 
     const hash = hashName(safeValue);
@@ -47,8 +55,8 @@
     return String(value || "").replace(/[&<>"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
   }
 
-  function markup(value, className = "", presetId = null) {
-    const crest = build(value, presetId);
+  function markup(value, className = "", presetId = null, accountFallback = false) {
+    const crest = build(value, presetId, accountFallback);
     const extraClass = className ? ` ${className}` : "";
     if (crest.assetPath) {
       return `<span class="dd-crest${extraClass} dd-crest-image-wrap" style="${crest.style}" aria-hidden="true"><img class="dd-crest-image" src="${escapeHtml(crest.assetPath)}" alt="" loading="lazy" decoding="async" /></span>`;

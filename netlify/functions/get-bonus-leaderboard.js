@@ -12,6 +12,7 @@ exports.handler = async function handler() {
           ls.bonus_score,
           ls.wave_reached,
           ls.created_at,
+          u.username as profile_username,
           p.crest_id as profile_crest_id
         from leaderboard_scores ls
         left join users u on u.id = ls.user_id
@@ -27,6 +28,7 @@ exports.handler = async function handler() {
           ls.bonus_score,
           ls.wave_reached,
           ls.created_at,
+          u.username as profile_username,
           null::text as profile_crest_id
         from leaderboard_scores ls
         left join users u on u.id = ls.user_id

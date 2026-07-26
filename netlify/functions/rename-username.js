@@ -52,13 +52,17 @@ exports.handler = async function handler(event) {
         update leaderboard_scores set player_name = ${username}
         where user_id = ${session.user_id}
       `;
-    } catch (_) { /* ignore */ }
+    } catch (err) {
+      console.error("rename-username: leaderboard_scores backfill failed", err);
+    }
     try {
       await sql`
         update power_leaderboard set player_name = ${username}
         where user_id = ${session.user_id}
       `;
-    } catch (_) { /* ignore */ }
+    } catch (err) {
+      console.error("rename-username: power_leaderboard backfill failed", err);
+    }
 
     return json(200, { ok: true, username: updated[0].username });
   } catch (error) {

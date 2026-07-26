@@ -1787,6 +1787,9 @@ async function buyRename(){
       saveLeyState();
       scheduleLeySyncPush();
       setPanelUserLabel(data.username, null);
+      // The submit path reads the name from localStorage; without this every
+      // run after a rename keeps writing the old name into leaderboard_scores.
+      try{ localStorage.setItem("sdcPlayerName", data.username); }catch(_){}
       tone("sine", 620, 940, .12, .03);
       pushNotification("achievement","Renamed",`You are now ${data.username}. −${RENAME_CRYSTAL_COST} ✦`);
       setRenameFeedback(`Done — you are now ${data.username}.`);
@@ -3082,7 +3085,7 @@ async function loadBonusLeaderboard(){
     }
     bonusLeaderboardList.innerHTML = rows.slice(0,1).map((row, index) => {
       const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-      const crest = window.DarkDefenseCrest?.markup(row.player_name || "Anonim", "dd-crest-sm", row.profile_crest_id || null) || "";
+      const crest = window.DarkDefenseCrest?.markup(row.player_name || "Anonim", "dd-crest-sm", row.profile_crest_id || null, Boolean(row.profile_username)) || "";
       const bonus = Number(row.bonus_score || 0);
       const waveReached = Number(row.wave_reached || 0);
       return `

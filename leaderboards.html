@@ -256,6 +256,12 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
   font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
   color:#a5f3fc; background:rgba(56,189,248,.16); border:1px solid rgba(56,189,248,.3);
 }
+.rk-guest-chip{
+  flex:0 0 auto;
+  padding:1px 7px; border-radius:999px;
+  font-size:9.5px; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
+  color:#cbd5e1; background:rgba(148,163,184,.14); border:1px solid rgba(148,163,184,.28);
+}
 .rk-hi{ color:#e6bb7a; font-weight:700; }
 
 .rk-empty{
@@ -497,14 +503,19 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       return Number(value || 0).toLocaleString("en-US");
     }
     function crestFor(row, cls){
-      return window.DarkDefenseCrest?.markup(row?.player_name || "Anonymous", cls, row?.profile_crest_id || null) || "";
+      return window.DarkDefenseCrest?.markup(row?.player_name || "Anonymous", cls, row?.profile_crest_id || null, isAccount(row)) || "";
     }
     function profileHref(row){
       const u = String(row?.profile_username || "").trim();
       return u ? `/command-table.html?user=${encodeURIComponent(u)}` : "";
     }
+    function isAccount(row){
+      return Boolean(String(row?.profile_username || "").trim());
+    }
+    /* Matched on the account username, never on player_name: player_name is a
+       free-text field a guest can set to anything, including your name. */
     function isOwn(row){
-      return ownName && String(row?.player_name || "").toLowerCase() === ownName;
+      return ownName && String(row?.profile_username || "").toLowerCase() === ownName;
     }
 
     /* Which number headlines each board. */
@@ -559,6 +570,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
           ? `<a class="rk-player-name" href="${href}">${label}</a>`
           : `<span class="rk-player-name">${label}</span>`;
         const you = isOwn(row) ? '<span class="rk-you-chip">You</span>' : "";
+        const guest = isAccount(row) ? "" : '<span class="rk-guest-chip">Guest</span>';
         const rankMark = index === 0 ? "\u{1F451}" : `#${index + 1}`;
 
         let c3, c4, c5;
@@ -583,7 +595,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
         return `
           <div class="rk-row${isOwn(row) ? " is-you" : ""}">
             <div class="rk-rank">${rankMark}</div>
-            <div class="rk-player">${crestFor(row, "dd-crest-sm")}${name}${you}</div>
+            <div class="rk-player">${crestFor(row, "dd-crest-sm")}${name}${you}${guest}</div>
             <div>${c3}</div>
             <div>${c4}</div>
             <div>${c5}</div>
