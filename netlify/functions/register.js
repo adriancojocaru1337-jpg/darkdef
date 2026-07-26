@@ -86,6 +86,9 @@ exports.handler = async function handler(event) {
       { headers: { "Set-Cookie": session.cookie } }
     );
   } catch (error) {
+    if (error?.code === "23505") {
+      return json(409, { error: "That email or username is already registered." });
+    }
     return json(500, { error: "Failed to create account." });
   }
 };

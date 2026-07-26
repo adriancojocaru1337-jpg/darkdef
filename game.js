@@ -1536,11 +1536,21 @@ let leyEarnedTotal = (()=>{
   return leyCrystals + leyTalentsSpentTotal();
 })();
 
+let leySpentCrystals = (()=>{
+  try{
+    const stored = localStorage.getItem("sdcLeySpentCrystals");
+    if(stored !== null) return Math.max(0, parseInt(stored,10)||0);
+  }catch(e){}
+  // Migration: infer consumable spending from the lifetime total and current balance.
+  return Math.max(0, leyEarnedTotal - leyTalentsSpentTotal() - leyCrystals);
+})();
+
 function saveLeyState(){
   try{
     localStorage.setItem(LEY_STORAGE_KEYS.crystals, String(leyCrystals));
     localStorage.setItem(LEY_STORAGE_KEYS.talents, JSON.stringify(leyTalents));
     localStorage.setItem("sdcLeyEarnedTotal", String(leyEarnedTotal));
+    localStorage.setItem("sdcLeySpentCrystals", String(leySpentCrystals));
   }catch(e){}
 }
 
@@ -1591,11 +1601,11 @@ function awardLeyCrystals(base, label, opts={}){
 }
 
 /* --- account sync (Neon DB via Netlify functions) ---
-   Model: total_earned and talent ranks only ever grow, so merging
+   Model: total_earned, consumable spending and talent ranks only ever grow, so merging
    two states is a per-field max(). Balance is derived from them. */
 let leyAccountAuthed = false;
 let leySyncPushTimer = null;
-let leySyncInFlight = false;
+let leySyncPromise = null;
 
 function mergeLeyMeta(a, b){
   const talents = {};
@@ -1610,34 +1620,51 @@ function mergeLeyMeta(a, b){
   }
   return {
     totalEarned: Math.max(parseInt(a.totalEarned,10)||0, parseInt(b.totalEarned,10)||0),
+    spentCrystals: Math.max(parseInt(a.spentCrystals,10)||0, parseInt(b.spentCrystals,10)||0),
     talents
   };
 }
 
 function getLocalLeyMeta(){
-  return { totalEarned: leyEarnedTotal, talents: { ...leyTalents } };
+  return {
+    totalEarned: leyEarnedTotal,
+    spentCrystals: leySpentCrystals,
+    talents: { ...leyTalents }
+  };
 }
 
 function adoptLeyMeta(meta){
   const merged = mergeLeyMeta(getLocalLeyMeta(), meta || {});
   leyEarnedTotal = merged.totalEarned;
+  leySpentCrystals = merged.spentCrystals;
   leyTalents = merged.talents;
-  leyCrystals = Math.max(0, leyEarnedTotal - leyTalentsSpentTotal(leyTalents));
+  leyCrystals = Math.max(0, leyEarnedTotal - leyTalentsSpentTotal(leyTalents) - leySpentCrystals);
   saveLeyState();
   updateLeyBadges();
   if(leyOverlay && !leyOverlay.classList.contains("hidden")) renderLeyOverlay();
 }
 
-async function pushLeyMeta(){
-  if(!leyAccountAuthed || leySyncInFlight) return;
-  leySyncInFlight = true;
-  try{
-    const data = await apiClient.post("save-ley-meta", getLocalLeyMeta(), {
-      credentials: "include"
-    });
-    if(data?.ok) adoptLeyMeta({ totalEarned: data.totalEarned, talents: data.talents });
-  }catch(_){ /* offline is fine — localStorage remains source of truth until next push */ }
-  finally{ leySyncInFlight = false; }
+function pushLeyMeta(){
+  if(!leyAccountAuthed) return Promise.resolve(null);
+  if(leySyncPromise) return leySyncPromise;
+  leySyncPromise = (async()=>{
+    try{
+      const data = await apiClient.post("save-ley-meta", getLocalLeyMeta(), {
+        credentials: "include"
+      });
+      if(data?.ok) adoptLeyMeta({
+        totalEarned: data.totalEarned,
+        spentCrystals: data.spentCrystals,
+        talents: data.talents
+      });
+      return data || null;
+    }catch(_){
+      return null; // offline is fine — localStorage remains source of truth until next push
+    }finally{
+      leySyncPromise = null;
+    }
+  })();
+  return leySyncPromise;
 }
 
 function scheduleLeySyncPush(delayMs = 2500){
@@ -1651,12 +1678,17 @@ async function syncLeyMetaWithAccount(){
   let server = null;
   try{
     const data = await apiClient.get("get-ley-meta", { credentials: "include", cache: "no-store" });
-    if(data?.ok) server = { totalEarned: data.totalEarned, talents: data.talents };
+    if(data?.ok) server = {
+      totalEarned: data.totalEarned,
+      spentCrystals: data.spentCrystals,
+      talents: data.talents
+    };
   }catch(_){ return; }
   if(!server) return;
   const localBefore = getLocalLeyMeta();
   adoptLeyMeta(server);
   const serverMissesLocal = localBefore.totalEarned > (server.totalEarned || 0) ||
+    localBefore.spentCrystals > (server.spentCrystals || 0) ||
     LEY_TALENT_BRANCHES.some(branch => branch.nodes.some(node =>
       (parseInt(localBefore.talents[node.id],10)||0) > (parseInt(server.talents?.[node.id],10)||0)
     ));
@@ -1780,12 +1812,11 @@ async function buyRename(){
   renameInFlight = true;
   setRenameFeedback("Renaming…");
   try{
+    await pushLeyMeta();
     const data = await apiClient.post("rename-username", { username: next }, { credentials: "include" });
     if(data?.ok && data?.username){
-      // Charge only after the server confirms the new name.
-      leyCrystals = Math.max(0, leyCrystals - RENAME_CRYSTAL_COST);
-      saveLeyState();
-      scheduleLeySyncPush();
+      // The server charges atomically with the account rename.
+      if(data.leyMeta) adoptLeyMeta(data.leyMeta);
       setPanelUserLabel(data.username, null);
       // The submit path reads the name from localStorage; without this every
       // run after a rename keeps writing the old name into leaderboard_scores.
@@ -1802,7 +1833,7 @@ async function buyRename(){
     const serverMsg = err?.details?.error || err?.message;
     const msg = err?.status === 409 ? "That username is already taken."
       : err?.status === 401 ? "Sign in to change your username."
-      : (serverMsg && err?.status === 400) ? serverMsg
+      : (serverMsg && [400, 402, 429, 503].includes(err?.status)) ? serverMsg
       : "Rename failed. No Crystals were spent.";
     setRenameFeedback(msg);
   }finally{
@@ -1837,6 +1868,7 @@ function buyHeroRename(){
   }
   // Client-side rename: charge, refresh UI, and re-sync so the public profile updates.
   leyCrystals = Math.max(0, leyCrystals - HERO_RENAME_CRYSTAL_COST);
+  leySpentCrystals += HERO_RENAME_CRYSTAL_COST;
   saveLeyState();
   scheduleLeySyncPush();
   try{ heroSystem.syncUi?.(); }catch(_){}
@@ -1993,7 +2025,7 @@ function renderRenameCategory(){
         <div class="ley-node-head">
           <span class="ley-node-name">Change Username</span>
         </div>
-        <p class="ley-node-desc">Pick a new name shown on every leaderboard. Costs ✦ ${RENAME_CRYSTAL_COST} each time.</p>
+          <p class="ley-node-desc">Pick a new name shown throughout the Rankings. Costs ✦ ${RENAME_CRYSTAL_COST} each time.</p>
         <p class="ley-node-next" id="renameFeedback"></p>
         <button class="btn ley-buy-btn${affordable?" btn-primary":" ley-buy-locked"}" id="renameBuyBtn">
           <span class="ley-buy-label">Rename</span><span class="ley-buy-cost">✦ ${RENAME_CRYSTAL_COST}</span>
@@ -2968,7 +3000,7 @@ function resolveBossWaveCompletion(){
       pushNotification("gold","Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
     }
     // Unlock the next region on the world map (furthest = highest reached).
-    submitStoryLeaderboardScore(clearedStage);
+    submitStoryLeaderboardScore(clearedStage, false);
     try{
       const prev = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
       localStorage.setItem("sdcFurthestStage", String(Math.max(prev, resolution.nextStage)));
@@ -3102,12 +3134,12 @@ async function loadBonusLeaderboard(){
     const best = rows[0];
     bonusLeaderboardSubtitle.textContent = `Record: ${best.player_name} with bonus +${best.bonus_score}.`;
   }catch(error){
-    bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Leaderboard is temporarily unavailable.</div>';
-    bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global leaderboard.";
+      bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Rankings are temporarily unavailable.</div>';
+      bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global Rankings.";
   }
 }
 
-async function submitStoryLeaderboardScore(finalStage=currentStage){
+async function submitStoryLeaderboardScore(finalStage=currentStage, runComplete=true){
   if(currentMode !== "campaign") return;
   let playerName = "";
   try{
@@ -3134,12 +3166,13 @@ async function submitStoryLeaderboardScore(finalStage=currentStage){
       runToken: leaderboardRun.runToken,
       clientStartedAt: leaderboardRun.clientStartedAt,
       elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
+      runComplete: Boolean(runComplete),
       runSeed: runRng.seed
     });
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
-    pushNotification("achievement", "Story leaderboard submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
+      pushNotification("achievement", "Story Rankings submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
   }catch(error){
-    pushNotification("stage", "Story leaderboard offline", "The campaign score could not be submitted right now.");
+      pushNotification("stage", "Story Rankings offline", "The campaign score could not be submitted right now.");
   }
 }
 
@@ -3149,7 +3182,7 @@ async function submitDailyLeaderboardScore(){
   let playerName = "";
   try{ playerName = localStorage.getItem("sdcPlayerName") || ""; }catch(e){}
   if(!playerName){
-    playerName = await requestLeaderboardName("Daily Challenge", "Choose the name that will appear on today's challenge leaderboard.");
+      playerName = await requestLeaderboardName("Daily Challenge", "Choose the name that will appear in today's challenge Rankings.");
   }
   playerName = playerName.trim().slice(0, 20);
   if(!playerName){ loadDailyLeaderboardIntoGameOver(); return; }
@@ -3167,13 +3200,14 @@ async function submitDailyLeaderboardScore(){
       runToken: leaderboardRun.runToken,
       clientStartedAt: leaderboardRun.clientStartedAt,
       elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
+      runComplete: true,
       runSeed: runRng.seed
     });
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"daily" };
-    pushNotification("achievement", "Daily leaderboard submitted", `${playerName} reached Wave ${stageWave} in today's challenge.`);
+      pushNotification("achievement", "Daily Rankings submitted", `${playerName} reached Wave ${stageWave} in today's challenge.`);
   }catch(error){
     const detail = error && error.message && error.message !== "submit failed" ? ` (${error.message})` : "";
-    pushNotification("stage", "Leaderboard offline", `Today's challenge score could not be submitted right now.${detail}`);
+      pushNotification("stage", "Rankings offline", `Today's challenge score could not be submitted right now.${detail}`);
   }
   loadDailyLeaderboardIntoGameOver();
 }
@@ -3210,7 +3244,7 @@ async function loadDailyLeaderboardIntoGameOver(){
         </div>`;
     }).join("");
   }catch(error){
-    gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">Daily leaderboard unavailable right now.</div>';
+      gameOverDailyBoardList.innerHTML = '<div class="leaderboard-empty">Daily Rankings are unavailable right now.</div>';
   }
 }
 
@@ -3220,7 +3254,7 @@ async function submitBonusLeaderboardScore(){
   // runtime check anyway) — but everything past that gets submitted even
   // with 0 bonus. Last place on the board beats not existing on it.
   if(stageWave < 2){
-    pushNotification("stage", "Not submitted", "Endless runs need to reach Wave 2 to enter the leaderboard.");
+      pushNotification("stage", "Not submitted", "Endless runs need to reach Wave 2 to enter the Rankings.");
     return;
   }
   let playerName = "";
@@ -3247,14 +3281,15 @@ async function submitBonusLeaderboardScore(){
       runToken: leaderboardRun.runToken,
       clientStartedAt: leaderboardRun.clientStartedAt,
       elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
+      runComplete: true,
       runSeed: runRng.seed
     });
     leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"endless" };
     await loadBonusLeaderboard();
-    pushNotification("achievement", "Leaderboard submitted", `${playerName} — Wave ${stageWave}, bonus +${bonusScore} sent to the global leaderboard.`);
+      pushNotification("achievement", "Rankings submitted", `${playerName} — Wave ${stageWave}, bonus +${bonusScore} sent to the global Rankings.`);
   }catch(error){
     const detail = error && error.message && error.message !== "submit failed" ? ` (${error.message})` : "";
-    pushNotification("stage", "Leaderboard offline", `The global score could not be submitted right now.${detail}`);
+      pushNotification("stage", "Rankings offline", `The global score could not be submitted right now.${detail}`);
   }
 }
 
@@ -3268,7 +3303,7 @@ function requestLeaderboardName(modeLabel, helperText){
     pendingLeaderboardNameRequest = null;
   }
 
-  leaderboardNameTitle.textContent = `${modeLabel} leaderboard`;
+    leaderboardNameTitle.textContent = `${modeLabel} Rankings`;
   leaderboardNameText.textContent = helperText;
 
   let initialName = "";
@@ -4302,6 +4337,13 @@ function showTowerMenu(unit){
   if(towerSpecializationPanel) towerSpecializationPanel.classList.add("hidden");
   towerUpgradeBtn.textContent = canChooseSpecialization(unit) ? "✨ Specialize" : "⬆ Upgrade";
   towerUpgradeBtn.disabled = money < nextCost;
+  if(towerSellBtn){
+    towerSellBtn.disabled = isPaused;
+    towerSellBtn.title = isPaused
+      ? "Resume the game before selling towers."
+      : `Sell ${unit.name}`;
+    towerSellBtn.setAttribute("aria-label", towerSellBtn.title);
+  }
 
   if(towerSpecializationPanel){
     if(canChooseSpecialization(unit)) {
@@ -5316,6 +5358,7 @@ function upgradeSelectedUnit(){
 }
 function sellSelectedUnit(){
   const unit=getUnitById(selectedPlacedUnitId); if(!unit) return;
+  if(isPaused){ setMessage("You cannot sell towers while paused. Resume first."); return; }
   const refund=Math.round(unit.totalSpent*unit.sellFactor);
   money += refund;
   units=units.filter(u=>u.id!==unit.id);
@@ -8336,6 +8379,35 @@ function drawBossBanner(){
   ctx.restore();
 }
 
+function drawPrepareCorner(x, y, scaleX, scaleY){
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(scaleX, scaleY);
+  ctx.strokeStyle = "rgba(224,174,96,.9)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 23);
+  ctx.lineTo(0, 0);
+  ctx.lineTo(28, 0);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(117,76,37,.72)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(5, 18);
+  ctx.lineTo(5, 5);
+  ctx.lineTo(22, 5);
+  ctx.stroke();
+  ctx.fillStyle = "#d5a158";
+  ctx.beginPath();
+  ctx.moveTo(4, 0);
+  ctx.lineTo(8, 4);
+  ctx.lineTo(4, 8);
+  ctx.lineTo(0, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawPrepareBanner(){
   if(prepareBannerTimer<=0) return;
   const total = PREPARE_BANNER_DURATION;
@@ -8350,31 +8422,74 @@ function drawPrepareBanner(){
 
   ctx.save();
   ctx.globalAlpha = alpha;
-  // Panel
-  const w = 460, h = 132;
+  // Forged iron panel with an inset bronze frame.
+  const w = Math.min(500, canvas.width - 36), h = 150;
   ctx.translate(cx, cy);
   ctx.scale(pulse, pulse);
-  ctx.fillStyle = "rgba(8,17,31,.82)";
-  roundRect(-w/2, -h/2, w, h, 22);
+  ctx.shadowColor = "rgba(0,0,0,.72)";
+  ctx.shadowBlur = 28;
+  ctx.shadowOffsetY = 12;
+  const prepareFrameGradient = ctx.createLinearGradient(0, -h/2, 0, h/2);
+  prepareFrameGradient.addColorStop(0, "rgba(62,43,29,.96)");
+  prepareFrameGradient.addColorStop(.32, "rgba(18,17,18,.97)");
+  prepareFrameGradient.addColorStop(1, "rgba(7,9,12,.98)");
+  ctx.fillStyle = prepareFrameGradient;
+  roundRect(-w/2, -h/2, w, h, 12);
   ctx.fill();
-  ctx.strokeStyle = "rgba(56,189,248,.55)";
-  ctx.lineWidth = 2;
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.strokeStyle = "rgba(218,166,88,.78)";
+  ctx.lineWidth = 2.4;
   ctx.stroke();
-  // Glow accent line
-  ctx.strokeStyle = "rgba(56,189,248,.25)";
-  ctx.lineWidth = 6;
+
+  ctx.fillStyle = "rgba(6,8,12,.9)";
+  roundRect(-w/2 + 8, -h/2 + 8, w - 16, h - 16, 8);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(128,87,43,.52)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+
+  drawPrepareCorner(-w/2 + 14, -h/2 + 14, 1, 1);
+  drawPrepareCorner(w/2 - 14, -h/2 + 14, -1, 1);
+  drawPrepareCorner(-w/2 + 14, h/2 - 14, 1, -1);
+  drawPrepareCorner(w/2 - 14, h/2 - 14, -1, -1);
+
+  ctx.save();
+  ctx.translate(0, -h/2 + 17);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillStyle = "#d6a45a";
+  ctx.fillRect(-6, -6, 12, 12);
+  ctx.strokeStyle = "rgba(255,224,165,.72)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(-6, -6, 12, 12);
+  ctx.restore();
+
+  const ornamentGradient = ctx.createLinearGradient(-150, 0, 150, 0);
+  ornamentGradient.addColorStop(0, "rgba(193,132,58,0)");
+  ornamentGradient.addColorStop(.5, "rgba(224,174,96,.6)");
+  ornamentGradient.addColorStop(1, "rgba(193,132,58,0)");
+  ctx.strokeStyle = ornamentGradient;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-145, -24);
+  ctx.lineTo(145, -24);
   ctx.stroke();
 
   ctx.textAlign = "center";
-  ctx.fillStyle = "#7dd3fc";
+  ctx.fillStyle = "#c89b5b";
   ctx.font = `700 13px ${FONT_UI}`;
-  ctx.fillText("⚔  BUILD PHASE  ⚔", 0, -34);
-  ctx.fillStyle = "#f8fafc";
-  ctx.font = `700 40px ${FONT_DISPLAY}`;
-  ctx.fillText("Prepare Defenses", 0, 6);
-  ctx.fillStyle = "rgba(226,232,240,.82)";
+  ctx.fillText("✦  BUILD PHASE  ✦", 0, -36);
+  ctx.fillStyle = "#f2e5d0";
+  ctx.shadowColor = "rgba(0,0,0,.82)";
+  ctx.shadowBlur = 8;
+  ctx.font = `700 38px ${FONT_DISPLAY}`;
+  ctx.fillText("Prepare Defenses", 0, 9);
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(201,187,168,.86)";
   ctx.font = `600 14px ${FONT_UI}`;
-  ctx.fillText("Place your towers, then press Start when ready", 0, 38);
+  ctx.fillText("Place your towers, then press Start when ready", 0, 44);
   ctx.restore();
 }
 function drawWaveIntro(){

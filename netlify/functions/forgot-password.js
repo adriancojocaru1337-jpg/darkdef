@@ -9,19 +9,12 @@ const {
   getClientIp,
   sha256
 } = require("./auth-utils");
+const { getPasswordResetBaseUrl } = require("./request-security");
 const crypto = require("crypto");
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESET_TTL_MINUTES = 30;
 const GENERIC_MESSAGE = "If an account exists for that email, a password reset link has been sent.";
-
-function getBaseUrl(event) {
-  const configured = String(process.env.APP_BASE_URL || "").trim();
-  if (configured) return configured.replace(/\/$/, "");
-  const origin = getOrigin(event);
-  if (origin) return origin.replace(/\/$/, "");
-  return "https://darkdefense.netlify.app";
-}
 
 async function sendResetEmail({ email, resetLink }) {
   if (!RESEND_API_KEY) {
@@ -117,7 +110,7 @@ exports.handler = async function handler(event) {
 
     const rawToken = crypto.randomBytes(32).toString("hex");
     const tokenHash = sha256(rawToken);
-    const resetLink = `${getBaseUrl(event)}/reset-password.html?token=${encodeURIComponent(rawToken)}`;
+    const resetLink = `${getPasswordResetBaseUrl()}/reset-password.html?token=${encodeURIComponent(rawToken)}`;
 
     await sql`
       insert into password_resets (user_id, token_hash, expires_at, used, ip_hash)

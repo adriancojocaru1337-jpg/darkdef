@@ -42,6 +42,16 @@ create table if not exists game_runs (
 create index if not exists game_runs_active_idx
   on game_runs (status, token_expires_at desc);
 
+create index if not exists game_runs_expiry_idx
+  on game_runs (token_expires_at);
+
+create table if not exists run_start_limits (
+  ip_hash text primary key,
+  window_started_at timestamptz not null default now(),
+  request_count integer not null default 0,
+  updated_at timestamptz not null default now()
+);
+
 create table if not exists score_submissions (
   id bigserial primary key,
   run_id text,

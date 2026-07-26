@@ -30,9 +30,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=r7" />
+  <link rel="stylesheet" href="style.css?v=r11" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=4" defer></script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -83,9 +84,9 @@
 
   <div class="screen-overlay hidden" id="leaderboardNameOverlay">
     <div class="overlay-card leaderboard-name-card">
-      <div class="overlay-kicker">Leaderboard</div>
+      <div class="overlay-kicker">Rankings</div>
       <h1 id="leaderboardNameTitle">Submit your score</h1>
-      <p id="leaderboardNameText">Choose the name that will appear on the online leaderboard.</p>
+      <p id="leaderboardNameText">Choose the name that will appear in the online Rankings.</p>
       <label class="leaderboard-name-label" for="leaderboardNameInput">Player name</label>
       <input id="leaderboardNameInput" class="leaderboard-name-input" type="text" maxlength="20" autocomplete="nickname" spellcheck="false" placeholder="Player" />
       <div class="overlay-actions leaderboard-name-actions">
@@ -265,19 +266,10 @@
         </div>
         <p>
           Epic tower defense with boss battles, upgrades and legendary spells.<br />
-          Play instantly in your browser and climb the leaderboard.
+          Play instantly in your browser and climb the Rankings.
         </p>
         <div class="hero-cta-row">
           <a href="#canvasWrap" class="hero-plate-btn">Play Now</a>
-          <nav class="hero-nav-links" aria-label="Main">
-            <a href="/command-table.html"><span class="ico" aria-hidden="true">🛡</span>Command Table</a>
-            <span class="sep" aria-hidden="true"></span>
-            <a href="/guide.html"><span class="ico" aria-hidden="true">📖</span>Guide</a>
-            <span class="sep" aria-hidden="true"></span>
-            <a href="/leaderboards.html"><span class="ico" aria-hidden="true">🏆</span>Rankings</a>
-            <span class="sep" aria-hidden="true"></span>
-            <a href="/account.html"><span class="ico" aria-hidden="true">👤</span>Account</a>
-          </nav>
         </div>
       </div>
 
@@ -667,7 +659,7 @@
   <script src="js/systems/equipment-system.js?v=r93"></script>
   <script src="js/systems/hero-stat-pipeline.js?v=r93"></script>
   <script src="js/systems/hero-skill-tree-system.js?v=r93"></script>
-  <script src="game.js?v=r93"></script>
+  <script src="game.js?v=r96"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>

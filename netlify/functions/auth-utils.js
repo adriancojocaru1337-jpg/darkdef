@@ -1,5 +1,6 @@
 const crypto = require("crypto");
 const { neon } = require("@netlify/neon");
+const { isAllowedOrigin } = require("./request-security");
 
 const sql = neon();
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
@@ -26,11 +27,6 @@ function getOrigin(event) {
     event.headers?.Referer ||
     ""
   ).trim();
-}
-
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-  return origin.startsWith("https://darkdefense.netlify.app") || origin.startsWith("http://localhost");
 }
 
 function normalizeEmail(email) {

@@ -29,7 +29,8 @@ create table if not exists user_sessions (
 );
 
 create index if not exists users_email_idx on users (email);
-create index if not exists users_username_lower_idx on users ((lower(username)));
+create unique index if not exists users_username_lower_uidx on users ((lower(username)));
+drop index if exists users_username_lower_idx;
 create index if not exists user_sessions_user_idx on user_sessions (user_id, expires_at desc);
 create index if not exists user_sessions_exp_idx on user_sessions (expires_at desc);
 

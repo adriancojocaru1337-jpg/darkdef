@@ -50,6 +50,12 @@ function sanitizeTotalEarned(raw) {
   return Math.min(MAX_TOTAL_EARNED, value);
 }
 
+function sanitizeSpentCrystals(raw) {
+  const value = parseInt(raw, 10);
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.min(MAX_TOTAL_EARNED, value);
+}
+
 function mergeMeta(a, b) {
   const talents = {};
   const ids = new Set([...Object.keys(a.talents || {}), ...Object.keys(b.talents || {})]);
@@ -61,8 +67,27 @@ function mergeMeta(a, b) {
   }
   return {
     totalEarned: Math.min(MAX_TOTAL_EARNED, Math.max(a.totalEarned || 0, b.totalEarned || 0)),
+    spentCrystals: Math.min(MAX_TOTAL_EARNED, Math.max(a.spentCrystals || 0, b.spentCrystals || 0)),
     talents
   };
 }
 
-module.exports = { LEY_NODES, MAX_TOTAL_EARNED, sanitizeTalents, talentsSpent, sanitizeTotalEarned, mergeMeta };
+function availableCrystals(meta) {
+  return Math.max(
+    0,
+    sanitizeTotalEarned(meta?.totalEarned)
+      - talentsSpent(sanitizeTalents(meta?.talents))
+      - sanitizeSpentCrystals(meta?.spentCrystals)
+  );
+}
+
+module.exports = {
+  LEY_NODES,
+  MAX_TOTAL_EARNED,
+  sanitizeTalents,
+  talentsSpent,
+  sanitizeTotalEarned,
+  sanitizeSpentCrystals,
+  mergeMeta,
+  availableCrystals
+};

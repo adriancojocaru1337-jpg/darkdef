@@ -10,9 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=r11" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=4" defer></script>
 <style>
 /* =========================================================
    Guide - the Field Manual.
@@ -384,8 +385,6 @@
         <p class="gd-sub">Everything in one place: the basics, every tower and its specializations, all enemy types, all six bosses and their abilities, Ascension progression, Endless mode, and the strategy that separates a quick loss from a high-score run.</p>
         <div class="gd-banner-actions">
           <a href="/index.html" class="gd-plate">Play Ashen Bastion</a>
-          <a class="gd-ghost" href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span>Rankings</a>
-          <a class="gd-ghost" href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span>Command Table</a>
         </div>
       </div>
 
@@ -691,20 +690,20 @@
     <!-- Endless -->
     <section class="gd-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless" hidden>
       <h2>Endless mode</h2>
-      <p class="gd-lede">After you clear the campaign, Endless pits you against unlimited waves that scale forever. It's where high scores and leaderboard runs are made.</p>
+          <p class="gd-lede">After you clear the campaign, Endless pits you against unlimited waves that scale forever. It's where high scores enter the global Rankings.</p>
       <ul class="gd-list">
         <li><strong>Doubled enemy health</strong> &mdash; every non-boss mob has 2&times; HP, and health keeps rising each wave.</li>
         <li><strong>Boss pairs with a horde</strong> &mdash; every tenth wave sends two bosses, preceded by a full wave of mobs, not just the pair alone.</li>
         <li><strong>Rotating soundtrack</strong> &mdash; after each boss pair falls, the music rerolls to a random stage theme.</li>
         <li><strong>Fewer Crystals than campaign</strong> &mdash; Endless rewards are deliberately leaner, so it's about the score, not the farm.</li>
-        <li><strong>Leaderboard runs</strong> &mdash; reach as high a wave as you can; your bonus score is submitted globally at game over.</li>
+            <li><strong>Rankings runs</strong> &mdash; reach as high a wave as you can; your bonus score is submitted globally at game over.</li>
       </ul>
     </section>
 
     <!-- Strategy -->
     <section class="gd-panel" id="panel-strategy" role="tabpanel" aria-labelledby="tab-strategy" hidden>
       <h2>Advanced strategy</h2>
-      <p class="gd-lede">Four habits separate a quick loss from a leaderboard run.</p>
+          <p class="gd-lede">Four habits separate a quick loss from a Rankings run.</p>
 
       <h3>Positioning &mdash; use route geometry, not random placement</h3>
       <p>The strongest layouts are built around repeated exposure. Place towers where enemies stay in range longest &mdash; around turns, along long lanes, and in overlapping coverage pockets. A mediocre tower in the right place usually beats a better tower placed badly. Let splash towers soften groups while longer-range towers finish priority targets before they cross the final third of the map.</p>
@@ -725,12 +724,6 @@
       <p>Long runs are about discipline: keep a clean frontline, avoid unnecessary leaks, and treat every spell as a recovery tool for pressure spikes. If your layout only works while spells are up, it's too fragile. The simplest endless plan wins: stack reliable damage first, add splash for control, layer in Cryo's Brittle to amplify everything, and reinforce boss answers before greed takes over.</p>
     </section>
 
-    <nav class="gd-strip" aria-label="Elsewhere">
-      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
-      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
-      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
-      <a href="/how-to-play.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>How to play</b><span class="cap">Quick start</span></span></a>
-    </nav>
   </main>
 
   <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>

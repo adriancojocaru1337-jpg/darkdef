@@ -10,9 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=r11" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=4" defer></script>
 </head>
 <body>
   <div class="page-shell" aria-hidden="true"></div>
@@ -26,8 +27,6 @@
         <p class="pg-sub">A dark fantasy tower defense that runs instantly in the browser &mdash; no installs, no launchers, no waiting. Six stages, six bosses, and an Endless mode that never stops scaling.</p>
         <div class="pg-banner-actions">
           <a href="/" class="pg-plate">Play Ashen Bastion</a>
-          <a class="pg-ghost" href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span>Complete Guide</a>
-          <a class="pg-ghost" href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span>Rankings</a>
         </div>
       </div>
     </section>
@@ -37,7 +36,7 @@
       <section class="pg-card half">
         <h2>What it is</h2>
         <p>Every wave asks for a better decision: where to place towers, when to spend on upgrades instead of expanding, and when to hold a spell rather than cast it. The mechanics stay readable, but the pressure keeps rising.</p>
-        <p>Campaign stages each introduce a new pressure point and end with a boss that has its own ability to work around. Clear all six and Endless opens &mdash; unlimited waves, doubled enemy health, and boss pairs every tenth wave. That's where leaderboard runs are made.</p>
+        <p>Campaign stages each introduce a new pressure point and end with a boss that has its own ability to work around. Clear all six and Endless opens &mdash; unlimited waves, doubled enemy health, and boss pairs every tenth wave. That's where the Rankings are decided.</p>
         <p>Sessions are short by design, but nothing is lost when a run ends: every attempt pays out Crystals toward permanent upgrades.</p>
       </section>
 
@@ -49,7 +48,7 @@
           <li><strong>Three spells</strong> &mdash; Frost Nova, Meteor Strike, Chain Lightning.</li>
           <li><strong>Ascension</strong> &mdash; permanent upgrades bought with Crystals earned every run.</li>
           <li><strong>Legendary auras</strong> drafted after boss kills for run-defining builds.</li>
-          <li><strong>Endless Mode</strong> with a global bonus-score leaderboard.</li>
+          <li><strong>Endless Mode</strong> with global Rankings based on bonus score.</li>
           <li><strong>Daily challenge</strong> &mdash; a new modifier every midnight, with its own ladder.</li>
           <li><strong>Verified scores</strong> &mdash; server-side run validation on submission.</li>
         </ul>
@@ -58,18 +57,12 @@
       <section class="pg-card">
         <h2>Why it exists</h2>
         <p>Most browser games ask you to accept less: thinner mechanics, weaker art, progress that vanishes when you close the tab. Ashen Bastion was built to test whether a web game could feel complete instead &mdash; something you launch in seconds, understand in a minute, and still be improving at weeks later.</p>
-        <p>That meant meta-progression that survives between sessions, bosses with real abilities rather than bigger health bars, and a leaderboard worth defending. It runs on plain HTML5 and Canvas, with accounts and score validation handled server-side.</p>
+        <p>That meant meta-progression that survives between sessions, bosses with real abilities rather than bigger health bars, and a place in the Rankings worth defending. It runs on plain HTML5 and Canvas, with accounts and score validation handled server-side.</p>
         <div class="pg-note">Ashen Bastion is built and maintained by <strong>Adrian Cojocaru</strong>. It's free to play, and it stays that way.</div>
       </section>
 
     </div>
 
-    <nav class="pg-strip" aria-label="Elsewhere">
-      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
-      <a href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>Complete Guide</b><span class="cap">Every mechanic</span></span></a>
-      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
-      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
-    </nav>
   </main>
 
   <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>

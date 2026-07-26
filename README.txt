@@ -1,3 +1,37 @@
+Ashen Bastion v0.9.4 - Security, Rankings and navigation fixes
+
+IMPORTANT BEFORE DEPLOY:
+1. Run setup_v0_9_4_security_fixes.sql in Neon.
+2. Set APP_BASE_URL to the exact public site URL in Netlify.
+3. Keep RUN_TOKEN_SECRET configured with a long random value.
+4. Deploy the site and Functions together.
+
+Fixed in this build:
+- every public page now uses the same graphical War Council navigation inside its hero/banner area
+- Play, Command Table, Guide, Rankings and Account stay available everywhere
+- on the home page, Play Now stays primary and the other four graphical buttons sit beside it
+- navigation buttons use five original heraldic PNG emblems with transparent backgrounds
+- the exact image-generation prompts are included in NAVIGATION_ICON_PROMPTS.txt
+- obsolete bottom navigation strips and the duplicated Command Table Quarters hub were removed
+- Welcome Back and Prepare Defenses now share forged iron, bronze and ember-themed frames
+- tower selling is disabled while the game is paused and is also blocked at the action boundary
+- Rankings is the single user-facing name across page buttons and messages
+- the current section is highlighted and the menu adapts to narrow mobile screens
+- the shared menu works both when index.html is opened from an extracted folder and when the site is hosted
+- password-reset links no longer trust request Origin/Referer headers
+- password reset tokens are claimed atomically and cannot be reused concurrently
+- start-run has a DB-backed 30 requests / 10 minutes / IP limit
+- expired security/run data is cleaned by a daily scheduled Function
+- score commit, leaderboard insert and profile update are one atomic SQL statement
+- campaign stage submissions no longer inflate lifetime kills or run counts
+- Story and Endless boards keep only each player's best result
+- usernames are unique case-insensitively at the database layer
+- username rename charges 150 Crystals atomically on the server
+- consumable Crystal spending persists across account/device sync
+- validation: all JavaScript syntax checks plus 83 unit tests
+
+Previous notes:
+
 Ashen Bastion - Bonus Leaderboard UI update
 
 Ce s-a schimbat:

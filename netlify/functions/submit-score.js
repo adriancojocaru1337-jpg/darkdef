@@ -1,43 +1,21 @@
 
-const { neon } = require("@netlify/neon");
 const crypto = require("crypto");
-const { getSessionUser } = require("./auth-utils");
+const {
+  sql,
+  json,
+  getSessionUser,
+  getClientIp,
+  getOrigin,
+  isAllowedOrigin,
+  sha256
+} = require("./auth-utils");
+const { getProfileContribution } = require("./score-profile");
 
-const sql = neon();
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
 
 const MEMORY_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const MEMORY_RATE_LIMIT_MAX_REQUESTS = 20;
 const memoryRateLimitCache = new Map();
-
-function json(statusCode, payload) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(payload)
-  };
-}
-
-function getClientIp(event) {
-  const forwarded = event.headers?.["x-forwarded-for"] || event.headers?.["X-Forwarded-For"] || "";
-  return String(forwarded).split(",")[0].trim() || "unknown";
-}
-
-function getOrigin(event) {
-  return String(event.headers?.origin || event.headers?.Origin || event.headers?.referer || event.headers?.Referer || "").trim();
-}
-
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-  return origin.startsWith("https://darkdefense.netlify.app") || origin.startsWith("http://localhost");
-}
-
-function sha256(value) {
-  return crypto.createHash("sha256").update(String(value || "")).digest("hex");
-}
 
 function sanitizeName(name) {
   return String(name || "")
@@ -130,6 +108,7 @@ async function reject({ statusCode, error, ipHash, playerName, runId, payload, s
         update game_runs
         set status = 'rejected', rejection_reason = ${error}, submitted_at = now(), updated_at = now()
         where id = ${runDbId}
+          and status = 'active'
       `;
     } catch (_) {}
   }
@@ -315,40 +294,75 @@ exports.handler = async function handler(event) {
       return reject({ statusCode: 400, error: "Run timing mismatch", ipHash, playerName, runId, payload, suspicious: true, runDbId });
     }
     try {
-      await sql`
-        update game_runs
-        set status = 'submitted', submitted_at = now(), player_name = ${playerName}, score_total = ${scoreTotal}, bonus_score = ${bonus}, wave_reached = ${waveReached}, kills = ${killsCount}, updated_at = now()
-        where id = ${runDbId}
-          and status = 'active'
-      `;
-
-      await sql`
-        insert into leaderboard_scores
-        (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash, user_id, daily_key)
-        values
-        (${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount}, ${run.mode}, ${runId}, ${ipHash}, ${sessionUser?.user_id || null}, ${dailyKey})
-      `;
-
-      if (sessionUser?.user_id) {
-        const nextBestStoryStage = run.mode === "campaign" ? waveReached : 1;
-        await sql`
-          insert into user_profiles (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
-          values (
-            ${sessionUser.user_id},
-            ${run.mode === "endless" ? bonus : 0},
-            ${nextBestStoryStage},
-            ${killsCount},
-            1,
+      const sessionUserId = sessionUser?.user_id || null;
+      const profile = getProfileContribution({
+        mode: run.mode,
+        waveReached,
+        killsCount,
+        bonus,
+        runComplete: body.runComplete
+      });
+      const committed = await sql`
+        with claimed_run as (
+          update game_runs
+          set
+            status = 'submitted',
+            submitted_at = now(),
+            player_name = ${playerName},
+            score_total = ${scoreTotal},
+            bonus_score = ${bonus},
+            wave_reached = ${waveReached},
+            kills = ${killsCount},
+            updated_at = now()
+          where id = ${runDbId}
+            and status = 'active'
+          returning id
+        ),
+        inserted_score as (
+          insert into leaderboard_scores
+            (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash, user_id, daily_key)
+          select
+            ${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount},
+            ${run.mode}, ${runId}, ${ipHash}, ${sessionUserId}, ${dailyKey}
+          from claimed_run
+          returning id
+        ),
+        updated_profile as (
+          insert into user_profiles
+            (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
+          select
+            ${sessionUserId}::bigint,
+            ${profile.bestEndlessScore},
+            ${profile.bestStoryStage},
+            ${profile.lifetimeKills},
+            ${profile.lifetimeRuns},
             now()
-          )
+          from claimed_run
+          where ${sessionUserId}::bigint is not null
           on conflict (user_id)
           do update set
-            best_endless_score = greatest(user_profiles.best_endless_score, ${run.mode === "endless" ? bonus : 0}),
-            best_story_stage = greatest(user_profiles.best_story_stage, ${nextBestStoryStage}),
-            total_kills = user_profiles.total_kills + ${killsCount},
-            total_runs = user_profiles.total_runs + 1,
+            best_endless_score = greatest(user_profiles.best_endless_score, excluded.best_endless_score),
+            best_story_stage = greatest(user_profiles.best_story_stage, excluded.best_story_stage),
+            total_kills = user_profiles.total_kills + excluded.total_kills,
+            total_runs = user_profiles.total_runs + excluded.total_runs,
             updated_at = now()
-        `;
+          returning user_id
+        )
+        select
+          exists(select 1 from claimed_run) as claimed,
+          exists(select 1 from inserted_score) as score_inserted
+      `;
+
+      if (!committed[0]?.claimed || !committed[0]?.score_inserted) {
+        return reject({
+          statusCode: 409,
+          error: "Run already submitted",
+          ipHash,
+          playerName,
+          runId,
+          payload,
+          runDbId
+        });
       }
 
       await logSubmissionAttempt({
@@ -361,7 +375,7 @@ exports.handler = async function handler(event) {
       });
     } catch (txError) {
       if (String(txError?.message || '').toLowerCase().includes('duplicate')) {
-        return reject({ statusCode: 409, error: 'Run already submitted', ipHash, playerName, runId, payload, suspicious: true, runDbId });
+        return reject({ statusCode: 409, error: 'Run already submitted', ipHash, playerName, runId, payload, runDbId });
       }
       throw txError;
     }

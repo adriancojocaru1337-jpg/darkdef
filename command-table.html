@@ -9,7 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=r11" />
+  <script src="site-nav.js?v=4" defer></script>
 <style>
 /* =========================================================
    Command Table — the player's home base.
@@ -300,7 +301,6 @@
       <p class="ct-sub" id="ctBlurb">Six stages stand between the portal and the world. Place your towers, spend your Crystals, and see how far the line bends before it breaks.</p>
       <div class="ct-actions">
         <a class="ct-btn primary" href="/index.html" id="ctPlayBtn">▶ Enter the battlefield</a>
-        <a class="ct-btn" href="/leaderboards.html">Leaderboards</a>
       </div>
     </div>
   </section>
@@ -360,21 +360,6 @@
         <span class="ct-card-note" id="ctAchCount">0 / 14 earned</span>
       </div>
       <div class="ct-ach" id="ctAchGrid"></div>
-    </section>
-
-    <!-- Navigation hub -->
-    <section class="ct-card full">
-      <div class="ct-card-head">
-        <h2 class="ct-card-title">Quarters</h2>
-      </div>
-      <nav class="ct-nav">
-        <a href="/index.html"><span class="ico" aria-hidden="true">⚔</span><span class="txt"><b>Battlefield</b><span>Play the campaign</span></span></a>
-        <a href="/leaderboards.html"><span class="ico" aria-hidden="true">🏅</span><span class="txt"><b>Leaderboards</b><span>Global rankings</span></span></a>
-        <a href="/account.html"><span class="ico" aria-hidden="true">⚙</span><span class="txt"><b>Account</b><span>Sign in and settings</span></span></a>
-        <a href="/how-to-play.html"><span class="ico" aria-hidden="true">📖</span><span class="txt"><b>How to play</b><span>Learn the basics</span></span></a>
-        <a href="/guide.html"><span class="ico" aria-hidden="true">🗺</span><span class="txt"><b>Strategy guide</b><span>Deep tactics</span></span></a>
-        <a href="/about.html"><span class="ico" aria-hidden="true">🛡</span><span class="txt"><b>About</b><span>The project</span></span></a>
-      </nav>
     </section>
 
   </div>
@@ -610,7 +595,7 @@
       note.textContent = "Guest";
       state.innerHTML =
         'Playing as a guest — your records live on this device only. ' +
-        '<a href="/account.html">Sign in</a> to save your progress online and appear on the leaderboards.';
+      '<a href="/account.html">Sign in</a> to save your progress online and appear in the Rankings.';
       return;
     }
 
@@ -649,7 +634,7 @@
         note.textContent = "Guest";
         state.innerHTML =
           'Playing as a guest — your records live on this device only. ' +
-          '<a href="/account.html">Sign in</a> to save your progress online and appear on the leaderboards.';
+      '<a href="/account.html">Sign in</a> to save your progress online and appear in the Rankings.';
       }
     }
   }

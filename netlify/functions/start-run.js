@@ -1,42 +1,21 @@
 
-const { neon } = require("@netlify/neon");
 const crypto = require("crypto");
+const {
+  sql,
+  json,
+  getOrigin,
+  isAllowedOrigin,
+  getClientIp,
+  hashIp,
+  sha256
+} = require("./auth-utils");
 
-const sql = neon();
 const RUN_TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_BODY_BYTES = 512;
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
-
-function json(statusCode, payload) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(payload)
-  };
-}
 
 function sanitizeMode(mode) {
   return ["endless", "daily"].includes(mode) ? mode : "campaign";
-}
-
-function getOrigin(event) {
-  return String(event.headers?.origin || event.headers?.Origin || event.headers?.referer || event.headers?.Referer || "").trim();
-}
-
-function isAllowedOrigin(origin) {
-  if (!origin) return true;
-  return origin.startsWith("https://darkdefense.netlify.app") || origin.startsWith("http://localhost");
-}
-
-function getClientIp(event) {
-  const forwarded = event.headers?.["x-forwarded-for"] || event.headers?.["X-Forwarded-For"] || "";
-  return String(forwarded).split(",")[0].trim() || "unknown";
-}
-
-function sha256(value) {
-  return crypto.createHash("sha256").update(String(value || "")).digest("hex");
 }
 
 function signRunToken(runId, expiresAt) {
@@ -54,21 +33,52 @@ exports.handler = async function handler(event) {
   }
 
   try {
-    const body = JSON.parse(String(event.body || "{}"));
+    const rawBody = String(event.body || "{}");
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return json(400, { error: "Invalid payload size" });
+    }
+    const body = JSON.parse(rawBody);
     const mode = sanitizeMode(body.mode);
     const now = Date.now();
     const expiresAt = now + RUN_TTL_MS;
     const runId = crypto.randomBytes(16).toString("hex");
     const runToken = signRunToken(runId, expiresAt);
-    const ipHash = sha256(getClientIp(event));
+    const ipHash = hashIp(getClientIp(event));
     const uaHash = sha256(event.headers?.["user-agent"] || event.headers?.["User-Agent"] || "");
 
-    await sql`
-      insert into game_runs
-      (run_id, mode, token_expires_at, token_signature, ip_hash, user_agent_hash, origin_host, status)
-      values
-      (${runId}, ${mode}, to_timestamp(${expiresAt} / 1000.0), ${runToken}, ${ipHash}, ${uaHash}, ${origin || null}, 'active')
+    const created = await sql`
+      with rate_slot as (
+        insert into run_start_limits (ip_hash, window_started_at, request_count, updated_at)
+        values (${ipHash}, now(), 1, now())
+        on conflict (ip_hash)
+        do update set
+          window_started_at = case
+            when run_start_limits.window_started_at <= now() - interval '10 minutes' then now()
+            else run_start_limits.window_started_at
+          end,
+          request_count = case
+            when run_start_limits.window_started_at <= now() - interval '10 minutes' then 1
+            else run_start_limits.request_count + 1
+          end,
+          updated_at = now()
+        where run_start_limits.window_started_at <= now() - interval '10 minutes'
+           or run_start_limits.request_count < 30
+        returning ip_hash
+      ),
+      created_run as (
+        insert into game_runs
+          (run_id, mode, token_expires_at, token_signature, ip_hash, user_agent_hash, origin_host, status)
+        select
+          ${runId}, ${mode}, to_timestamp(${expiresAt} / 1000.0), ${runToken},
+          ${ipHash}, ${uaHash}, ${origin || null}, 'active'
+        from rate_slot
+        returning run_id
+      )
+      select run_id from created_run
     `;
+    if (!created.length) {
+      return json(429, { error: "Too many runs started from this connection. Try again shortly." });
+    }
 
     return json(200, {
       ok: true,

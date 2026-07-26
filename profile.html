@@ -6,9 +6,10 @@
   <title>Player Profile - Ashen Bastion</title>
   <meta name="description" content="View Ashen Bastion player profiles, long-term battle stats, and recent recorded runs." />
   <meta name="robots" content="noindex, nofollow" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=r11" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=4" defer></script>
   <style>
     .profile-shell{max-width:1180px;margin:0 auto;padding:24px}
     .profile-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;align-items:start}
@@ -124,7 +125,7 @@
           <div class="profile-info-card">
             <span>Username</span>
             <strong id="profileUsernameCard">Player</strong>
-            <p id="profileUsernameCopy">Public identity used for leaderboard and profile discovery.</p>
+        <p id="profileUsernameCopy">Public identity used for Rankings and profile discovery.</p>
           </div>
           <div class="profile-info-card" id="profileEmailCard">
             <span>Email</span>
@@ -136,11 +137,6 @@
             <strong id="profileCreatedDate">Unknown date</strong>
             <p>This anchors the long-term history of the account.</p>
           </div>
-        </div>
-        <div class="profile-actions">
-          <a href="/" class="btn btn-primary">Play Ashen Bastion</a>
-          <a href="/leaderboards.html" class="btn btn-secondary">Leaderboards</a>
-          <a href="/account.html" class="btn btn-secondary">Account Center</a>
         </div>
       </aside>
     </section>
@@ -257,8 +253,8 @@
       profileUsername.textContent = profile.username || 'Player';
       profileUsernameCard.textContent = profile.username || 'Player';
       profileUsernameCopy.textContent = isOwner
-        ? 'This is your public account identity across leaderboards and profile views.'
-        : 'Public identity used for leaderboard and profile discovery.';
+        ? 'This is your public account identity across Rankings and profile views.'
+        : 'Public identity used for Rankings and profile discovery.';
       profileTagline.textContent = isOwner
         ? 'Your Ashen Bastion account identity, long-term progression, and most recent recorded runs.'
         : 'Public Ashen Bastion profile with long-term stats and recently recorded runs.';

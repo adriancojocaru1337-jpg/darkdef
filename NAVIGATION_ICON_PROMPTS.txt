@@ -1,0 +1,29 @@
+Ashen Bastion - navigation icon prompts
+
+These prompts produced the final PNG emblems in assets/ui/navigation/.
+The UI text remains HTML; the generated images contain no text.
+
+FOUR-ICON ATLAS
+
+Use case: stylized-concept
+Asset type: 2x2 navigation icon atlas for a dark-fantasy tower-defense website
+Primary request: Create exactly four separate heraldic navigation emblems arranged in a precise 2x2 grid, one centered emblem per equal quadrant.
+Subjects, reading order: top-left = crossed longsword and command shield for Command Table; top-right = ancient open spellbook with a small bookmark for Guide; bottom-left = ornate champion trophy with laurel leaves for Rankings; bottom-right = crowned knight profile inside a small crest for Account.
+Style/medium: premium hand-painted dark-fantasy game UI icons, lightly three-dimensional, cohesive single set, crisp silhouette, engraved antique gold and dark iron, subtle ember-orange highlights, refined rather than cartoonish.
+Composition/framing: square atlas, strict equal quadrants, every emblem centered and fully contained with generous padding, same apparent scale, no overlap between quadrants, no outer border around the atlas.
+Lighting/mood: dramatic warm rim light, dark medieval prestige, readable at 32-48 pixels.
+Color palette: antique gold, bronze, charcoal iron, tiny amber highlights; do not use green in any emblem.
+Scene/backdrop: perfectly flat solid #00ff00 chroma-key background across the entire image, including all spacing between emblems. No shadows or glow cast onto the background, no gradient, no texture, no floor, no reflection.
+Constraints: exactly four emblems; equal 2x2 placement; clean crisp edges; no letters, no words, no numbers, no watermark, no extra symbols, no cast shadows, no green inside the subjects.
+
+PLAY EMBLEM
+
+Use case: stylized-concept
+Asset type: single navigation emblem for the same dark-fantasy tower-defense website icon set
+Primary request: Create one centered heraldic Play emblem: a forward-pointing longsword crossing a small open fortress gate, suggesting entering the battlefield.
+Style/medium: premium hand-painted dark-fantasy game UI icon, lightly three-dimensional, matching a cohesive set made from engraved antique gold and dark iron, subtle ember-orange highlights, refined rather than cartoonish.
+Composition/framing: square canvas, one centered emblem fully contained with generous padding, strong readable silhouette at 32-48 pixels, no outer canvas border.
+Lighting/mood: dramatic warm rim light, dark medieval prestige.
+Color palette: antique gold, bronze, charcoal iron, tiny amber highlights; do not use green in the emblem.
+Scene/backdrop: perfectly flat solid #00ff00 chroma-key background. No shadow or glow cast onto the background, no gradient, no texture, no floor, no reflection.
+Constraints: exactly one emblem; clean crisp edges; no letters, no words, no numbers, no watermark, no extra symbols, no cast shadows, no green inside the subject.

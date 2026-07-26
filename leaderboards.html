@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Ashen Bastion Leaderboards - Top Endless, Story and Daily Runs</title>
+  <title>Ashen Bastion Rankings - Top Endless, Story and Daily Runs</title>
   <meta name="description" content="See the top Ashen Bastion leaderboards for Endless Mode, Story Mode and the daily Challenge of the Day. Compare waves, stages, bonus score and climb the rankings." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/leaderboards.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=r11" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=4" defer></script>
 <style>
 /* =========================================================
    Rankings - the Hall of Champions.
@@ -348,12 +349,11 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
         <div class="rk-banner-actions">
           <a href="/" class="rk-plate">Start a run</a>
           <button class="rk-ghost" id="refreshLeaderboardsBtn" type="button"><span class="ico" aria-hidden="true">&#10227;</span>Refresh</button>
-          <a class="rk-ghost" href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span>Command Table</a>
         </div>
       </div>
     </section>
 
-    <div class="rk-tabs" role="tablist" aria-label="Leaderboard type">
+      <div class="rk-tabs" role="tablist" aria-label="Ranking type">
       <button class="rk-tab" role="tab" id="tab-power" aria-controls="panel-power" aria-selected="true" type="button">
         <span class="ico" aria-hidden="true">&#9889;</span>Power
       </button>
@@ -432,12 +432,6 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       </div>
     </section>
 
-    <nav class="rk-strip" aria-label="Elsewhere">
-      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
-      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
-      <a href="/how-to-play.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>How to play</b><span class="cap">Learn the basics</span></span></a>
-      <a href="/best-tower-defense-browser-game-strategy.html"><span class="ico" aria-hidden="true">&#128081;</span><span><b>Boss guide</b><span class="cap">Beat every boss</span></span></a>
-    </nav>
   </main>
 
   <footer class="site-footer">Copyright &copy; 2026 Adrian Cojocaru. All rights reserved.</footer>

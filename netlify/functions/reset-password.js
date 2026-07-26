@@ -31,33 +31,39 @@ exports.handler = async function handler(event) {
     }
 
     const tokenHash = sha256(token);
-    const rows = await sql`
-      select id, user_id, expires_at, used
-      from password_resets
-      where token_hash = ${tokenHash}
-      limit 1
-    `;
-    const resetRow = rows[0];
-    if (!resetRow || resetRow.used || new Date(resetRow.expires_at).getTime() <= Date.now()) {
-      return json(400, { error: "This reset link is invalid or has expired." });
-    }
-
     const passwordHash = await hashPassword(password);
 
-    await sql`
-      update users
-      set password_hash = ${passwordHash}
-      where id = ${resetRow.user_id}
+    const claimed = await sql`
+      with claimed_reset as (
+        update password_resets
+        set used = true
+        where token_hash = ${tokenHash}
+          and used = false
+          and expires_at > now()
+        returning user_id
+      ),
+      updated_user as (
+        update users u
+        set password_hash = ${passwordHash}
+        from claimed_reset r
+        where u.id = r.user_id
+        returning u.id
+      ),
+      deleted_sessions as (
+        delete from user_sessions s
+        using claimed_reset r
+        where s.user_id = r.user_id
+        returning s.id
+      )
+      select
+        r.user_id,
+        (select count(*)::int from deleted_sessions) as revoked_sessions
+      from claimed_reset r
+      join updated_user u on u.id = r.user_id
     `;
-    await sql`
-      update password_resets
-      set used = true
-      where id = ${resetRow.id}
-    `;
-    await sql`
-      delete from user_sessions
-      where user_id = ${resetRow.user_id}
-    `;
+    if (!claimed.length) {
+      return json(400, { error: "This reset link is invalid or has expired." });
+    }
 
     return json(200, { ok: true, message: "Password updated. You can sign in now." });
   } catch (error) {

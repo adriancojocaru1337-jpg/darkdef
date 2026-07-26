@@ -1,5 +1,5 @@
 const { json, getSessionUser, sql } = require("./auth-utils");
-const { sanitizeTalents, sanitizeTotalEarned } = require("./ley-shared");
+const { sanitizeTalents, sanitizeTotalEarned, sanitizeSpentCrystals } = require("./ley-shared");
 
 exports.handler = async function handler(event) {
   if (event.httpMethod !== "GET") {
@@ -13,19 +13,20 @@ exports.handler = async function handler(event) {
     }
 
     const rows = await sql`
-      select total_earned, talents
+      select total_earned, spent_crystals, talents
       from player_ley_meta
       where user_id = ${session.user_id}
       limit 1
     `;
 
     if (!rows.length) {
-      return json(200, { ok: true, totalEarned: 0, talents: {} });
+      return json(200, { ok: true, totalEarned: 0, spentCrystals: 0, talents: {} });
     }
 
     return json(200, {
       ok: true,
       totalEarned: sanitizeTotalEarned(rows[0].total_earned),
+      spentCrystals: sanitizeSpentCrystals(rows[0].spent_crystals),
       talents: sanitizeTalents(rows[0].talents)
     });
   } catch (error) {

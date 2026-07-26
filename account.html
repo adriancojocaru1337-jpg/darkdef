@@ -10,9 +10,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css?v=r11" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=4" defer></script>
   <style>
     /* =========================================================
        Account - restyled to match the game (Cinzel + Inter,
@@ -338,16 +339,16 @@
       <article class="glass account-hero">
         <div class="pg-eyebrow">Player Identity</div>
         <h1 class="pg-title" style="font-size:clamp(26px,3.6vw,38px)">Your commander account</h1>
-        <p>Sign in to keep your records across devices, appear on the global leaderboards, and sync your Ascension progress. Guest runs still work &mdash; they just live on this device only.</p>
+        <p>Sign in to keep your records across devices, appear in the global Rankings, and sync your Ascension progress. Guest runs still work &mdash; they just live on this device only.</p>
         <div class="account-badges">
           <div class="account-badge">Progress synced across devices</div>
-          <div class="account-badge">Leaderboard eligibility</div>
+          <div class="account-badge">Rankings eligibility</div>
           <div class="account-badge">Secure sessions</div>
         </div>
         <div class="account-feature-grid">
-          <div class="account-feature"><strong>Claim your name</strong><span>Reserve a username once and stop typing it every run. It follows you onto every leaderboard.</span></div>
+          <div class="account-feature"><strong>Claim your name</strong><span>Reserve a username once and stop typing it every run. It follows you throughout the Rankings.</span></div>
           <div class="account-feature"><strong>Keep your records</strong><span>Best Endless score, campaign progress, total kills and runs, stored against your account.</span></div>
-          <div class="account-feature"><strong>Pick a crest</strong><span>Choose the emblem that appears beside your name on the leaderboards and your public profile.</span></div>
+          <div class="account-feature"><strong>Pick a crest</strong><span>Choose the emblem that appears beside your name in the Rankings and on your public profile.</span></div>
           <div class="account-feature"><strong>Play as a guest first</strong><span>No account needed to play. Sign in whenever you want your runs to count online.</span></div>
         </div>
       </article>
@@ -400,7 +401,7 @@
             <button class="btn btn-primary auth-submit" type="submit">Sign in</button>
           </form>
           <div class="auth-inline-row">
-            <p class="auth-note">Staying signed in links every run you finish to your name on the leaderboards.</p>
+            <p class="auth-note">Staying signed in links every run you finish to your name in the Rankings.</p>
             <button class="text-link" id="forgotPasswordToggle" type="button">Forgot password?</button>
           </div>
           <div class="forgot-shell hidden" id="forgotPasswordBox">
@@ -443,7 +444,7 @@
               </div>
               <div class="session-crest" id="sessionCrestPreview"></div>
             </div>
-            <p class="crest-picker-copy">Your crest appears beside your name in the site header, on your public profile, and on every leaderboard entry.</p>
+              <p class="crest-picker-copy">Your crest appears beside your name in the site header, on your public profile, and on every Rankings entry.</p>
             <div class="crest-current hidden" id="crestCurrent">
               <div class="crest-current-main">
                 <div class="session-crest" id="crestCurrentPreview"></div>
@@ -459,11 +460,6 @@
               <button class="btn btn-secondary" id="saveCrestBtn" type="button">Save crest</button>
             </div>
           </div>
-          <div class="session-actions">
-            <a href="/command-table.html" class="btn btn-secondary">Command Table</a>
-            <a href="/leaderboards.html" class="btn btn-secondary">View leaderboards</a>
-            <a href="/" class="btn btn-primary">Play Ashen Bastion</a>
-          </div>
         </section>
 
         <section id="sessionLoadingCard" class="session-card loading hidden" aria-hidden="true">
@@ -476,12 +472,6 @@
       </aside>
     </section>
 
-    <nav class="pg-strip" aria-label="Elsewhere">
-      <a href="/"><span class="ico" aria-hidden="true">&#9876;</span><span><b>Battlefield</b><span class="cap">Play a run</span></span></a>
-      <a href="/command-table.html"><span class="ico" aria-hidden="true">&#128737;</span><span><b>Command Table</b><span class="cap">Your records</span></span></a>
-      <a href="/leaderboards.html"><span class="ico" aria-hidden="true">&#127942;</span><span><b>Rankings</b><span class="cap">Global ladders</span></span></a>
-      <a href="/guide.html"><span class="ico" aria-hidden="true">&#128214;</span><span><b>Complete Guide</b><span class="cap">Every mechanic</span></span></a>
-    </nav>
   </main>
 
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
