@@ -83,6 +83,7 @@ exports.handler = async function handler(event) {
           power: r.power || 0,
           equipmentPower: r.equipment_power || 0,
           skillPoints: r.skill_points || 0,
+          heroName: (r.loadout && r.loadout.heroName) || null,
           items: (r.loadout && r.loadout.items) || {},
           skills: (r.loadout && r.loadout.skills) || [],
           updatedAt: r.updated_at

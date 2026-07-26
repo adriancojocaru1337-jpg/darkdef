@@ -35,13 +35,13 @@ async function sendResetEmail({ email, resetLink }) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from: "Dark Defense <onboarding@resend.dev>",
+      from: "Ashen Bastion <onboarding@resend.dev>",
       to: [email],
-      subject: "Reset your Dark Defense password",
+      subject: "Reset your Ashen Bastion password",
       html: `
         <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;max-width:640px;margin:0 auto;">
           <h1 style="margin:0 0 16px;font-size:28px;color:#0f172a;">Reset your password</h1>
-          <p style="margin:0 0 16px;">We received a request to reset the password for your Dark Defense account.</p>
+          <p style="margin:0 0 16px;">We received a request to reset the password for your Ashen Bastion account.</p>
           <p style="margin:0 0 24px;">This link stays valid for <strong>${RESET_TTL_MINUTES} minutes</strong>.</p>
           <p style="margin:0 0 24px;">
             <a href="${resetLink}" style="display:inline-block;padding:14px 20px;border-radius:12px;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:700;">Choose a new password</a>

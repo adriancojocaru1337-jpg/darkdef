@@ -1334,6 +1334,7 @@ const heroSystem = window.DarkDefense.createHeroSystem({
   profileStore,
   statPipeline: heroStatPipeline,
   events: window.DarkDefense.events,
+  getDisplayName: () => getHeroName(),
   getEnemies: () => enemies,
   getPathPosition: (progress) => getPathPosition(progress),
   dealDamage: (enemy, baseDamage, source) => {
@@ -1360,7 +1361,7 @@ const heroSystem = window.DarkDefense.createHeroSystem({
     const pos = getPathPosition(heroSystem.getRunState().progress);
     showPopup(pos.x, pos.y - 30, `Hero Level ${level}!`, "#fde68a");
     addScreenFlash("#f59e0b", .35, .18);
-    pushNotification("achievement", "Hero level up", `Varyn reached Level ${level}.`);
+    pushNotification("achievement", "Hero level up", `${getHeroName()} reached Level ${level}.`);
     updateHeroSkillBadges();
     if(isHeroSkillsOverlayOpen()) renderHeroSkillTree();
   },
@@ -1668,6 +1669,29 @@ window.addEventListener("pagehide", ()=>{
    so the server only guards auth, a plausibility cap and
    rate limits — see submit-power.js. */
 const SKILL_POINT_POWER = 25;
+
+const HERO_DEFAULT_NAME = "Varyn";
+const HERO_RENAME_CRYSTAL_COST = 100;
+
+// Custom hero name lives in the profile (client-side). Falls back to the default.
+function getHeroName(){
+  try{
+    const name = profileStore.getSnapshot()?.hero?.name;
+    if(typeof name === "string" && name.trim()) return name.trim();
+  }catch(_){}
+  return HERO_DEFAULT_NAME;
+}
+
+function setHeroName(name){
+  const clean = String(name || "").trim().slice(0, 18);
+  if(!clean) return false;
+  profileStore.update((profile)=>{
+    if(!profile.hero || typeof profile.hero !== "object") profile.hero = {};
+    profile.hero.name = clean;
+    return profile;
+  }, "hero:rename");
+  return true;
+}
 let powerSubmitTimer = null;
 let lastSubmittedPower = null;
 
@@ -1704,7 +1728,7 @@ function computeHeroLoadout(){
       }
     }
   }catch(_){}
-  return { items, skills };
+  return { heroName: getHeroName(), items, skills };
 }
 
 async function pushHeroPower(){
@@ -1776,6 +1800,45 @@ async function buyRename(){
   }finally{
     renameInFlight = false;
   }
+}
+
+function setHeroRenameFeedback(message){
+  const el = document.getElementById("heroRenameFeedback");
+  if(el) el.textContent = message || "";
+}
+
+function buyHeroRename(){
+  if(leyCrystals < HERO_RENAME_CRYSTAL_COST){
+    setHeroRenameFeedback(`Not enough Crystals. Hero rename needs ✦ ${HERO_RENAME_CRYSTAL_COST}.`);
+    return;
+  }
+  const raw = window.prompt("Name your hero (2–18 characters):", getHeroName());
+  if(raw === null) return;
+  const next = String(raw).trim();
+  if(next.length < 2){
+    setHeroRenameFeedback("Hero name must have at least 2 characters.");
+    return;
+  }
+  if(next === getHeroName()){
+    setHeroRenameFeedback("That's already your hero's name.");
+    return;
+  }
+  if(!setHeroName(next)){
+    setHeroRenameFeedback("That name can't be used. No Crystals were spent.");
+    return;
+  }
+  // Client-side rename: charge, refresh UI, and re-sync so the public profile updates.
+  leyCrystals = Math.max(0, leyCrystals - HERO_RENAME_CRYSTAL_COST);
+  saveLeyState();
+  scheduleLeySyncPush();
+  try{ heroSystem.syncUi?.(); }catch(_){}
+  tone("sine", 560, 880, .12, .03);
+  pushNotification("achievement", "Hero renamed", `Your hero is now ${getHeroName()}. −${HERO_RENAME_CRYSTAL_COST} ✦`);
+  setHeroRenameFeedback(`Done — your hero is now ${getHeroName()}.`);
+  renderLeyOverlay();
+  updateLeyBadges();
+  // Push the new name to the server profile (best-effort).
+  if(leyAccountAuthed) pushHeroPower();
 }
 
 function buyLeyTalent(nodeId){
@@ -1905,6 +1968,7 @@ function renderLeyOverlay(){
 
 function renderRenameCategory(){
   const affordable = leyCrystals >= RENAME_CRYSTAL_COST;
+  const heroAffordable = leyCrystals >= HERO_RENAME_CRYSTAL_COST;
   const branchEl = document.createElement("div");
   branchEl.className = "ley-branch";
   branchEl.style.setProperty("--branch-color", "#f472b6");
@@ -1913,7 +1977,7 @@ function renderRenameCategory(){
       <span class="ley-branch-icon">✎</span>
       <div>
         <div class="ley-branch-name">Rename</div>
-        <div class="ley-branch-tagline">Change your leaderboard username.</div>
+        <div class="ley-branch-tagline">Change your username or your hero's name.</div>
       </div>
     </div>
     <div class="ley-branch-nodes">
@@ -1927,10 +1991,23 @@ function renderRenameCategory(){
           <span class="ley-buy-label">Rename</span><span class="ley-buy-cost">✦ ${RENAME_CRYSTAL_COST}</span>
         </button>
       </div>
+      <div class="ley-node">
+        <div class="ley-node-head">
+          <span class="ley-node-name">Rename Hero</span>
+          <span class="ley-node-rank">${getHeroName()}</span>
+        </div>
+        <p class="ley-node-desc">Rename your hero (currently <strong>${getHeroName()}</strong>). Shows in-game and on your public profile. Costs ✦ ${HERO_RENAME_CRYSTAL_COST} each time.</p>
+        <p class="ley-node-next" id="heroRenameFeedback"></p>
+        <button class="btn ley-buy-btn${heroAffordable?" btn-primary":" ley-buy-locked"}" id="heroRenameBuyBtn">
+          <span class="ley-buy-label">Rename Hero</span><span class="ley-buy-cost">✦ ${HERO_RENAME_CRYSTAL_COST}</span>
+        </button>
+      </div>
     </div>`;
   leyBranchesEl.appendChild(branchEl);
   const btn = branchEl.querySelector("#renameBuyBtn");
   btn?.addEventListener("click",(event)=>{ event.stopPropagation(); buyRename(); });
+  const heroBtn = branchEl.querySelector("#heroRenameBuyBtn");
+  heroBtn?.addEventListener("click",(event)=>{ event.stopPropagation(); buyHeroRename(); });
 }
 
 function openLeyOverlay(){
@@ -2693,7 +2770,7 @@ function purchaseHeroSkill(skillId){
     submitHeroPower();
   }else{
     setHeroSkillFeedback(result.reason === "no_points"
-      ? "Varyn needs another hero level for a new skill point."
+      ? `${getHeroName()} needs another hero level for a new skill point.`
       : "That skill is still locked by its prerequisite.", "warning");
   }
   renderHeroSkillTree();
@@ -2734,7 +2811,7 @@ function openHeroSkillsOverlay(){
     || (leyOverlay && !leyOverlay.classList.contains("hidden"))) return false;
   heroSkillRespecArmed = false;
   renderHeroSkillTree();
-  setHeroSkillFeedback("Choose a branch and shape Varyn's combat role.");
+  setHeroSkillFeedback(`Choose a branch and shape ${getHeroName()}'s combat role.`);
   heroSkillsOverlay.classList.remove("hidden");
   if(hasStarted && lives > 0 && !isPaused){
     heroSkillsAutoPaused = pauseRunFlow("hero-skills-overlay");
@@ -2892,13 +2969,18 @@ function resolveBossWaveCompletion(){
       profile.progress.furthestStage = Math.max(profile.progress.furthestStage || 1, resolution.nextStage);
       return profile;
     }, "progress:stage-unlock");
-    clearSavedRun();
-    hasStarted = false;
-    runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"stage-cleared" });
-    pushNotification("stage","Region Cleared",`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared — ${STAGES[resolution.nextStage]?.name || "the next region"} unlocked!`);
+    pushNotification("stage","Region Cleared",`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared — moving on to ${STAGES[resolution.nextStage]?.name || "the next region"}!`);
     saveProgress();
-    setMessage(`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared! +${clearReward} gold. ${STAGES[resolution.nextStage]?.name || "Next region"} unlocked.`);
-    openWorldMap();
+    // Linear campaign: keep the run going and advance straight into the next
+    // region. Towers move to reserve so they can be redeployed for free; money,
+    // lives and score carry over. The world map is only the entry screen now —
+    // reach it any time from the World Map button.
+    moveUnitsToReserve();
+    applyStage(resolution.nextStage, false);
+    startRunFlow("campaign-next-stage");
+    prewarmLeaderboardRun("campaign");
+    setMessage(`${STAGES[resolution.nextStage]?.name || "Next region"} — redeploy your reserve towers and hold the line.`);
+    saveRunState();
     updateUI();
     return;
   } else if(resolution.type === "unlock-endless") {
@@ -4344,6 +4426,13 @@ function enterEndlessModeFromUnlock(){
   currentMode = "endless";
   stageWave = 1;
   wave = 1;
+  // Endless starts its own score/bonus tally. The leaderboard ranks endless by
+  // bonus_score and the server caps bonus against the endless wave count — if we
+  // carried the campaign bonus over here it would exceed that cap the moment you
+  // die early in endless, and the submission would be silently rejected.
+  score = 0;
+  bonusScore = 0;
+  kills = 0;
   waveActive = false;
   spawnLeft = 0;
   spawnTimer = 0;
@@ -4695,7 +4784,7 @@ function maybeShowResumeOverlay(){
   try{
     restoreRunState(save);
   }catch(e){
-    console.warn("[Dark Defense] Saved run could not be restored:", e);
+    console.warn("[Ashen Bastion] Saved run could not be restored:", e);
     clearSavedRun();
     return false;
   }
@@ -4986,7 +5075,6 @@ function applyStage(stageNumber, resetRun=false){
   autoPlay = false;
   autoPlayTimer = AUTO_PLAY_DELAY;
   updateAutoPlayUI();
-  console.log("[Dark Defense] New stage started — Auto Play disabled.");
   updateUI();
 }
 const resetGame=()=>{
@@ -8971,7 +9059,7 @@ function startGameFromMenu(){
   startOverlay?.classList.add("hidden");
   loadProgressNotice();
   loadBonusLeaderboard();
-  setMessage("Dark Defense started. Place towers, start the wave, and use spells when needed.");
+  setMessage("Ashen Bastion started. Place towers, start the wave, and use spells when needed.");
   updateUI();
 }
 startGameBtn?.addEventListener("click", startGameFromMenu);

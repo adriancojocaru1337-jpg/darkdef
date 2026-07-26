@@ -228,7 +228,7 @@
       try {
         return storage && storage.getItem(key);
       } catch (error) {
-        console.warn(`[Dark Defense] Could not read "${key}" from storage:`, error);
+        console.warn(`[Ashen Bastion] Could not read "${key}" from storage:`, error);
         return null;
       }
     }
@@ -239,7 +239,7 @@
         storage.setItem(key, value);
         return true;
       } catch (error) {
-        console.warn(`[Dark Defense] Could not write "${key}" to storage:`, error);
+        console.warn(`[Ashen Bastion] Could not write "${key}" to storage:`, error);
         return false;
       }
     }
@@ -258,7 +258,7 @@
       } catch (error) {
         const backupKey = `${storageKey}.corrupt`;
         writeStorage(backupKey, raw);
-        console.warn(`[Dark Defense] Invalid profile moved to "${backupKey}".`, error);
+        console.warn(`[Ashen Bastion] Invalid profile moved to "${backupKey}".`, error);
         return importLegacy(createDefaultProfile());
       }
     }

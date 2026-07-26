@@ -1,4 +1,4 @@
-# Dark Defense — audit arhitectural și roadmap RPG
+# Ashen Bastion — audit arhitectural și roadmap RPG
 
 ## 1. Rezumat executiv
 
