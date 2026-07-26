@@ -6,21 +6,21 @@
       href: "/",
       label: "Play",
       caption: "Battlefield",
-      image: "/assets/ui/navigation/nav-play.png",
+      image: "/assets/ui/navigation/nav-play.webp",
       pages: ["index.html"]
     },
     {
       href: "/command-table.html",
       label: "Command Table",
       caption: "War Room",
-      image: "/assets/ui/navigation/nav-command-table.png",
+      image: "/assets/ui/navigation/nav-command-table.webp",
       pages: ["command-table.html"]
     },
     {
       href: "/guide.html",
       label: "Guide",
       caption: "Field Manual",
-      image: "/assets/ui/navigation/nav-guide.png",
+      image: "/assets/ui/navigation/nav-guide.webp",
       pages: [
         "guide.html",
         "how-to-play.html",
@@ -32,14 +32,14 @@
       href: "/leaderboards.html",
       label: "Rankings",
       caption: "Hall of Fame",
-      image: "/assets/ui/navigation/nav-rankings.png",
+      image: "/assets/ui/navigation/nav-rankings.webp",
       pages: ["leaderboards.html"]
     },
     {
       href: "/account.html",
       label: "Account",
       caption: "Your Profile",
-      image: "/assets/ui/navigation/nav-account.png",
+      image: "/assets/ui/navigation/nav-account.webp",
       pages: ["account.html", "profile.html", "reset-password.html"]
     }
   ];
@@ -70,7 +70,7 @@
     return `
       <a class="site-nav-link${currentClass}" href="${href}"${currentAttribute}>
         <span class="site-nav-icon" aria-hidden="true">
-          <img src="${image}" alt="" width="512" height="512" decoding="async" />
+          <img src="${image}" alt="" width="128" height="128" decoding="async" />
         </span>
         <span class="site-nav-copy">
           <strong>${destination.label}</strong>

@@ -10,7 +10,10 @@ Fixed in this build:
 - every public page now uses the same graphical War Council navigation inside its hero/banner area
 - Play, Command Table, Guide, Rankings and Account stay available everywhere
 - on the home page, Play Now stays primary and the other four graphical buttons sit beside it
-- navigation buttons use five original heraldic PNG emblems with transparent backgrounds
+- navigation buttons load five optimized 128px transparent WebP emblems; the 512px PNG masters remain included
+- deployed navigation artwork is about 38 KB total instead of about 1.52 MB
+- the world map, animated enemy sheets, enemy fallbacks, tower art and guide mobs now use lossless WebP
+- 58 runtime images retain every visible pixel while reducing their combined size by about 3.58 MB
 - the exact image-generation prompts are included in NAVIGATION_ICON_PROMPTS.txt
 - obsolete bottom navigation strips and the duplicated Command Table Quarters hub were removed
 - Welcome Back and Prepare Defenses now share forged iron, bronze and ember-themed frames
@@ -28,7 +31,7 @@ Fixed in this build:
 - usernames are unique case-insensitively at the database layer
 - username rename charges 150 Crystals atomically on the server
 - consumable Crystal spending persists across account/device sync
-- validation: all JavaScript syntax checks plus 83 unit tests
+- validation: all JavaScript syntax checks plus 85 unit tests
 
 Previous notes:
 
@@ -206,7 +209,7 @@ v0.9.2i World Map button:
 v0.9.2j Illustrated world map inside the battlefield:
 - the world map is no longer a separate full-screen overlay — it now renders
   INSIDE the battlefield frame (over the canvas), using the hand-drawn map art
-  (assets/ui/world-map.png) as the background
+  (assets/ui/world-map.webp) as the background
 - six clickable hotspots sit exactly over the region banners (Forest, Ruins,
   Graveyard, Castle, Catacombs, Dark Portal); positions verified against the art
 - hotspots are invisible until hover (respecting the artwork): teal glow on

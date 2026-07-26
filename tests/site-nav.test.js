@@ -40,7 +40,7 @@ test("every public HTML page loads the shared navigation", () => {
 
   for (const fileName of htmlFiles) {
     const source = fs.readFileSync(path.join(root, fileName), "utf8");
-    assert.match(source, /<script src="site-nav\.js\?v=4" defer><\/script>/, fileName);
+    assert.match(source, /<script src="site-nav\.js\?v=5" defer><\/script>/, fileName);
     assert.doesNotMatch(source, /<script src="\/site-nav\.js/, fileName);
     assert.match(source, /style\.css\?v=r11/, fileName);
   }
@@ -53,7 +53,7 @@ test("the primary menu exposes the same five destinations and uses Rankings", ()
   assert.equal(destinationCount, 5);
   assert.match(source, /label: "Rankings"/);
   assert.doesNotMatch(source, /label: "Leaderboards?"/i);
-  assert.match(source, /image: "\/assets\/ui\/navigation\/nav-rankings\.png"/);
+  assert.match(source, /image: "\/assets\/ui\/navigation\/nav-rankings\.webp"/);
   assert.match(source, /window\.location\.protocol === "file:"/);
   assert.match(source, /href === "\/" \? "index\.html"/);
   assert.match(source, /heroActions\.append\(navigation\)/);
@@ -104,21 +104,24 @@ test("the home hero keeps Play Now separate from four shared graphical links", (
   assert.match(markup, />\s*Rankings\s*</);
 });
 
-test("all generated navigation emblems are square transparent PNG assets", () => {
+test("all deployed navigation emblems are compact square transparent WebP assets", () => {
   const iconNames = [
-    "nav-play.png",
-    "nav-command-table.png",
-    "nav-guide.png",
-    "nav-rankings.png",
-    "nav-account.png"
+    "nav-play.webp",
+    "nav-command-table.webp",
+    "nav-guide.webp",
+    "nav-rankings.webp",
+    "nav-account.webp"
   ];
 
   for (const iconName of iconNames) {
     const buffer = fs.readFileSync(path.join(root, "assets", "ui", "navigation", iconName));
-    assert.equal(buffer.toString("hex", 1, 4), "504e47", iconName);
-    assert.equal(buffer.readUInt32BE(16), 512, iconName);
-    assert.equal(buffer.readUInt32BE(20), 512, iconName);
-    assert.equal(buffer.readUInt8(25), 6, `${iconName} must use RGBA color type`);
+    assert.equal(buffer.subarray(0, 4).toString("ascii"), "RIFF", iconName);
+    assert.equal(buffer.subarray(8, 12).toString("ascii"), "WEBP", iconName);
+    assert.equal(buffer.subarray(12, 16).toString("ascii"), "VP8X", iconName);
+    assert.equal(buffer.readUInt8(20) & 0x10, 0x10, `${iconName} must preserve transparency`);
+    assert.equal(buffer.readUIntLE(24, 3) + 1, 128, iconName);
+    assert.equal(buffer.readUIntLE(27, 3) + 1, 128, iconName);
+    assert.ok(buffer.length < 15_000, `${iconName} should stay below 15 KB`);
   }
 });
 

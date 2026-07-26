@@ -365,10 +365,10 @@ const COLS = 18, ROWS = 10, CELL = 56;
 const START_LIVES = 20, START_MONEY = 300;
 
 const towerSpriteSources = {
-  archer: "assets/towers/archer.png",
-  hunter: "assets/towers/hunter.png",
-  mage: "assets/towers/mage.png",
-  bomb: "assets/towers/bomb.png"
+  archer: "assets/towers/archer.webp",
+  hunter: "assets/towers/hunter.webp",
+  mage: "assets/towers/mage.webp",
+  bomb: "assets/towers/bomb.webp"
 };
 const towerSprites = {};
 function loadTowerSprites(){
@@ -384,29 +384,29 @@ loadTowerSprites();
 // fallbacks; normal rendering uses 12-frame Bone2D exports for each direction.
 const enemyArtSources = {
   normal: {
-    front: "assets/enemies/normal_rig_source.png",
-    side: "assets/enemies/normal_side_rig_source.png",
-    back: "assets/enemies/normal_back_rig_source.png"
+    front: "assets/enemies/normal_rig_source.webp",
+    side: "assets/enemies/normal_side_rig_source.webp",
+    back: "assets/enemies/normal_back_rig_source.webp"
   },
   fast: {
-    front: "assets/enemies/fast_rig_source.png",
-    side: "assets/enemies/fast_side_rig_source.png",
-    back: "assets/enemies/fast_back_rig_source.png"
+    front: "assets/enemies/fast_rig_source.webp",
+    side: "assets/enemies/fast_side_rig_source.webp",
+    back: "assets/enemies/fast_back_rig_source.webp"
   },
   armored: {
-    front: "assets/enemies/armored_rig_source.png",
-    side: "assets/enemies/armored_side_rig_source.png",
-    back: "assets/enemies/armored_back_rig_source.png"
+    front: "assets/enemies/armored_rig_source.webp",
+    side: "assets/enemies/armored_side_rig_source.webp",
+    back: "assets/enemies/armored_back_rig_source.webp"
   },
   tank: {
-    front: "assets/enemies/tank_rig_source.png",
-    side: "assets/enemies/tank_side_rig_source.png",
-    back: "assets/enemies/tank_back_rig_source.png"
+    front: "assets/enemies/tank_rig_source.webp",
+    side: "assets/enemies/tank_side_rig_source.webp",
+    back: "assets/enemies/tank_back_rig_source.webp"
   },
   splitter: {
-    front: "assets/enemies/splitter_rig_source.png",
-    side: "assets/enemies/splitter_side_rig_source.png",
-    back: "assets/enemies/splitter_back_rig_source.png"
+    front: "assets/enemies/splitter_rig_source.webp",
+    side: "assets/enemies/splitter_side_rig_source.webp",
+    back: "assets/enemies/splitter_back_rig_source.webp"
   }
 };
 const enemyArt = {};
@@ -421,7 +421,7 @@ function loadEnemyRigSheets(){
     Object.entries(views).forEach(([view, fallbackSrc]) => {
       const img = new Image();
       img.decoding = "async";
-      img.src = `assets/enemies/animated/${type}_${view}_walk.png`;
+      img.src = `assets/enemies/animated/${type}_${view}_walk.webp`;
       img.onerror = () => {
         const fallback = new Image();
         fallback.decoding = "async";
@@ -443,7 +443,7 @@ function loadBossRigSheets(){
     ["front", "side", "back"].forEach((view) => {
       const img = new Image();
       img.decoding = "async";
-      img.src = `assets/enemies/animated/boss${stage}_${view}_walk.png`;
+      img.src = `assets/enemies/animated/boss${stage}_${view}_walk.webp`;
       bossRigSheets[stage][view] = img;
     });
   }
@@ -9057,7 +9057,7 @@ function isStageCleared(stage){
 }
 
 // Banner positions on the world map image, as percentages of its box.
-// Tuned to sit over each region's banner/number in assets/ui/world-map.png.
+// Tuned to sit over each region's banner/number in assets/ui/world-map.webp.
 const WORLDMAP_HOTSPOTS = {
   1: { x: 14,   y: 20 },
   2: { x: 48,   y: 16.5 },
