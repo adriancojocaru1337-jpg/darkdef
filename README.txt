@@ -1,4 +1,4 @@
-Dark Defense - Bonus Leaderboard UI update
+Ashen Bastion - Bonus Leaderboard UI update
 
 Ce s-a schimbat:
 - am scos butoanele Start Wave / Pause / Reset din hero-ul din dreapta sus
@@ -239,3 +239,44 @@ v0.9.2p Fix: Challenge of the Day from the world map:
   the daily run started underneath but the world map layer stayed on top
 - startDailyChallenge now closes the world map (like region-select and resume do)
 - validation: 64 unit tests pass; game.js checked
+
+v0.9.2q Hero rename in the shop:
+- new "Rename Hero" option in the shop's Rename tab (next to Change Username),
+  costs ✦ 100, repeatable — renames your hero from the default "Varyn"
+- the custom name is stored in your profile (localStorage) and now drives every
+  in-game hero label (HUD, level-up, command messages, skill-tree feedback)
+- it also syncs to the server with your loadout, so your public command-table
+  profile shows the custom hero name too (own view reads it live from localStorage)
+- hero-system now takes a getDisplayName callback; game.js resolves the name via
+  getHeroName() with fallback to "Varyn"
+- backend: submit-loadout + get-profile now carry heroName (sanitized, ≤18 chars)
+- NOTE: hero name is client-set (no server rename endpoint needed); like the rest
+  of the loadout it's trust-on-submit for the public profile
+- validation: 64 unit tests pass; game.js, hero-system, functions, command-table
+  all syntax-checked
+
+v0.9.2r Hero sprite upgrade (vector art):
+- replaced the simple geometric hero marker with a detailed warden knight drawn
+  on the canvas: helmet with visor slit + gold plume, armored torso with a gold
+  emblem, a waving cloak, shield on the back arm, and a raised glowing sword
+- the sprite now faces its travel direction and has a subtle idle bob + a walk
+  stride/cloak sway when moving
+- health bar restyled (rounded, 3-color: green/amber/red)
+- all vector-drawn — no image assets needed
+- validation: 64 unit tests pass; hero-system syntax-checked; sprite render
+  verified via an offline canvas pass
+
+v0.9.2s Renamed the game to "Ashen Bastion":
+- every visible "Dark Defense" is now "Ashen Bastion" — page titles, meta tags,
+  Open Graph/Twitter cards, JSON-LD, the in-game title/kickers, resume/start
+  labels, in-game messages, the password-reset email, and the PWA manifest
+  (name + short_name) — 63 replacements across 22 files
+- SEO: added "ashen bastion" to the keywords (kept "dark defense" so existing
+  searches still match); the boss-guide SEO slug filename was intentionally left
+  unchanged (it's a keyword slug, not the brand) to preserve its URL
+- PRESERVED (unchanged on purpose): the JS namespace window.DarkDefense and the
+  localStorage keys (darkDefense.profile, sdc*) — changing these would wipe every
+  existing player's saved progress and break the code
+- the netlify domain (darkdefense.netlify.app) is unchanged; rename it in Netlify
+  settings if you want a matching URL
+- validation: 64 unit tests pass; JS/JSON/JSON-LD all checked
