@@ -81,13 +81,6 @@
     const onMessage = options.onMessage || (() => {});
     const onNotification = options.onNotification || (() => {});
     const onLevelUp = options.onLevelUp || (() => {});
-    const getDisplayName = typeof options.getDisplayName === "function"
-      ? options.getDisplayName
-      : () => HERO_DEFINITION.name;
-    const heroName = () => {
-      const n = getDisplayName();
-      return (typeof n === "string" && n.trim()) ? n.trim() : HERO_DEFINITION.name;
-    };
     const ui = options.ui || {};
 
     let state = createRunState();
@@ -142,13 +135,13 @@
     function toggleCommandMode() {
       if (!lastContext.active || lastContext.paused || !isAlive()) {
         onMessage(state.respawnTimer > 0
-          ? `${heroName()} returns in ${Math.ceil(state.respawnTimer)}s.`
+          ? `${HERO_DEFINITION.name} returns in ${Math.ceil(state.respawnTimer)}s.`
           : "Start the run before issuing a hero command.");
         return false;
       }
       state.commandMode = !state.commandMode;
       onMessage(state.commandMode
-        ? `Command ${heroName()}: choose a point on the road.`
+        ? `Command ${HERO_DEFINITION.name}: choose a point on the road.`
         : "Hero command canceled.");
       syncUi();
       return state.commandMode;
@@ -176,7 +169,7 @@
       if (!isCommanding()) return false;
       state.targetProgress = clamp(nearestPathProgress(x, y), 0.08, 0.94);
       state.commandMode = false;
-      onMessage(`${heroName()} is moving to the new guard point.`);
+      onMessage(`${HERO_DEFINITION.name} is moving to the new guard point.`);
       events?.emit("hero:commanded", { heroId: HERO_ID, targetProgress: state.targetProgress });
       syncUi();
       return true;
@@ -236,8 +229,8 @@
       state.respawnTimer = stats.respawnSeconds;
       state.commandMode = false;
       state.blockedEnemyId = null;
-      onMessage(`${heroName()} has fallen. Respawn in ${Math.ceil(stats.respawnSeconds)}s.`);
-      onNotification("stage", "Hero fallen", `${heroName()} will return to the road.`);
+      onMessage(`${HERO_DEFINITION.name} has fallen. Respawn in ${Math.ceil(stats.respawnSeconds)}s.`);
+      onNotification("stage", "Hero fallen", `${HERO_DEFINITION.name} will return to the road.`);
       events?.emit("hero:defeated", { heroId: HERO_ID, respawnSeconds: state.respawnTimer });
     }
 
@@ -247,8 +240,8 @@
       state.respawnTimer = 0;
       state.progress = clamp(state.targetProgress, 0.08, 0.94);
       state.attackCooldown = 0.25;
-      onMessage(`${heroName()} has returned to battle.`);
-      onNotification("achievement", "Hero returned", `${heroName()} is ready to fight.`);
+      onMessage(`${HERO_DEFINITION.name} has returned to battle.`);
+      onNotification("achievement", "Hero returned", `${HERO_DEFINITION.name} is ready to fight.`);
       events?.emit("hero:respawned", { heroId: HERO_ID });
     }
 
@@ -334,7 +327,7 @@
     function activateAbility() {
       if (!lastContext.active || lastContext.paused || !isAlive()) {
         onMessage(state.respawnTimer > 0
-          ? `${heroName()} returns in ${Math.ceil(state.respawnTimer)}s.`
+          ? `${HERO_DEFINITION.name} returns in ${Math.ceil(state.respawnTimer)}s.`
           : "The hero ability is not available right now.");
         return false;
       }
@@ -364,7 +357,7 @@
         life: 0.55,
         maxLife: 0.55
       });
-      onMessage(`${heroName()} cast ${HERO_DEFINITION.abilityName} on ${targetsHit} ${targetsHit === 1 ? "enemy" : "enemies"}.`);
+      onMessage(`${HERO_DEFINITION.name} cast ${HERO_DEFINITION.abilityName} on ${targetsHit} ${targetsHit === 1 ? "enemy" : "enemies"}.`);
       events?.emit("hero:ability-used", {
         heroId: HERO_ID,
         abilityId: "rift_pulse",
@@ -509,24 +502,11 @@
       }
 
       const stats = getCurrentStats();
-
-      // Facing + gentle idle/stride animation.
-      const moving = Math.abs(state.targetProgress - state.progress) > 0.001;
-      const ahead = getPathPosition(clamp(state.progress + 0.01, 0, 1));
-      const behind = getPathPosition(clamp(state.progress - 0.01, 0, 1));
-      const facingRight = (ahead.x - behind.x) >= 0;
-      const t = performance.now() / 1000;
-      const breathe = Math.sin(t * 2.2) * 0.6;          // idle bob
-      const stride = moving ? Math.sin(t * 9) * 2.2 : 0;  // walk sway
-      const cloakWave = Math.sin(t * 3 + 0.6) * 3;
-
       ctx.save();
       ctx.translate(position.x, position.y);
-
-      // Ground shadow
       ctx.fillStyle = "rgba(0,0,0,.34)";
       ctx.beginPath();
-      ctx.ellipse(0, 13, 16, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 12, 17, 7, 0, 0, Math.PI * 2);
       ctx.fill();
 
       if (state.commandMode) {
@@ -534,156 +514,46 @@
         ctx.lineWidth = 2;
         ctx.setLineDash([5, 4]);
         ctx.beginPath();
-        ctx.arc(0, 0, 26, 0, Math.PI * 2);
+        ctx.arc(0, 0, 25, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
       }
 
-      // Flip so the warden faces the travel direction.
-      ctx.scale(facingRight ? 1 : -1, 1);
-      ctx.translate(0, breathe);
-
-      const gold = HERO_DEFINITION.color;      // #f59e0b
-      const light = HERO_DEFINITION.accent;    // #fde68a
-      const steel = "#8b93a3";
-      const steelDark = "#4b5563";
-      const cloak = "#7f1d1d";
-      const cloakDark = "#5b1414";
-
-      // --- Cloak behind the body (waves while moving) ---
-      ctx.fillStyle = cloakDark;
+      ctx.shadowColor = HERO_DEFINITION.color;
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = "#422006";
+      ctx.strokeStyle = HERO_DEFINITION.accent;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(-3, -10);
-      ctx.quadraticCurveTo(-14 - cloakWave, 0, -9 + stride * 0.5, 13);
-      ctx.lineTo(2, 12);
-      ctx.quadraticCurveTo(-2, 0, -2, -10);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = cloak;
-      ctx.beginPath();
-      ctx.moveTo(-2, -9);
-      ctx.quadraticCurveTo(-10 - cloakWave, 2, -6 + stride * 0.5, 12);
-      ctx.lineTo(2, 11);
-      ctx.lineTo(0, -9);
-      ctx.closePath();
-      ctx.fill();
-
-      // --- Legs (small stride) ---
-      ctx.strokeStyle = steelDark;
-      ctx.lineWidth = 4;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(-2, 6); ctx.lineTo(-3 - stride, 13);
-      ctx.moveTo(3, 6);  ctx.lineTo(4 + stride, 13);
-      ctx.stroke();
-
-      // --- Torso / armored body ---
-      const bodyGrad = ctx.createLinearGradient(-8, -8, 8, 10);
-      bodyGrad.addColorStop(0, steel);
-      bodyGrad.addColorStop(1, steelDark);
-      ctx.fillStyle = bodyGrad;
-      ctx.strokeStyle = "#2b3140";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(-7, -8);
-      ctx.lineTo(7, -8);
-      ctx.lineTo(6, 7);
-      ctx.lineTo(-6, 7);
-      ctx.closePath();
+      ctx.arc(0, -2, 14, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      // Chest emblem
-      ctx.fillStyle = gold;
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = HERO_DEFINITION.color;
       ctx.beginPath();
-      ctx.moveTo(0, -5); ctx.lineTo(3, -1); ctx.lineTo(0, 4); ctx.lineTo(-3, -1);
+      ctx.moveTo(-9, -4);
+      ctx.lineTo(0, -15);
+      ctx.lineTo(9, -4);
+      ctx.lineTo(6, 10);
+      ctx.lineTo(-6, 10);
       ctx.closePath();
       ctx.fill();
 
-      // --- Shield arm (back arm, holds shield) ---
-      ctx.save();
-      ctx.translate(-7, -1);
-      const shieldGrad = ctx.createLinearGradient(-4, -6, 4, 6);
-      shieldGrad.addColorStop(0, light);
-      shieldGrad.addColorStop(1, gold);
-      ctx.fillStyle = shieldGrad;
-      ctx.strokeStyle = "#78350f";
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(0, -7);
-      ctx.lineTo(5, -4);
-      ctx.lineTo(5, 4);
-      ctx.lineTo(0, 8);
-      ctx.lineTo(-5, 4);
-      ctx.lineTo(-5, -4);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      // --- Sword arm (front), raised blade ---
-      ctx.save();
-      ctx.translate(6, -2);
-      ctx.rotate(-0.5 + stride * 0.04);
-      // hilt
-      ctx.strokeStyle = "#3f2a12";
+      ctx.strokeStyle = "#fef3c7";
       ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.moveTo(0, 4); ctx.lineTo(0, -2); ctx.stroke();
-      // crossguard
-      ctx.strokeStyle = gold; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(-3, -2); ctx.lineTo(3, -2); ctx.stroke();
-      // blade with glow
-      ctx.shadowColor = gold; ctx.shadowBlur = 8;
-      const bladeGrad = ctx.createLinearGradient(0, -2, 0, -20);
-      bladeGrad.addColorStop(0, "#e5e7eb");
-      bladeGrad.addColorStop(1, light);
-      ctx.strokeStyle = bladeGrad; ctx.lineWidth = 3; ctx.lineCap = "round";
-      ctx.beginPath(); ctx.moveTo(0, -3); ctx.lineTo(0, -20); ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-
-      // --- Head / helmet ---
-      ctx.save();
-      ctx.translate(0, -13);
-      const helmGrad = ctx.createLinearGradient(0, -7, 0, 6);
-      helmGrad.addColorStop(0, steel);
-      helmGrad.addColorStop(1, steelDark);
-      ctx.fillStyle = helmGrad;
-      ctx.strokeStyle = "#2b3140";
-      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(0, 0, 6.5, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(7, -8);
+      ctx.lineTo(15, -18);
       ctx.stroke();
-      // visor slit (glows)
-      ctx.shadowColor = gold; ctx.shadowBlur = 6;
-      ctx.strokeStyle = light; ctx.lineWidth = 1.6;
-      ctx.beginPath(); ctx.moveTo(-3.5, 0.5); ctx.lineTo(3.5, 0.5); ctx.stroke();
-      ctx.shadowBlur = 0;
-      // helmet crest/plume
-      ctx.fillStyle = gold;
-      ctx.beginPath();
-      ctx.moveTo(0, -6.5);
-      ctx.quadraticCurveTo(3, -12, 1, -13 + breathe);
-      ctx.quadraticCurveTo(0, -9, -1, -13 + breathe);
-      ctx.quadraticCurveTo(-3, -12, 0, -6.5);
-      ctx.fill();
-      ctx.restore();
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(11, -13, 8, 2);
 
-      ctx.restore(); // undo flip/translate
-
-      // --- Health bar (screen-aligned, not flipped) ---
-      ctx.save();
-      ctx.translate(position.x, position.y);
       const healthRatio = clamp(state.hp / stats.maxHp, 0, 1);
       ctx.fillStyle = "rgba(2,6,23,.86)";
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(-19, -30, 38, 5, 2); else ctx.rect(-19, -30, 38, 5);
-      ctx.fill();
-      const hpColor = healthRatio > 0.5 ? "#22c55e" : healthRatio > 0.25 ? "#eab308" : "#ef4444";
-      ctx.fillStyle = hpColor;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(-19, -30, 38 * healthRatio, 5, 2); else ctx.rect(-19, -30, 38 * healthRatio, 5);
-      ctx.fill();
+      ctx.fillRect(-20, -27, 40, 5);
+      ctx.fillStyle = healthRatio > 0.35 ? "#22c55e" : "#ef4444";
+      ctx.fillRect(-20, -27, 40 * healthRatio, 5);
       ctx.restore();
     }
 
@@ -694,7 +564,7 @@
       const xpNeeded = xpForNextLevel(progression.level);
       const xpRatio = progression.level >= MAX_LEVEL ? 1 : clamp(progression.xp / xpNeeded, 0, 1);
 
-      if (ui.name) ui.name.textContent = `${heroName()} · Lv.${progression.level}`;
+      if (ui.name) ui.name.textContent = `${HERO_DEFINITION.name} · Lv.${progression.level}`;
       if (ui.state) {
         ui.state.textContent = state.respawnTimer > 0
           ? `Respawn ${Math.ceil(state.respawnTimer)}s`

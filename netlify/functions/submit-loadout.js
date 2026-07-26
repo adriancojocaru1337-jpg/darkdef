@@ -33,8 +33,7 @@ function sanitizeLoadout(raw) {
         rank: int(s && s.rank, 20)
       })).filter((s) => s.name)
     : [];
-  const heroName = str(src.heroName, 18).trim();
-  return { heroName: heroName || null, items, skills };
+  return { items, skills };
 }
 
 exports.handler = async function handler(event) {

@@ -38,7 +38,7 @@
         try {
           listener(payload);
         } catch (error) {
-          console.error(`[Ashen Bastion] Event listener failed for "${eventName}":`, error);
+          console.error(`[Dark Defense] Event listener failed for "${eventName}":`, error);
         }
       });
     }

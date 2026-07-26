@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Command Table - Ashen Bastion</title>
-<meta name="description" content="Your war record, honours and campaign progress in Ashen Bastion." />
+<title>Command Table - Dark Defense</title>
+<meta name="description" content="Your war record, honours and campaign progress in Dark Defense." />
 <link rel="icon" href="favicon.png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -515,8 +515,7 @@
       const ranks = (p.skillTrees?.heroes?.[HERO_ID]?.ranks) || {};
       let skillPts = 0; const skills = [];
       Object.entries(ranks).forEach(([id,rank])=>{ if(rank>0){ skillPts += rank; skills.push({ name: prettifySkill(id), rank }); } });
-      const heroName = (p.hero && typeof p.hero.name === "string" && p.hero.name.trim()) ? p.hero.name.trim() : "Varyn";
-      return { heroName, power: gear + skillPts*SKILL_POINT_POWER, equipmentPower: gear, skillPoints: skillPts, items: outItems, skills };
+      return { power: gear + skillPts*SKILL_POINT_POWER, equipmentPower: gear, skillPoints: skillPts, items: outItems, skills };
     }catch(e){ return null; }
   }
 
@@ -524,8 +523,6 @@
     const card = $("ctHeroCard");
     if(!loadout){ card.hidden = true; return; }
     card.hidden = false;
-    const heroTitle = document.querySelector("#ctHeroCard .ct-card-title");
-    if(heroTitle) heroTitle.textContent = `Hero — ${loadout.heroName || "Varyn"}`;
     $("ctHeroNote").textContent = label || "";
     $("ctHeroPower").textContent = fmt(loadout.power);
     $("ctHeroGear").textContent = fmt(loadout.equipmentPower);
