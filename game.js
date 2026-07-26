@@ -1215,6 +1215,11 @@ let leaderboardRunPromise = null;
 /* ===== RPG foundation: versioned player profile + Hero System =====
    These modules are intentionally isolated from the legacy game state. The
    small adapter below is the only place where the hero touches combat. */
+/* Hero rename constants — must be declared before createHeroSystem() runs,
+   because its constructor calls syncUi() -> getHeroName() -> HERO_DEFAULT_NAME. */
+const HERO_DEFAULT_NAME = "Varyn";
+const HERO_RENAME_CRYSTAL_COST = 100;
+
 const profileStore = window.DarkDefense.createProfileStore({
   events: window.DarkDefense.events
 });
@@ -1235,18 +1240,21 @@ const rewardInbox = window.DarkDefense.createRewardInbox({
   events: window.DarkDefense.events
 });
 
-const inventorySystem = window.DarkDefense.createInventorySystem({
-  profileStore,
-  events: window.DarkDefense.events,
-  salvageValue: window.DarkDefense.salvageValue,
-  isEquipped: (instanceId) => equipmentSystem.isEquipped(instanceId)
-});
-
+/* equipmentSystem is declared first on purpose: inventorySystem's isEquipped
+   callback closes over it. Today that arrow is only invoked at runtime, but
+   declaring the dependency first keeps it safe if that ever changes. */
 const equipmentSystem = window.DarkDefense.createEquipmentSystem({
   profileStore,
   events: window.DarkDefense.events,
   definitions: window.DarkDefense.ITEM_DEFINITIONS,
   slots: window.DarkDefense.EQUIPMENT_SLOTS
+});
+
+const inventorySystem = window.DarkDefense.createInventorySystem({
+  profileStore,
+  events: window.DarkDefense.events,
+  salvageValue: window.DarkDefense.salvageValue,
+  isEquipped: (instanceId) => equipmentSystem.isEquipped(instanceId)
 });
 
 const heroSkillTreeSystem = window.DarkDefense.createHeroSkillTreeSystem({
@@ -1669,9 +1677,6 @@ window.addEventListener("pagehide", ()=>{
    so the server only guards auth, a plausibility cap and
    rate limits — see submit-power.js. */
 const SKILL_POINT_POWER = 25;
-
-const HERO_DEFAULT_NAME = "Varyn";
-const HERO_RENAME_CRYSTAL_COST = 100;
 
 // Custom hero name lives in the profile (client-side). Falls back to the default.
 function getHeroName(){
@@ -9498,3 +9503,7 @@ panelHeaderLogoutBtn?.addEventListener("click", async (event)=>{
     window.location.reload();
   }catch(_){}
 });
+
+/* First hero HUD paint. Runs after every top-level binding in this file exists,
+   so it can safely reach getHeroName() and friends. */
+try{ heroSystem.syncUi(); }catch(_){}

@@ -719,7 +719,10 @@
       }
     }
 
-    syncUi();
+    /* Deliberately NOT calling syncUi() here. The factory runs while game.js is
+       still evaluating, so any caller callback (getDisplayName, ...) may touch
+       bindings that are not initialised yet -> TDZ ReferenceError that kills the
+       whole script. The caller does the first paint via heroSystem.syncUi(). */
 
     return Object.freeze({
       definition: HERO_DEFINITION,
