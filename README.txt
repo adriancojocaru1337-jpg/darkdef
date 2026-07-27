@@ -1,3 +1,35 @@
+Ashen Bastion v0.9.6 - Run token lifecycle fix (endless / daily rankings)
+
+IMPORTANT BEFORE DEPLOY:
+1. Run setup_v0_9_5_runtime_floor_fix.sql in Neon (clears the false-positive IP blocks).
+2. Deploy the site and Functions together.
+   No schema change is required by this build.
+
+Fixed in this build:
+- endless and daily scores were being dropped because the run token was minted
+  at the moment the player died: started_at equalled submitted_at, so the server
+  rejected the run with "Run completed too quickly" - correctly, it had never
+  seen the run start
+- root cause: after a successful submission the client cleared leaderboardRun
+  unconditionally, wiping a token that a concurrent prewarm had just stored, and
+  nothing minted a replacement for the next run
+- submissions now retire only the token they actually sent (matched by run id)
+  and immediately prewarm its replacement
+- a start-run response that lands after a newer request no longer overwrites the
+  newer token (generation guard)
+- startWave() mints a token if the run somehow has none, so started_at always
+  reflects the real start of the run
+- new currentLeaderboardMode() helper: a daily challenge runs the endless loop,
+  so currentMode is "endless" while the board is "daily"
+- carried over from v0.9.5: the minimum-runtime floor no longer assumes x1
+  pacing and no longer adds wave time to kill time, so endless/daily runs played
+  at game speed x2/x3 are accepted
+- carried over from v0.9.5: timing heuristics no longer blocklist the IP for
+  30 minutes; a single fast run used to lock the player out of every board
+- validation: all JavaScript syntax checks plus 99 unit tests
+
+Previous notes:
+
 Ashen Bastion v0.9.5 - Rankings fix for game speed x2/x3
 
 IMPORTANT BEFORE DEPLOY:

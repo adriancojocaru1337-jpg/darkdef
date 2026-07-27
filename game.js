@@ -1223,6 +1223,9 @@ let bestEndlessBossPairs = 0;
 
 let leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
 let leaderboardRunPromise = null;
+// Bumped on every start-run request. A response that lands after a newer
+// request was issued must not overwrite the newer token.
+let leaderboardRunGeneration = 0;
 
 /* ===== RPG foundation: versioned player profile + Hero System =====
    These modules are intentionally isolated from the legacy game state. The
@@ -3081,33 +3084,60 @@ function resolveBossWaveCompletion(){
 
 
 
-async function requestLeaderboardRun(modeHint=currentMode){
+// The leaderboard mode is not the same as currentMode: a daily challenge runs
+// the endless loop, so currentMode is "endless" while the board is "daily".
+function currentLeaderboardMode(){
+  if(dailyChallengeActive) return "daily";
+  return currentMode === "endless" ? "endless" : "campaign";
+}
+
+async function requestLeaderboardRun(modeHint=currentLeaderboardMode()){
+  const generation = ++leaderboardRunGeneration;
   try{
     const data = await apiClient.post("start-run", {
       mode: ["endless","daily"].includes(modeHint) ? modeHint : "campaign"
     });
     if(!data?.runId || !data?.runToken) throw new Error("invalid run token");
-    leaderboardRun = {
+    const minted = {
       runId: data.runId,
       runToken: data.runToken,
       expiresAt: Number(data.expiresAt || 0),
       clientStartedAt: Date.now(),
-      mode: data.mode || modeHint || currentMode
+      mode: data.mode || modeHint || currentLeaderboardMode()
     };
-    return leaderboardRun;
+    if(generation === leaderboardRunGeneration) leaderboardRun = minted;
+    return minted;
   }catch(error){
-    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:modeHint || currentMode };
+    if(generation === leaderboardRunGeneration){
+      leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:modeHint || currentLeaderboardMode() };
+    }
     throw error;
   }
 }
 
-function prewarmLeaderboardRun(modeHint=currentMode){
+/* Drop the token that was just submitted and mint its replacement.
+   Two things went wrong with the old `leaderboardRun = {empty}` line:
+   - it wiped a token that a concurrent prewarm had just stored, so the next
+     run started with nothing;
+   - nothing minted a replacement, so the token was created at the moment the
+     player died. started_at then equalled submitted_at and the server rejected
+     the run with "Run completed too quickly" — correctly, since it never saw
+     the run start. */
+function retireLeaderboardRun(submittedRunId, mode){
+  if(leaderboardRun.runId && submittedRunId && leaderboardRun.runId !== submittedRunId) return;
+  leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode };
+  // A stage clear already prewarms the next token; don't mint a second one and
+  // burn through the 30-per-10-minutes start-run budget.
+  if(!leaderboardRunPromise) prewarmLeaderboardRun(mode);
+}
+
+function prewarmLeaderboardRun(modeHint=currentLeaderboardMode()){
   leaderboardRunPromise = requestLeaderboardRun(modeHint).catch(()=>null).finally(()=>{ leaderboardRunPromise = null; });
   return leaderboardRunPromise;
 }
 
-async function ensureLeaderboardRun(modeHint=currentMode){
-  const mode = modeHint || currentMode;
+async function ensureLeaderboardRun(modeHint=currentLeaderboardMode()){
+  const mode = modeHint || currentLeaderboardMode();
   const stillValid = leaderboardRun.runId && leaderboardRun.runToken && leaderboardRun.expiresAt > (Date.now() + 5000) && leaderboardRun.mode === mode;
   if(stillValid) return leaderboardRun;
   if(leaderboardRunPromise) {
@@ -3167,6 +3197,7 @@ async function submitStoryLeaderboardScore(finalStage=currentStage, runComplete=
   }catch(e){}
   try{
     await ensureLeaderboardRun("campaign");
+    const submittedRunId = leaderboardRun.runId;
     await apiClient.post("submit-score", {
       mode: "campaign",
       name: playerName,
@@ -3181,7 +3212,7 @@ async function submitStoryLeaderboardScore(finalStage=currentStage, runComplete=
       runComplete: Boolean(runComplete),
       runSeed: runRng.seed
     });
-    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"campaign" };
+    retireLeaderboardRun(submittedRunId, "campaign");
       pushNotification("achievement", "Story Rankings submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
   }catch(error){
       pushNotification("stage", "Story Rankings offline", "The campaign score could not be submitted right now.");
@@ -3201,6 +3232,7 @@ async function submitDailyLeaderboardScore(){
   try{ localStorage.setItem("sdcPlayerName", playerName); }catch(e){}
   try{
     await ensureLeaderboardRun("daily");
+    const submittedRunId = leaderboardRun.runId;
     await apiClient.post("submit-score", {
       name: playerName,
       score: totalScore(),
@@ -3215,7 +3247,7 @@ async function submitDailyLeaderboardScore(){
       runComplete: true,
       runSeed: runRng.seed
     });
-    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"daily" };
+    retireLeaderboardRun(submittedRunId, "daily");
       pushNotification("achievement", "Daily Rankings submitted", `${playerName} reached Wave ${stageWave} in today's challenge.`);
   }catch(error){
     const detail = error && error.message && error.message !== "submit failed" ? ` (${error.message})` : "";
@@ -3283,6 +3315,7 @@ async function submitBonusLeaderboardScore(){
   }catch(e){}
   try{
     await ensureLeaderboardRun("endless");
+    const submittedRunId = leaderboardRun.runId;
     await apiClient.post("submit-score", {
       name: playerName,
       score: totalScore(),
@@ -3296,7 +3329,7 @@ async function submitBonusLeaderboardScore(){
       runComplete: true,
       runSeed: runRng.seed
     });
-    leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode:"endless" };
+    retireLeaderboardRun(submittedRunId, "endless");
     await loadBonusLeaderboard();
       pushNotification("achievement", "Rankings submitted", `${playerName} — Wave ${stageWave}, bonus +${bonusScore} sent to the global Rankings.`);
   }catch(error){
@@ -5200,6 +5233,10 @@ const resetGame=()=>{
 function startWave(autoTriggered=false){
   if(waveActive || lives<=0 || isPaused || pendingAuraChoice || pendingBossResolution) return;
   if(!runStateMachine.send("START_WAVE", { reason:autoTriggered ? "auto-play" : "player" }).accepted) return;
+  // Safety net: whatever entry path started this run, make sure the server has
+  // seen it begin. Minting the token at Game Over instead would make
+  // started_at equal submitted_at and the score would be thrown away.
+  if(!leaderboardRun.runId && !leaderboardRunPromise) prewarmLeaderboardRun();
   ensureAudio();
   const stage=STAGES[currentStage];
   const threatProfile = getWaveThreatProfile();
