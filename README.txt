@@ -1,3 +1,25 @@
+Ashen Bastion v0.9.5 - Rankings fix for game speed x2/x3
+
+IMPORTANT BEFORE DEPLOY:
+1. Run setup_v0_9_5_runtime_floor_fix.sql in Neon (clears the false-positive IP blocks).
+2. Deploy the site and Functions together.
+   No schema change is required by this build.
+
+Fixed in this build:
+- endless and daily scores played at game speed x2/x3 are no longer rejected as
+  "Run completed too quickly"
+- the minimum-runtime floor in submit-score.js assumed x1 pacing AND added wave
+  time to kill time; kills happen during waves, so the floor now takes the larger
+  of the two estimates and divides it by the fastest selectable speed (x3)
+- timing heuristics no longer blocklist the IP for 30 minutes; a single fast
+  endless run used to lock the player out of every board, campaign included
+- the run token (HMAC) and the score/bonus caps are unchanged - they remain the
+  actual anti-cheat
+- new pure module netlify/functions/run-pacing.js so the floor is unit testable
+- validation: all JavaScript syntax checks plus 93 unit tests
+
+Previous notes:
+
 Ashen Bastion v0.9.4 - Security, Rankings and navigation fixes
 
 IMPORTANT BEFORE DEPLOY:

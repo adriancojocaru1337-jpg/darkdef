@@ -10,6 +10,7 @@ const {
   sha256
 } = require("./auth-utils");
 const { getProfileContribution } = require("./score-profile");
+const { estimatedMinRuntimeMs } = require("./run-pacing");
 
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
 
@@ -44,9 +45,6 @@ function baseScoreForKills(kills) {
   return kills * 70;
 }
 
-function estimatedMinRuntimeMs(wave, kills) {
-  return Math.max(25_000, wave * 12_000 + kills * 250);
-}
 
 function computeMaxBonus(wave, kills) {
   return 500 + wave * 220 + kills * 35;
@@ -286,12 +284,17 @@ exports.handler = async function handler(event) {
     const runStartedAtMs = new Date(run.started_at).getTime();
     const serverElapsedMs = Date.now() - runStartedAtMs;
     const minRuntimeMs = estimatedMinRuntimeMs(waveReached, killsCount);
+    // Timing heuristics are *estimates*, not proof of cheating: pauses, tab
+    // throttling, x2/x3 speed and early wave calls all move real elapsed time
+    // around. Reject the submission, but never blocklist the IP for 30 minutes
+    // over it — the run token and the score caps are the real anti-cheat, and a
+    // false positive here used to lock the player out of every leaderboard.
     if (serverElapsedMs < minRuntimeMs || (elapsedMs && elapsedMs + 5000 < minRuntimeMs)) {
-      return reject({ statusCode: 400, error: "Run completed too quickly", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+      return reject({ statusCode: 400, error: "Run completed too quickly", ipHash, playerName, runId, payload, runDbId });
     }
 
     if (clientStartedAt && Math.abs(clientStartedAt - runStartedAtMs) > 120000) {
-      return reject({ statusCode: 400, error: "Run timing mismatch", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+      return reject({ statusCode: 400, error: "Run timing mismatch", ipHash, playerName, runId, payload, runDbId });
     }
     try {
       const sessionUserId = sessionUser?.user_id || null;
