@@ -22,5 +22,5 @@ test("the canvas preparation banner uses matching forged corners and bronze orna
   assert.match(game, /const prepareFrameGradient = ctx\.createLinearGradient/);
   assert.match(game, /drawPrepareCorner\(-w\/2 \+ 14/);
   assert.match(game, /ctx\.fillText\("✦  BUILD PHASE  ✦"/);
-  assert.match(index, /game\.js\?v=r98/);
+  assert.match(index, /game\.js\?v=r99/);
 });

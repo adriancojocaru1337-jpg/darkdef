@@ -3131,8 +3131,23 @@ function retireLeaderboardRun(submittedRunId, mode){
   if(!leaderboardRunPromise) prewarmLeaderboardRun(mode);
 }
 
+let leaderboardRunWarningShown = false;
+
 function prewarmLeaderboardRun(modeHint=currentLeaderboardMode()){
-  leaderboardRunPromise = requestLeaderboardRun(modeHint).catch(()=>null).finally(()=>{ leaderboardRunPromise = null; });
+  leaderboardRunPromise = requestLeaderboardRun(modeHint)
+    .then((run)=>{ leaderboardRunWarningShown = false; return run; })
+    .catch((error)=>{
+      // Swallowing this silently used to hide start-run failures (429 from the
+      // per-IP rate limit, Functions down, bad Origin) until the score was
+      // already lost at Game Over. Warn once per run instead.
+      if(!leaderboardRunWarningShown){
+        leaderboardRunWarningShown = true;
+        const detail = error && error.message ? ` (${error.message})` : "";
+        pushNotification("stage", "Rankings unavailable", `This run will not be ranked${detail}.`);
+      }
+      return null;
+    })
+    .finally(()=>{ leaderboardRunPromise = null; });
   return leaderboardRunPromise;
 }
 

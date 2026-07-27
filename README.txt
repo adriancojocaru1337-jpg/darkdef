@@ -1,3 +1,51 @@
+Ashen Bastion v0.9.6c - Schema repair (corrected)
+
+READ THIS FIRST:
+Three tables were never created in the database: run_start_limits,
+username_renames and player_ley_meta.
+
+- run_start_limits: start-run.js inserts into game_runs through a CTE that
+  depends on it, so the whole statement failed and start-run returned 500 on
+  every call. No run was ever recorded, which is why endless and daily scores
+  never reached the board.
+- player_ley_meta: get-ley-meta / save-ley-meta fail, so Crystal totals and
+  talent purchases never persist to the account.
+- username_renames: rename-username fails to log the rename.
+
+BEFORE DEPLOY:
+1. Run setup_repair_missing_schema.sql in Neon. It is idempotent, creates
+   player_ley_meta before altering it, and ends by re-running the inventory so
+   you can confirm every table reads 'ok'.
+2. Deploy the site and Functions together.
+
+Ashen Bastion v0.9.6b - Schema repair
+
+READ THIS FIRST:
+The v0.9.4 migration was never applied to the database. run_start_limits did not
+exist, and start-run.js inserts into game_runs through a CTE that depends on it,
+so the whole statement failed and start-run returned 500 on every call. No run
+was ever recorded, which is why endless and daily scores never reached the board.
+
+BEFORE DEPLOY:
+1. Run setup_repair_missing_schema.sql in Neon. It is idempotent and includes a
+   check that lists every missing table/column before it repairs anything.
+2. Deploy the site and Functions together.
+
+Ashen Bastion v0.9.6a - Run token lifecycle fix + cache bust + visible start-run failures
+
+IMPORTANT BEFORE DEPLOY:
+1. Run setup_v0_9_5_runtime_floor_fix.sql in Neon (clears the false-positive IP blocks).
+2. Deploy the site and Functions together.
+   No schema change is required by this build.
+
+Added in 0.9.6a:
+- index.html now loads game.js?v=r99 (was r98) so browsers actually pick up the
+  new client instead of serving the cached bundle
+- prewarmLeaderboardRun no longer swallows start-run failures: a 429 from the
+  per-IP rate limit, a Functions outage or a rejected Origin now raises a
+  "Rankings unavailable" notification at the start of the run instead of losing
+  the score silently at Game Over
+
 Ashen Bastion v0.9.6 - Run token lifecycle fix (endless / daily rankings)
 
 IMPORTANT BEFORE DEPLOY:
