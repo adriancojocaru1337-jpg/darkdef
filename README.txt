@@ -10,13 +10,15 @@ Fixed in this build:
 - every public page now uses the same graphical War Council navigation inside its hero/banner area
 - Play, Command Table, Guide, Rankings and Account stay available everywhere
 - on the home page, Play Now stays primary and the other four graphical buttons sit beside it
-- navigation buttons load five optimized 128px transparent WebP emblems; the 512px PNG masters remain included
+- navigation buttons load five optimized 128px transparent WebP emblems; redundant PNG masters are excluded from the deployment package
 - deployed navigation artwork is about 38 KB total instead of about 1.52 MB
 - the world map, animated enemy sheets, enemy fallbacks, tower art and guide mobs now use lossless WebP
 - 58 runtime images retain every visible pixel while reducing their combined size by about 3.58 MB
 - the exact image-generation prompts are included in NAVIGATION_ICON_PROMPTS.txt
 - obsolete bottom navigation strips and the duplicated Command Table Quarters hub were removed
 - Welcome Back and Prepare Defenses now share forged iron, bronze and ember-themed frames
+- the Battlefield header is now a unified responsive War Council command bar with live mode, stage, wave and run status
+- guest accounts show a clear Sign in action while authenticated players keep their crest and username
 - tower selling is disabled while the game is paused and is also blocked at the action boundary
 - Rankings is the single user-facing name across page buttons and messages
 - the current section is highlighted and the menu adapts to narrow mobile screens
@@ -31,7 +33,7 @@ Fixed in this build:
 - usernames are unique case-insensitively at the database layer
 - username rename charges 150 Crystals atomically on the server
 - consumable Crystal spending persists across account/device sync
-- validation: all JavaScript syntax checks plus 85 unit tests
+- validation: all JavaScript syntax checks plus 87 unit tests
 
 Previous notes:
 

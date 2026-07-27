@@ -6942,3 +6942,409 @@ main > .site-nav-inline--page{
     font-size:9px;
   }
 }
+
+/* ============================================================
+   v11 War Council battlefield command bar
+   ============================================================ */
+.war-council-header{
+  --war-gold:#d7a95f;
+  --war-gold-soft:rgba(215,169,95,.2);
+  display:grid;
+  grid-template-columns:minmax(410px,auto) minmax(180px,1fr) auto;
+  align-items:center;
+  gap:16px;
+  min-height:76px;
+  padding:10px 12px;
+  overflow:hidden;
+  isolation:isolate;
+  border-bottom:1px solid rgba(204,153,78,.22);
+  background:
+    radial-gradient(80% 150% at 0% 20%,rgba(88,61,31,.22),transparent 58%),
+    radial-gradient(50% 140% at 100% 0%,rgba(76,44,29,.18),transparent 62%),
+    linear-gradient(180deg,rgba(19,18,23,.985),rgba(10,11,16,.985));
+  box-shadow:
+    inset 0 1px 0 rgba(255,229,181,.055),
+    inset 0 -16px 30px rgba(0,0,0,.14);
+}
+.war-council-header::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  top:0;
+  left:18px;
+  right:18px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,rgba(222,173,96,.34) 18%,rgba(222,173,96,.1) 50%,rgba(222,173,96,.34) 82%,transparent);
+}
+.war-council-header::after{
+  content:"";
+  position:absolute;
+  z-index:0;
+  inset:0;
+  pointer-events:none;
+  opacity:.22;
+  background:
+    linear-gradient(115deg,transparent 0 18%,rgba(255,255,255,.018) 18.2% 18.5%,transparent 18.7% 100%),
+    linear-gradient(65deg,transparent 0 82%,rgba(255,255,255,.014) 82.2% 82.5%,transparent 82.7% 100%);
+}
+.war-council-header > *{
+  position:relative;
+  z-index:1;
+}
+
+.war-council-header .panel-header-lead{
+  display:flex;
+  flex-flow:row nowrap;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+  padding:0;
+}
+.panel-header-title{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:126px;
+  padding:2px 11px 2px 2px;
+  border-right:1px solid rgba(203,155,87,.18);
+}
+.panel-header-title-sigil{
+  position:relative;
+  display:grid;
+  place-items:center;
+  flex:0 0 38px;
+  width:38px;
+  height:42px;
+  color:#f0ca82;
+  border:1px solid rgba(215,169,95,.4);
+  border-radius:11px 11px 15px 15px;
+  background:
+    radial-gradient(circle at 50% 24%,rgba(226,177,92,.2),transparent 45%),
+    linear-gradient(180deg,rgba(58,42,27,.92),rgba(19,19,24,.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255,226,168,.12),
+    inset 0 -8px 13px rgba(0,0,0,.28),
+    0 7px 17px rgba(0,0,0,.26);
+}
+.panel-header-title-sigil::before{
+  content:"\2694";
+  font:600 20px/1 Georgia,serif;
+  text-shadow:0 1px 2px #000,0 0 8px rgba(240,184,91,.26);
+}
+.panel-header-title-sigil::after{
+  content:"";
+  position:absolute;
+  left:8px;
+  right:8px;
+  bottom:5px;
+  height:1px;
+  background:linear-gradient(90deg,transparent,#bf8342,transparent);
+}
+.panel-header-title-copy{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+}
+.war-council-header .panel-header-title .panel-kicker{
+  flex-basis:auto;
+  align-self:auto;
+  margin:0;
+  z-index:auto;
+  color:#b98c50;
+  font-size:8px;
+  line-height:1;
+  letter-spacing:.2em;
+  white-space:nowrap;
+}
+.panel-header-title-copy strong{
+  max-width:96px;
+  overflow:hidden;
+  color:#f0e1c6;
+  font:700 13px/1.1 Cinzel,Georgia,serif;
+  letter-spacing:.04em;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  text-shadow:0 1px 2px #000;
+}
+
+.war-council-header .worldmap-open-btn,
+.war-council-header .daily-challenge-btn{
+  min-height:48px;
+  padding:6px 10px;
+  gap:8px;
+  border-radius:12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.055),
+    0 7px 18px rgba(0,0,0,.22);
+}
+.war-council-header .worldmap-open-emoji,
+.war-council-header .daily-challenge-emoji{
+  width:30px;
+  height:30px;
+  border-radius:9px;
+  font-size:16px;
+}
+.war-council-header .worldmap-open-kicker,
+.war-council-header .daily-challenge-kicker{
+  display:block;
+  color:rgba(210,181,137,.68);
+  font-size:7px;
+  font-weight:800;
+  line-height:1;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+.war-council-header .worldmap-open-name,
+.war-council-header .daily-challenge-name{
+  max-width:112px;
+  color:#f2e6d2;
+  font:700 11.5px/1.1 Cinzel,Georgia,serif;
+  letter-spacing:.02em;
+}
+
+.panel-header-run-status{
+  --run-accent:#6ee7b7;
+  position:relative;
+  justify-self:center;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:188px;
+  min-height:48px;
+  padding:7px 13px;
+  overflow:hidden;
+  border:1px solid color-mix(in srgb,var(--run-accent) 32%,rgba(255,255,255,.04));
+  border-radius:14px;
+  background:
+    radial-gradient(100% 150% at 0% 0%,color-mix(in srgb,var(--run-accent) 11%,transparent),transparent 64%),
+    linear-gradient(180deg,rgba(20,24,30,.94),rgba(9,12,18,.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 8px 22px rgba(0,0,0,.2);
+}
+.panel-header-run-status::after{
+  content:"";
+  position:absolute;
+  left:14px;
+  right:14px;
+  bottom:0;
+  height:1px;
+  background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--run-accent) 55%,transparent),transparent);
+}
+.panel-header-run-status.is-battle{--run-accent:#fb923c}
+.panel-header-run-status.is-paused{--run-accent:#facc15}
+.panel-header-run-status.is-reward{--run-accent:#c084fc}
+.panel-header-run-status.is-danger{--run-accent:#fb7185}
+.panel-header-run-status.is-map{--run-accent:#67e8f9}
+.run-status-medallion{
+  position:relative;
+  display:grid;
+  place-items:center;
+  flex:0 0 29px;
+  width:29px;
+  height:29px;
+  border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--run-accent) 46%,transparent);
+  background:color-mix(in srgb,var(--run-accent) 11%,rgba(8,12,18,.9));
+  box-shadow:inset 0 0 10px rgba(0,0,0,.3),0 0 12px color-mix(in srgb,var(--run-accent) 12%,transparent);
+}
+.run-status-medallion::before,
+.run-status-medallion::after{
+  content:"";
+  position:absolute;
+  width:9px;
+  height:9px;
+  border:1px solid color-mix(in srgb,var(--run-accent) 72%,transparent);
+  transform:rotate(45deg);
+}
+.run-status-medallion::after{
+  width:3px;
+  height:3px;
+  border:0;
+  background:var(--run-accent);
+  box-shadow:0 0 7px var(--run-accent);
+}
+.panel-header-run-status.is-battle .run-status-medallion::after{
+  animation:warCouncilPulse 1.25s ease-in-out infinite;
+}
+@keyframes warCouncilPulse{
+  0%,100%{opacity:.5;transform:rotate(45deg) scale(.8)}
+  50%{opacity:1;transform:rotate(45deg) scale(1.35)}
+}
+.run-status-copy{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  min-width:0;
+}
+.run-status-topline{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  color:#8d98a8;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.15em;
+  line-height:1;
+  text-transform:uppercase;
+}
+.run-status-topline strong{
+  color:var(--run-accent);
+  font-size:9px;
+}
+.run-status-progress{
+  overflow:hidden;
+  color:#f1e5d2;
+  font:700 12px/1.1 Cinzel,Georgia,serif;
+  letter-spacing:.03em;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.war-council-header .panel-header-user-actions{
+  display:flex;
+  flex-wrap:nowrap;
+  align-items:center;
+  justify-content:flex-end;
+  gap:7px;
+  min-width:0;
+}
+.war-council-header .panel-header-skills,
+.war-council-header .panel-header-inventory,
+.war-council-header .panel-header-ley{
+  min-height:42px;
+  padding:7px 10px 7px 8px;
+  gap:6px;
+  border-radius:12px;
+  font-size:11.5px;
+}
+.war-council-header .phb-ico{
+  width:23px;
+  height:23px;
+  font-size:12px;
+}
+.war-council-header .phb-count{
+  min-width:20px;
+  padding:2px 6px;
+  font-size:10px;
+}
+.war-council-header .panel-header-user{
+  min-height:42px;
+  padding:5px 10px 5px 6px;
+  gap:7px;
+  border-radius:12px;
+}
+.war-council-header .panel-header-user-label{
+  color:rgba(194,153,93,.76);
+  font-size:8px;
+  letter-spacing:.15em;
+}
+.war-council-header .panel-header-user-value{
+  max-width:112px;
+  overflow:hidden;
+  font-size:12px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.panel-header-guest-mark{
+  display:grid;
+  place-items:center;
+  width:28px;
+  height:30px;
+  color:#e3b562;
+  font:700 13px/1 Cinzel,Georgia,serif;
+  border:1px solid rgba(215,169,95,.4);
+  border-radius:9px 9px 11px 11px;
+  background:linear-gradient(180deg,rgba(71,50,27,.85),rgba(26,22,22,.94));
+  box-shadow:inset 0 1px 0 rgba(255,226,168,.1);
+}
+.war-council-header .panel-header-user.is-guest{
+  border-color:rgba(215,169,95,.28);
+}
+.war-council-header .panel-header-user.is-guest .panel-header-user-value{
+  color:#f0ca82;
+}
+.war-council-header .panel-header-logout{
+  min-height:42px;
+  padding-inline:12px;
+  border-radius:12px;
+  font-size:11px;
+}
+
+@media (max-width:1180px){
+  .war-council-header{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:9px 12px;
+  }
+  .panel-header-run-status{
+    grid-column:1 / -1;
+    grid-row:2;
+    justify-self:stretch;
+    justify-content:center;
+    min-height:38px;
+    padding-block:5px;
+  }
+}
+@media (max-width:900px){
+  .war-council-header{
+    grid-template-columns:1fr;
+    padding:10px;
+  }
+  .war-council-header .panel-header-lead{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+  }
+  .panel-header-title{
+    grid-column:1 / -1;
+    width:100%;
+    min-width:0;
+    padding-right:0;
+    padding-bottom:7px;
+    border-right:0;
+    border-bottom:1px solid rgba(203,155,87,.15);
+  }
+  .panel-header-title-copy strong{
+    max-width:none;
+  }
+  .war-council-header .worldmap-open-btn,
+  .war-council-header .daily-challenge-btn{
+    width:100%;
+    min-width:0;
+  }
+  .panel-header-run-status{
+    grid-column:1;
+    grid-row:auto;
+  }
+  .war-council-header .panel-header-user-actions{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    width:100%;
+  }
+  .war-council-header .panel-header-skills,
+  .war-council-header .panel-header-inventory,
+  .war-council-header .panel-header-ley,
+  .war-council-header .panel-header-user{
+    width:100%;
+    justify-content:center;
+    padding-inline:6px;
+  }
+  .war-council-header .phb-label,
+  .war-council-header .panel-header-user-label{
+    display:none;
+  }
+}
+@media (max-width:460px){
+  .war-council-header .panel-header-user-actions{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .war-council-header .panel-header-user-value{
+    max-width:88px;
+  }
+}
+@media (prefers-reduced-motion:reduce){
+  .panel-header-run-status.is-battle .run-status-medallion::after{
+    animation:none;
+  }
+}

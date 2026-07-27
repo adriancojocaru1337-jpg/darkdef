@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=r11" />
+  <link rel="stylesheet" href="style.css?v=r12" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
   <script src="site-nav.js?v=5" defer></script>
@@ -296,9 +296,15 @@
 
     <section class="layout">
       <section class="game-panel glass">
-        <header class="panel-header">
+        <header class="panel-header war-council-header">
           <div class="panel-header-lead">
-            <div class="panel-kicker">Battlefield</div>
+            <div class="panel-header-title">
+              <span class="panel-header-title-sigil" aria-hidden="true"><i></i></span>
+              <span class="panel-header-title-copy">
+                <span class="panel-kicker">Battlefield</span>
+                <strong id="panelHeaderRegionName">Forest</strong>
+              </span>
+            </div>
             <button class="worldmap-open-btn" id="openWorldMapBtn" type="button" title="Open the world map — choose a region">
               <span class="worldmap-open-emoji" aria-hidden="true">🗺️</span>
               <span class="worldmap-open-copy">
@@ -311,21 +317,32 @@
               <span class="daily-challenge-emoji" id="dailyChallengeEmoji" aria-hidden="true">🗓️</span>
               <span class="daily-streak-chip hidden" id="dailyStreakChip"></span>
               <span class="daily-challenge-copy">
-                <span class="daily-challenge-kicker">Challenge of the Day</span>
+                <span class="daily-challenge-kicker">Daily Challenge</span>
                 <span class="daily-challenge-name" id="dailyChallengeName">Loading…</span>
                 <span class="daily-challenge-best" id="dailyChallengeBest"></span>
               </span>
               <span class="daily-challenge-cta" aria-hidden="true">Play ▸</span>
             </button>
           </div>
+          <div class="panel-header-run-status is-ready" id="panelHeaderRunStatus" role="status" aria-live="polite">
+            <span class="run-status-medallion" aria-hidden="true"><i></i></span>
+            <span class="run-status-copy">
+              <span class="run-status-topline">
+                <span id="panelHeaderRunMode">Campaign</span>
+                <span aria-hidden="true">&middot;</span>
+                <strong id="panelHeaderRunState">Ready</strong>
+              </span>
+              <span class="run-status-progress" id="panelHeaderRunProgress">Stage 1 &middot; Wave 1</span>
+            </span>
+          </div>
           <div class="panel-header-user-actions">
             <button class="panel-header-skills" id="panelHeaderSkillsBtn" type="button" title="Hero Skill Tree (K)"><span class="phb-ico" aria-hidden="true">🌳</span><span class="phb-label">Skills</span><span class="phb-count" id="panelHeaderSkillPoints">0</span></button>
             <button class="panel-header-inventory" id="panelHeaderInventoryBtn" type="button" title="Inventory &amp; Equipment (I)"><span class="phb-ico" aria-hidden="true">🎒</span><span class="phb-label">Bag</span><span class="phb-count" id="panelHeaderInventoryCount">0</span></button>
             <button class="panel-header-ley" id="panelHeaderLeyBtn" type="button" title="Shop — spend Crystals"><span class="phb-ico" aria-hidden="true">✦</span><span class="phb-label">Shop</span><span class="phb-count" id="panelHeaderLeyBalance">0</span></button>
-            <a class="panel-header-user" id="panelHeaderUserLink" aria-live="polite" href="/account.html">
-              <span class="panel-header-user-crest" id="panelHeaderUserCrest" aria-hidden="true"></span>
-              <span class="panel-header-user-label">Player</span>
-              <strong class="panel-header-user-value" id="panelHeaderUserValue">Guest</strong>
+            <a class="panel-header-user is-guest" id="panelHeaderUserLink" aria-live="polite" aria-label="Sign in" href="/account.html">
+              <span class="panel-header-user-crest" id="panelHeaderUserCrest" aria-hidden="true"><span class="panel-header-guest-mark">?</span></span>
+              <span class="panel-header-user-label" id="panelHeaderUserLabel">Guest</span>
+              <strong class="panel-header-user-value" id="panelHeaderUserValue">Sign in</strong>
             </a>
             <button class="btn btn-secondary panel-header-logout hidden" id="panelHeaderLogoutBtn" type="button">Logout</button>
           </div>
@@ -659,7 +676,7 @@
   <script src="js/systems/equipment-system.js?v=r93"></script>
   <script src="js/systems/hero-stat-pipeline.js?v=r93"></script>
   <script src="js/systems/hero-skill-tree-system.js?v=r93"></script>
-  <script src="game.js?v=r97"></script>
+  <script src="game.js?v=r98"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>

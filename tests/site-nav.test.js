@@ -42,7 +42,7 @@ test("every public HTML page loads the shared navigation", () => {
     const source = fs.readFileSync(path.join(root, fileName), "utf8");
     assert.match(source, /<script src="site-nav\.js\?v=5" defer><\/script>/, fileName);
     assert.doesNotMatch(source, /<script src="\/site-nav\.js/, fileName);
-    assert.match(source, /style\.css\?v=r11/, fileName);
+    assert.match(source, /style\.css\?v=r12/, fileName);
   }
 });
 

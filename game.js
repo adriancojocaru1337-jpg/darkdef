@@ -23,8 +23,14 @@ const livesBadge = document.getElementById("livesBadge");
 const waveBadge = document.getElementById("waveBadge");
 const stageBadge = document.getElementById("stageBadge");
 const panelHeaderUserLink = document.getElementById("panelHeaderUserLink");
+const panelHeaderUserLabel = document.getElementById("panelHeaderUserLabel");
 const panelHeaderUserValue = document.getElementById("panelHeaderUserValue");
 const panelHeaderLogoutBtn = document.getElementById("panelHeaderLogoutBtn");
+const panelHeaderRegionName = document.getElementById("panelHeaderRegionName");
+const panelHeaderRunStatus = document.getElementById("panelHeaderRunStatus");
+const panelHeaderRunMode = document.getElementById("panelHeaderRunMode");
+const panelHeaderRunState = document.getElementById("panelHeaderRunState");
+const panelHeaderRunProgress = document.getElementById("panelHeaderRunProgress");
 const progressText = document.getElementById("progressText");
 const waveFill = document.getElementById("waveFill");
 const messageBox = document.getElementById("messageBox");
@@ -215,9 +221,15 @@ function clampPercent(value){
 function setPanelUserLabel(name, crestId = null){
   if(!panelHeaderUserValue) return;
   const trimmedName = String(name || "").trim();
-  panelHeaderUserValue.textContent = trimmedName || "Guest";
+  const isGuest = !trimmedName || trimmedName.toLowerCase() === "guest";
+  panelHeaderUserValue.textContent = isGuest ? "Sign in" : trimmedName;
+  if(panelHeaderUserLabel) panelHeaderUserLabel.textContent = isGuest ? "Guest" : "Player";
+  panelHeaderUserLink?.classList.toggle("is-guest", isGuest);
+  panelHeaderUserLink?.setAttribute("aria-label", isGuest ? "Sign in" : `Open ${trimmedName}'s command table`);
   const crestSlot = document.getElementById("panelHeaderUserCrest");
-  if(crestSlot && window.DarkDefenseCrest){
+  if(crestSlot && isGuest){
+    crestSlot.innerHTML = '<span class="panel-header-guest-mark" aria-hidden="true">?</span>';
+  }else if(crestSlot && window.DarkDefenseCrest){
     crestSlot.innerHTML = window.DarkDefenseCrest.markup(trimmedName || "Guest", "dd-crest-header", crestId);
   }
 }
@@ -5009,6 +5021,52 @@ function openGameOverOverlay(){
   gameOverOverlay.classList.remove("hidden");
 }
 
+const PANEL_HEADER_RUN_STATES = ["is-ready", "is-battle", "is-paused", "is-reward", "is-danger", "is-map"];
+
+function updateBattlefieldHeader(){
+  if(!panelHeaderRunStatus) return;
+
+  const stage = STAGES[currentStage] || STAGES[1];
+  const worldMapOpen = !!(worldMapOverlay && !worldMapOverlay.classList.contains("hidden"));
+  const modeLabel = dailyChallengeActive
+    ? "Daily"
+    : (currentMode === "endless" ? "Endless" : "Campaign");
+
+  let stateLabel = "Ready";
+  let stateClass = "is-ready";
+  let progressLabel = currentMode === "endless"
+    ? `${stage.name} · Wave ${stageWave}`
+    : `Stage ${currentStage} · Wave ${stageWave}`;
+
+  if(worldMapOpen){
+    stateLabel = "War Map";
+    stateClass = "is-map";
+    progressLabel = hasStarted ? "Choose or resume" : "Choose a region";
+  }else if(lives <= 0){
+    stateLabel = "Game Over";
+    stateClass = "is-danger";
+  }else if(isPaused){
+    stateLabel = "Paused";
+    stateClass = "is-paused";
+  }else if(pendingAuraChoice || pendingBossResolution || pendingLootReward){
+    stateLabel = "Reward";
+    stateClass = "is-reward";
+  }else if(waveActive){
+    stateLabel = "Battle";
+    stateClass = "is-battle";
+  }
+
+  if(panelHeaderRegionName){
+    panelHeaderRegionName.textContent = worldMapOpen && !hasStarted ? "War Map" : stage.name;
+  }
+  if(panelHeaderRunMode) panelHeaderRunMode.textContent = modeLabel;
+  if(panelHeaderRunState) panelHeaderRunState.textContent = stateLabel;
+  if(panelHeaderRunProgress) panelHeaderRunProgress.textContent = progressLabel;
+
+  panelHeaderRunStatus.classList.remove(...PANEL_HEADER_RUN_STATES);
+  panelHeaderRunStatus.classList.add(stateClass);
+}
+
 function updateUI(){
   moneyBadge.textContent = `💰 ${money}`;
   livesBadge.textContent = `❤️ ${lives}`;
@@ -5062,6 +5120,7 @@ function updateUI(){
   updateSpellButtons();
   updateHintChip();
   heroSystem.syncUi();
+  updateBattlefieldHeader();
 }
 
 function resetAchievementsUI(){}
@@ -9113,11 +9172,13 @@ function openWorldMap(){
   renderWorldMap();
   worldMapOverlay?.classList.remove("hidden");
   canvasWrap?.classList.add("worldmap-active");
+  updateBattlefieldHeader();
 }
 
 function closeWorldMap(){
   worldMapOverlay?.classList.add("hidden");
   canvasWrap?.classList.remove("worldmap-active");
+  updateBattlefieldHeader();
 }
 
 worldMapResumeBtn?.addEventListener("click",(event)=>{
