@@ -1,3 +1,98 @@
+Ashen Bastion v0.10.1 - Content-hash cache busting, daily key timezone
+
+No schema change. No SQL to run.
+
+NEW DEPLOY STEP: netlify.toml now has a [build] command. Netlify will run
+`node tools/stamp-assets.cjs` on every deploy. Nothing to configure.
+
+Cache busting:
+- ?v= stamps were hand-incremented (game.js?v=r102, style.css?v=r12,
+  site-nav.js?v=5) and pinned in three test files, so shipping a change meant
+  remembering to bump it in several places. Forget, and browsers keep the old
+  file — a symptom indistinguishable from a broken deploy.
+- worse, all 17 modules under js/ shared a single stamp (r93) while game.js had
+  moved to r102. Editing any one of them shipped nothing to anyone holding a
+  cached copy. That had been true for some time.
+- every stamp is now a 10-character hash of the file it points at, rewritten by
+  tools/stamp-assets.cjs. 38 references across 10 pages.
+- npm run stamp / npm run stamp:check
+- tests fail if any stamp is stale, if two files share a stamp, or if a manual
+  revision string reappears.
+
+Daily key timezone (ported from the shelved v0.9.7):
+- get-daily-leaderboard fell back to the UTC date when no ?day= was supplied.
+  The daily challenge rolls over at the player's LOCAL midnight, so for UTC+3
+  that served the previous day's board between 00:00 and 03:00.
+- new netlify/functions/daily-key.js: resolveDailyKey() prefers an explicit
+  ?day=, otherwise reconstructs the local date from ?tzOffset= (clamped to
+  +/-840 minutes so it cannot be abused). Both callers now send it.
+
+Incidental, found while making the publish directory explicit:
+- Netlify publishes the repository root, so every setup_*.sql was publicly
+  downloadable — the full anti-cheat schema. _redirects now 404s the schema
+  files, tools/, tests/, and the package manifests.
+
+- validation: all JavaScript syntax checks plus 132 unit tests
+
+Ashen Bastion v0.10.0 - Player identity on the server, score cap invariants
+
+No schema change. No SQL to run.
+
+Player identity:
+- submit-score stored the client-supplied name (localStorage.sdcPlayerName).
+  That drifts from the account name: it is set at login but survives a rename,
+  a logout, a second account in the same browser, or guest play before signing
+  in. Because the boards render coalesce(u.username, ls.player_name), one person
+  appeared under several names and could not find their own rows in
+  score_submissions. With a session, the account name is now authoritative and
+  the client gets no say. submit-power already worked this way.
+- logging out clears the cached name, so guest play afterwards no longer submits
+  under an account name it no longer owns.
+
+Score caps:
+- computeMaxBonus is linear in wave and kills, but the game's per-wave bonus
+  grows WITH the wave (early call is half of 16 + 3*wave + 4*stage), so the
+  wave-derived bonus is quadratic. It stays under the cap only because kills are
+  also quadratic and carry a 35-per-kill allowance that absorbs it: the worst
+  case converges to ~96% of the cap and never crosses, even at wave 2000.
+- that margin is a coincidence between two independent formulas, so it is now
+  pinned by tests. Add a per-kill bonus source or raise the early-call bonus and
+  the build fails, instead of players' scores being silently rejected as
+  cheating.
+- NO cap values were changed. Widening them would have weakened the anti-cheat
+  to fix a problem that does not exist.
+
+- index.html loads game.js?v=r102
+- validation: all JavaScript syntax checks plus 120 unit tests
+
+Ashen Bastion v0.9.9 - Endless ranked by depth, own placement, no boot token
+
+No schema change. No SQL to run.
+
+BEHAVIOUR CHANGE: the historical endless board reshuffles.
+- endless was ranked by bonus_score first, so a wave-10 run that rolled a Wealth
+  aura outranked someone who reached wave 50. It now ranks by wave_reached with
+  bonus as the tiebreaker. The stored rows are untouched, only the ordering.
+
+Own placement:
+- get-bonus-leaderboard accepts ?player= and returns { rows, you, total }.
+  The client appends its own row below the top 10 when it ranks outside it, and
+  the subtitle reads "You: #N of M". A submitted run that ranked 40th used to be
+  indistinguishable from a lost one — which is how a working board gets reported
+  as broken.
+- the client accepts both the old array and the new object shape, so a cached
+  client does not render an empty board after deploy.
+
+Run token litter:
+- no token is minted at page load any more. Every reload used to create one and
+  most were never submitted: that is the 'active'/'expired' litter in game_runs,
+  and it consumed the 30-per-10-minutes start-run budget, silently pushing a
+  player who reloaded a few times into an unranked session. startWave() mints
+  the token on the first wave of whatever mode is actually played.
+
+- index.html loads game.js?v=r101
+- validation: all JavaScript syntax checks plus 114 unit tests
+
 Ashen Bastion v0.9.8 - Endless checkpoints, pacing and board fixes
 
 No schema change. No SQL to run.

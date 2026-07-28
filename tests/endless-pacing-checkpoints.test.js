@@ -95,3 +95,47 @@ test("the taper is monotonic and bounded", () => {
   assert.equal(interval(1), base);
   assert.equal(interval(last + 50), floor);
 });
+
+/* v0.9.9 — ranking metric, own placement, and boot token litter. */
+
+test("endless ranks by depth, with bonus only as the tiebreaker", () => {
+  const board = read("netlify/functions/get-bonus-leaderboard.js");
+  // Every ORDER BY over the board must lead with wave_reached.
+  const orderings = board.match(/order by [^\n`]*(?:desc|asc)/g) || [];
+  assert.ok(orderings.length >= 3, "expected the board and placement orderings");
+  for (const ordering of orderings) {
+    if (!/wave_reached|bonus_score/.test(ordering)) continue;
+    assert.match(
+      ordering,
+      /order by (?:ls\.)?wave_reached desc, (?:ls\.)?bonus_score desc/,
+      `bonus still outranks depth in: ${ordering}`
+    );
+  }
+});
+
+test("the board reports the caller's own placement", () => {
+  const board = read("netlify/functions/get-bonus-leaderboard.js");
+  assert.match(board, /queryStringParameters\?\.player/);
+  assert.match(board, /rank\(\) over \(order by wave_reached desc/);
+  assert.match(board, /JSON\.stringify\(\{ rows, you, total \}\)/);
+});
+
+test("the client survives both the old array and the new object shape", () => {
+  const client = read("game.js");
+  assert.match(client, /Array\.isArray\(payload\) \? payload : \(payload\?\.rows \|\| \[\]\)/);
+});
+
+test("the client shows its own row only when outside the visible top", () => {
+  const client = read("game.js");
+  assert.match(client, /if\(you && you\.place > rows\.length\)/);
+  assert.match(read("style.css"), /\.leaderboard-row-you\{/);
+});
+
+test("no run token is minted at page load", () => {
+  const client = read("game.js");
+  // The boot sequence must not prewarm; startWave() covers it instead.
+  const boot = client.slice(client.indexOf("loadPanelUserSession();"));
+  const bootTail = boot.slice(0, 600);
+  assert.doesNotMatch(bootTail, /prewarmLeaderboardRun\("campaign"\);/);
+  assert.match(client, /if\(!leaderboardRun\.runId && !leaderboardRunPromise\) prewarmLeaderboardRun\(\);/);
+});

@@ -1,3 +1,11 @@
+# Stamps every ?v= cache-buster with a hash of the file it points at, so a
+# deploy can never ship HTML that still points browsers at a cached older
+# asset. Safe to re-run; `npm run stamp:check` fails the build if a commit
+# forgot it.
+[build]
+  command = "node tools/stamp-assets.cjs"
+  publish = "."
+
 [functions]
   node_bundler = "esbuild"
 

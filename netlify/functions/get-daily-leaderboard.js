@@ -2,11 +2,7 @@
 const { neon } = require("@netlify/neon");
 
 const sql = neon();
-const DAILY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
-
-function serverTodayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
+const { resolveDailyKey } = require("./daily-key");
 
 function rankAndTrim(rows) {
   return rows
@@ -19,8 +15,10 @@ function rankAndTrim(rows) {
 
 exports.handler = async function handler(event) {
   try {
-    const requested = String(event.queryStringParameters?.day || "").trim();
-    const day = DAILY_KEY_RE.test(requested) ? requested : serverTodayKey();
+    const day = resolveDailyKey(
+      event.queryStringParameters?.day,
+      event.queryStringParameters?.tzOffset
+    );
 
     // Best run per player, ranked by deepest wave. Profile/crest joins mirror
     // get-leaderboards; the fallback query keeps the board alive if the

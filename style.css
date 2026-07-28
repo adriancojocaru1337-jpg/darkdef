@@ -2836,6 +2836,17 @@ kbd{
   border:1px solid rgba(171,131,84,.10);
 }
 
+/* The player's own placement, appended below the visible top 10 so a run that
+   ranked outside it still shows up. Separated by a gap and a bronze edge. */
+.leaderboard-row-you{
+  margin-top:8px;
+  background:rgba(58,42,24,.46);
+  border-color:rgba(214,180,124,.34);
+  box-shadow:0 0 0 1px rgba(214,180,124,.10) inset;
+}
+
+.leaderboard-row-you .leaderboard-name{ color:#f2d9a8; }
+
 .leaderboard-rank{
   width:26px;
   height:26px;

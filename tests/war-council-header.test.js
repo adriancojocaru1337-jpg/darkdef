@@ -16,8 +16,8 @@ test("the battlefield uses a three-zone War Council command bar", () => {
   assert.match(index, /id="panelHeaderRunState"/);
   assert.match(index, /id="panelHeaderRunProgress"/);
   assert.match(index, /id="panelHeaderUserValue">Sign in</);
-  assert.match(index, /style\.css\?v=r12/);
-  assert.match(index, /game\.js\?v=r100/);
+  assert.match(index, /style\.css\?v=[0-9a-f]{10}/);
+  assert.match(index, /game\.js\?v=[0-9a-f]{10}/);
 });
 
 test("the command bar updates live state and has responsive themed styling", () => {

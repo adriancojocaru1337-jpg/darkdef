@@ -40,9 +40,9 @@ test("every public HTML page loads the shared navigation", () => {
 
   for (const fileName of htmlFiles) {
     const source = fs.readFileSync(path.join(root, fileName), "utf8");
-    assert.match(source, /<script src="site-nav\.js\?v=5" defer><\/script>/, fileName);
+    assert.match(source, /<script src="site-nav\.js\?v=[0-9a-f]{10}" defer><\/script>/, fileName);
     assert.doesNotMatch(source, /<script src="\/site-nav\.js/, fileName);
-    assert.match(source, /style\.css\?v=r12/, fileName);
+    assert.match(source, /style\.css\?v=[0-9a-f]{10}/, fileName);
   }
 });
 

@@ -3166,8 +3166,18 @@ async function loadBonusLeaderboard(){
   if(!bonusLeaderboardList) return;
   bonusLeaderboardSubtitle.textContent = "Loading the global Endless bonus scoreboard...";
   try{
-    const rows = await apiClient.get("get-bonus-leaderboard", { cache: "no-store" });
-    if(!Array.isArray(rows) || rows.length === 0){
+    let storedName = "";
+    try{ storedName = localStorage.getItem("sdcPlayerName") || ""; }catch(e){}
+    const payload = await apiClient.get("get-bonus-leaderboard", {
+      query: storedName ? { player: storedName } : {},
+      cache: "no-store"
+    });
+    // The endpoint used to return a bare array; tolerate both shapes so a cached
+    // client doesn't render an empty board after a deploy.
+    const rows = Array.isArray(payload) ? payload : (payload?.rows || []);
+    const you = Array.isArray(payload) ? null : payload?.you;
+    const totalPlayers = Array.isArray(payload) ? rows.length : (payload?.total || rows.length);
+    if(rows.length === 0){
       bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">No Endless runs submitted yet.</div>';
       bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
       return;
@@ -3190,8 +3200,26 @@ async function loadBonusLeaderboard(){
         </div>
       `;
     }).join("");
+    /* Show the player's own placement when they're outside the visible top 10.
+       Otherwise a run that submitted perfectly is indistinguishable from one
+       that was lost, which is how a working board ends up reported as broken. */
+    if(you && you.place > rows.length){
+      const safeYou = String(you.playerName || "").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+      bonusLeaderboardList.innerHTML += `
+        <div class="leaderboard-row leaderboard-row-you">
+          <div class="leaderboard-rank">${you.place}</div>
+          <div class="leaderboard-main">
+            <span class="leaderboard-name">${safeYou}</span>
+            <span class="leaderboard-meta">Wave ${you.waveReached} — your best</span>
+          </div>
+          <div class="leaderboard-score">+${you.bonusScore}</div>
+        </div>
+      `;
+    }
     const best = rows[0];
-    bonusLeaderboardSubtitle.textContent = `Record: ${best.player_name} with bonus +${best.bonus_score}.`;
+    bonusLeaderboardSubtitle.textContent = you
+      ? `Record: Wave ${best.wave_reached} by ${best.player_name}. You: #${you.place} of ${totalPlayers}.`
+      : `Record: Wave ${best.wave_reached} by ${best.player_name} (bonus +${best.bonus_score}).`;
   }catch(error){
       bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Rankings are temporarily unavailable.</div>';
       bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global Rankings.";
@@ -3280,7 +3308,10 @@ async function loadDailyLeaderboardIntoGameOver(){
   try{
     const dayKey = activeDailyChallenge?.dateKey || getTodayKey();
     const rows = await apiClient.get("get-daily-leaderboard", {
-      query: { day: dayKey },
+      // tzOffset is only used if day is ever dropped: the server cannot derive
+      // the player's local date, and a UTC guess reads the wrong day for the
+      // first hours after local midnight.
+      query: { day: dayKey, tzOffset: new Date().getTimezoneOffset() },
       cache:"no-store"
     });
     if(!Array.isArray(rows) || rows.length === 0){
@@ -9421,7 +9452,12 @@ if(!maybeShowResumeOverlay()){
 }
 loadPanelUserSession();
 loadBonusLeaderboard();
-prewarmLeaderboardRun("campaign");
+/* No run token is minted at boot any more. Every page load used to create one,
+   and most were never submitted — that is where the 'active'/'expired' litter in
+   game_runs came from, and it burned the 30-per-10-minutes start-run budget, so
+   a player who reloaded a few times was silently rate limited into an unranked
+   session. startWave() mints the token on the first wave of whatever mode is
+   actually played. */
 updateLeyBadges();
 refreshDailyChallengeUI();
 draw();
@@ -9786,6 +9822,11 @@ panelHeaderLogoutBtn?.addEventListener("click", async (event)=>{
     await apiClient.post("logout", null, {
       credentials: "include"
     });
+    /* Drop the cached account name too. Without this, playing as a guest after
+       logging out keeps submitting under the account's username while the row
+       carries no user_id — the same score shows on the board under a name the
+       submitter no longer owns. */
+    try{ localStorage.removeItem("sdcPlayerName"); }catch(_){}
     window.location.reload();
   }catch(_){}
 });

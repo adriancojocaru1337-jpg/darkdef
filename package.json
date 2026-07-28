@@ -1,7 +1,9 @@
 {
   "scripts": {
     "test": "node --test \"tests/*.test.js\"",
-    "check": "node tools/check-js.cjs"
+    "check": "node tools/check-js.cjs",
+    "stamp": "node tools/stamp-assets.cjs",
+    "stamp:check": "node tools/stamp-assets.cjs --check"
   },
   "dependencies": {
     "@netlify/neon": "^0.1.2"

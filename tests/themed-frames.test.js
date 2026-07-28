@@ -14,7 +14,7 @@ test("the resume dialog uses a layered heraldic iron-and-bronze frame", () => {
   assert.match(styles, /content:"✦"/);
   assert.match(styles, /rgba\(218,166,88,.72\)/);
   assert.match(styles, /\.resume-btn-main\{[\s\S]*#f0d18c[\s\S]*#9b6428/);
-  assert.match(index, /style\.css\?v=r12/);
+  assert.match(index, /style\.css\?v=[0-9a-f]{10}/);
 });
 
 test("the canvas preparation banner uses matching forged corners and bronze ornament", () => {
@@ -22,5 +22,5 @@ test("the canvas preparation banner uses matching forged corners and bronze orna
   assert.match(game, /const prepareFrameGradient = ctx\.createLinearGradient/);
   assert.match(game, /drawPrepareCorner\(-w\/2 \+ 14/);
   assert.match(game, /ctx\.fillText\("✦  BUILD PHASE  ✦"/);
-  assert.match(index, /game\.js\?v=r100/);
+  assert.match(index, /game\.js\?v=[0-9a-f]{10}/);
 });

@@ -164,7 +164,19 @@ exports.handler = async function handler(event) {
 
     runId = String(body.runId || "").trim();
     const runToken = String(body.runToken || "").trim();
-    playerName = sanitizeName(body.name);
+
+    /* The client sends localStorage.sdcPlayerName, which drifts from the account
+       name: it is set at login but survives a rename, a logout, a second account
+       on the same browser, or guest play before signing in. The board renders
+       coalesce(u.username, player_name), so the same person showed up under
+       several names and could not find their own rows in score_submissions.
+
+       When there is a session, the account name is authoritative — the client
+       does not get a say. */
+    playerName = sessionUser?.username
+      ? sanitizeName(sessionUser.username)
+      : sanitizeName(body.name);
+
     payload = { scoreTotal, bonus, waveReached, killsCount };
 
     if (!playerName || playerName.length < 2) {

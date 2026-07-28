@@ -1,0 +1,10 @@
+# Netlify publishes the repository root, so anything committed here is
+# downloadable unless blocked. These are not secrets, but the schema files map
+# out every table, column and index the anti-cheat relies on, and there is no
+# reason to hand that out.
+/setup_*.sql       /setup_blocked   404
+/netlify.toml      /blocked         404
+/package.json      /blocked         404
+/package-lock.json /blocked         404
+/tools/*           /blocked         404
+/tests/*           /blocked         404
