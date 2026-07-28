@@ -1,3 +1,37 @@
+Ashen Bastion v0.9.8 - Endless checkpoints, pacing and board fixes
+
+No schema change. No SQL to run.
+
+Why endless scores never appeared:
+- endless submitted from exactly ONE place, the game-over branch. A run that
+  ended any other way — closed tab, refresh, or the player simply stopping —
+  left the run token 'active' forever and the score was never recorded. With
+  endless runs regularly passing 40 minutes, that was the normal outcome.
+  Campaign never had this problem because it submits at every stage clear.
+- endless runs now bank progress every 5 waves. The run token is deliberately
+  NOT retired on a checkpoint, so started_at stays the true run start and the
+  server's runtime floor gets stricter, not weaker.
+- server: a checkpoint keeps status 'active' and upserts the leaderboard row on
+  run_id (already unique), so a run has one row that is updated, not many.
+  Checkpoints are rate limited to one per 45s per run.
+
+Display:
+- get-bonus-leaderboard returned 5 rows and the client rendered rows.slice(0,1),
+  so the board showed only the all-time record holder. Now 10 rows, all rendered,
+  with numbered places.
+
+Pacing:
+- endless added two enemies per wave forever at a fixed 0.68s spawn interval, so
+  wave length grew linearly and total run time grew QUADRATICALLY (wave 100 was
+  ~125 minutes of spawning alone). The interval now tapers from 0.68s to 0.30s
+  between waves 10 and 55, roughly halving a deep run.
+- campaign and daily keep the original pacing.
+- NOTE this is also a difficulty change: the same wave HP arrives in less time,
+  so required DPS rises at high waves. Worth playtesting past wave 40.
+
+- index.html loads game.js?v=r100
+- validation: all JavaScript syntax checks plus 109 unit tests
+
 Ashen Bastion v0.9.6c - Schema repair (corrected)
 
 READ THIS FIRST:

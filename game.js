@@ -3172,14 +3172,16 @@ async function loadBonusLeaderboard(){
       bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
       return;
     }
-    bonusLeaderboardList.innerHTML = rows.slice(0,1).map((row, index) => {
+    // Was rows.slice(0,1): the endpoint returned five rows and the board showed
+    // only the all-time record holder, so every other entry was invisible.
+    bonusLeaderboardList.innerHTML = rows.map((row, index) => {
       const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
       const crest = window.DarkDefenseCrest?.markup(row.player_name || "Anonim", "dd-crest-sm", row.profile_crest_id || null, Boolean(row.profile_username)) || "";
       const bonus = Number(row.bonus_score || 0);
       const waveReached = Number(row.wave_reached || 0);
       return `
         <div class="leaderboard-row">
-          <div class="leaderboard-rank">👑</div>
+          <div class="leaderboard-rank">${index === 0 ? "👑" : index + 1}</div>
           <div class="leaderboard-main">
             <span class="leaderboard-name">${crest}${safeName}</span>
             <span class="leaderboard-meta">Wave ${waveReached}</span>
@@ -3307,8 +3309,28 @@ async function loadDailyLeaderboardIntoGameOver(){
   }
 }
 
-async function submitBonusLeaderboardScore(){
+/* Banks an endless run to the Rankings every few waves.
+
+   Wave 2 is the first checkpoint because the server rejects wave-1 runs, and
+   the interval widens with depth so a long run doesn't hammer the endpoint —
+   the server also enforces a 45s gap between checkpoints on the same token. */
+const ENDLESS_CHECKPOINT_EVERY = 5;
+
+function maybeCheckpointEndlessRun(){
+  if(currentMode !== "endless" || dailyChallengeActive) return;
+  if(stageWave < 2) return;
+  if((stageWave - 1) % ENDLESS_CHECKPOINT_EVERY !== 0) return;
+  // Fire and forget: a failed checkpoint must never interrupt the run.
+  submitBonusLeaderboardScore(false).catch(()=>{});
+}
+
+/* runComplete=false is a checkpoint: the score is banked mid-run and the run
+   token is deliberately NOT retired, so the same run keeps reporting against the
+   same token. Endless runs are long — an hour is normal past wave 50 — and
+   submitting only on death meant a closed tab threw the whole run away. */
+async function submitBonusLeaderboardScore(runComplete = true){
   if(currentMode !== "endless") return;
+  if(dailyChallengeActive) return;
   // Wave 1 deaths are not board-worthy (and would fail the server's minimum
   // runtime check anyway) — but everything past that gets submitted even
   // with 0 bonus. Last place on the board beats not existing on it.
@@ -3341,13 +3363,19 @@ async function submitBonusLeaderboardScore(){
       runToken: leaderboardRun.runToken,
       clientStartedAt: leaderboardRun.clientStartedAt,
       elapsedMs: leaderboardRun.clientStartedAt ? (Date.now() - leaderboardRun.clientStartedAt) : 0,
-      runComplete: true,
+      runComplete: runComplete,
       runSeed: runRng.seed
     });
-    retireLeaderboardRun(submittedRunId, "endless");
-    await loadBonusLeaderboard();
+    if(runComplete){
+      retireLeaderboardRun(submittedRunId, "endless");
+      await loadBonusLeaderboard();
       pushNotification("achievement", "Rankings submitted", `${playerName} — Wave ${stageWave}, bonus +${bonusScore} sent to the global Rankings.`);
+    }else{
+      // Keep the token: the run is still going.
+      pushNotification("stage", "Progress saved", `Wave ${stageWave} banked to the Rankings — your run is safe if you stop here.`);
+    }
   }catch(error){
+    if(!runComplete) return; // a failed checkpoint is retried at the next one
     const detail = error && error.message && error.message !== "submit failed" ? ` (${error.message})` : "";
       pushNotification("stage", "Rankings offline", `The global score could not be submitted right now.${detail}`);
   }
@@ -3935,6 +3963,32 @@ function getPathPosition(progress){
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const enemyCountForWave=(n)=>6+(n-1)*2 + Math.max(0, currentStage-1);
+
+/* Seconds between spawns.
+   Endless adds two enemies per wave forever while the interval stayed fixed at
+   0.68s, so wave duration grew linearly and total run time grew QUADRATICALLY:
+   reaching wave 100 meant ~125 minutes of game time in spawning alone.
+
+   The interval now tapers from 0.68s down to 0.30s between waves 10 and 55,
+   which roughly halves a deep endless run. Campaign and daily keep the original
+   pacing — campaign waves are short enough that this was never the problem, and
+   changing daily would alter a challenge everyone is scored against on the same
+   day.
+
+   Note this is a difficulty change as well as a pacing one: the same wave HP
+   arrives in less time, so the DPS you need goes up at high waves. */
+const SPAWN_INTERVAL_BASE = .68;
+const SPAWN_INTERVAL_FLOOR = .30;
+const SPAWN_TAPER_FIRST_WAVE = 10;
+const SPAWN_TAPER_LAST_WAVE = 55;
+
+function spawnIntervalForWave(w = stageWave){
+  if(currentMode !== "endless" || dailyChallengeActive) return SPAWN_INTERVAL_BASE;
+  if(w <= SPAWN_TAPER_FIRST_WAVE) return SPAWN_INTERVAL_BASE;
+  const span = SPAWN_TAPER_LAST_WAVE - SPAWN_TAPER_FIRST_WAVE;
+  const t = Math.min(1, (w - SPAWN_TAPER_FIRST_WAVE) / span);
+  return SPAWN_INTERVAL_BASE + (SPAWN_INTERVAL_FLOOR - SPAWN_INTERVAL_BASE) * t;
+}
 
 function getWaveThreatProfile(){
   if(isCurrentWaveBoss()){
@@ -5919,7 +5973,7 @@ function update(dt){
 
   if(waveActive && spawnLeft>0){
     spawnTimer += dt;
-    if(spawnTimer>=.68){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
+    if(spawnTimer>=spawnIntervalForWave()){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
   }
 
   enemyBehaviorSystem.updateAll(enemies);
@@ -6197,6 +6251,7 @@ function update(dt){
     if(dailyChallengeActive) registerDailyStreakPlay();
     armWaveCallBonus();
     saveRunState();
+    maybeCheckpointEndlessRun();
     setMessage(currentMode === "campaign" ? `Wave complete. +${waveCrystals} ✦ Crystals. Next wave in this stage: ${stageWave}.` : `Endless wave complete. +${waveCrystals} ✦ Crystals. Next wave: ${stageWave}.`);
     updateUI();
   }
