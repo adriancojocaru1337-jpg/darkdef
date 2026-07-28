@@ -1,3 +1,21 @@
+Ashen Bastion v0.10.2 - Hero names on the Hero Power board
+
+No schema change. No SQL to run.
+
+- the Hero Power board ranked accounts but never showed the hero: the character
+  the player named and levelled was invisible on the one board that ranks it.
+- no new column was needed. submit-loadout already persists the name inside
+  hero_loadouts.loadout->>'heroName', so get-power-leaderboard resolves it with
+  a keyed lookup after ranking.
+- that lookup is a separate query in its own try/catch rather than a join into
+  the ranking queries: hero_loadouts is optional, and a missing table should
+  cost the board its hero names, not its rows.
+- shown on both the podium and the rows, only for type="power", escaped, and
+  hidden below 560px where the row has no space for it.
+- players who have never synced a loadout simply show no hero name.
+
+- validation: all JavaScript syntax checks plus 136 unit tests
+
 Ashen Bastion v0.10.1 - Content-hash cache busting, daily key timezone
 
 No schema change. No SQL to run.

@@ -251,6 +251,21 @@ a.rk-pod-name:hover{ color:#f2d9a8; text-decoration:underline; }
   font-weight:600; color:#e8dfd2; text-decoration:none;
 }
 a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
+/* Hero name on the Hero Power board. Deliberately quieter than the account
+   name and allowed to disappear on narrow screens — it is context, not the
+   thing you scan the column for. */
+.rk-hero-name{
+  flex:0 1 auto;
+  min-width:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  font-size:11px; font-weight:600;
+  color:#c9a86a;
+  opacity:.92;
+}
+.rk-pod .rk-hero-name{ display:block; margin-top:2px; font-size:10.5px; }
+@media (max-width:560px){
+  .rk-row .rk-hero-name{ display:none; }
+}
 .rk-you-chip{
   flex:0 0 auto;
   padding:1px 7px; border-radius:999px;
@@ -526,6 +541,15 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
       power:   (r) => `${formatNumber(r.equipment_power)} gear · ${formatNumber(r.skill_points)} skills`
     };
 
+    /* The hero name is the character the player named and levelled; the player
+       name is the account. On the Hero Power board the hero is the thing being
+       ranked, so show both. Absent for anyone who has never synced a loadout. */
+    function heroTag(row){
+      const hero = String(row.hero_name || "").trim();
+      if(!hero) return "";
+      return `<span class="rk-hero-name" title="Hero name">\u2694\uFE0F ${escapeHtml(hero)}</span>`;
+    }
+
     function renderPodium(target, rows, type){
       if(!target) return;
       if(!Array.isArray(rows) || rows.length < 3){ target.innerHTML = ""; return; }
@@ -546,6 +570,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
             <div class="rk-pod-medal" aria-hidden="true">${medal}</div>
             ${crestFor(row, "dd-crest-sm")}
             ${name}
+            ${type === "power" ? heroTag(row) : ""}
             <div class="rk-pod-score">${PRIMARY[type](row)}</div>
             <div class="rk-pod-meta">${SECONDARY[type](row)}</div>
           </div>`;
@@ -589,7 +614,7 @@ a.rk-player-name:hover{ color:#f2d9a8; text-decoration:underline; }
         return `
           <div class="rk-row${isOwn(row) ? " is-you" : ""}">
             <div class="rk-rank">${rankMark}</div>
-            <div class="rk-player">${crestFor(row, "dd-crest-sm")}${name}${you}${guest}</div>
+            <div class="rk-player">${crestFor(row, "dd-crest-sm")}${name}${type === "power" ? heroTag(row) : ""}${you}${guest}</div>
             <div>${c3}</div>
             <div>${c4}</div>
             <div>${c5}</div>

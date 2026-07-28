@@ -104,3 +104,44 @@ test("logging out drops the cached account name", () => {
   const logout = game.slice(game.indexOf('apiClient.post("logout"'));
   assert.match(logout.slice(0, 500), /localStorage\.removeItem\("sdcPlayerName"\)/);
 });
+
+/* Hero names on the Hero Power board. submit-loadout already persists the name
+   inside hero_loadouts.loadout->>'heroName', so this needed no new column. */
+
+test("the power board resolves hero names without a schema change", () => {
+  const board = fs.readFileSync(
+    path.join(__dirname, "..", "netlify", "functions", "get-power-leaderboard.js"),
+    "utf8"
+  );
+  assert.match(board, /loadout->>'heroName'/);
+  assert.match(board, /from hero_loadouts/);
+  // Both ranking queries must expose user_id or the lookup cannot key on it.
+  assert.equal((board.match(/pl\.user_id,/g) || []).length, 2);
+});
+
+test("a missing hero_loadouts table costs names, not the board", () => {
+  const board = fs.readFileSync(
+    path.join(__dirname, "..", "netlify", "functions", "get-power-leaderboard.js"),
+    "utf8"
+  );
+  // The lookup sits in its own try/catch, after the rows are already resolved.
+  const lookupIndex = board.indexOf("from hero_loadouts");
+  const responseIndex = board.indexOf("JSON.stringify({ power: rows })");
+  assert.ok(lookupIndex < responseIndex, "hero lookup runs after ranking, before the response");
+  const surrounding = board.slice(lookupIndex - 600, lookupIndex + 600);
+  assert.match(surrounding, /catch \(_\) \{/);
+});
+
+test("the hero name shows only on the power board", () => {
+  const page = fs.readFileSync(path.join(__dirname, "..", "leaderboards.html"), "utf8");
+  assert.match(page, /function heroTag\(row\)/);
+  // Guarded by type on both the podium and the rows.
+  assert.equal((page.match(/type === "power" \? heroTag\(row\) : ""/g) || []).length, 2);
+  assert.match(page, /\.rk-hero-name\{/);
+});
+
+test("the hero name is escaped", () => {
+  const page = fs.readFileSync(path.join(__dirname, "..", "leaderboards.html"), "utf8");
+  const fn = page.match(/function heroTag\(row\)[\s\S]*?\n    \}/)[0];
+  assert.match(fn, /escapeHtml\(hero\)/);
+});
