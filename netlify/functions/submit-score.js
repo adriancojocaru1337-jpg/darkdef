@@ -222,7 +222,7 @@ exports.handler = async function handler(event) {
     }
 
     const runRows = await sql`
-      select id, run_id, mode, token_expires_at, token_signature, ip_hash, user_agent_hash, status, started_at
+      select id, run_id, mode, token_expires_at, token_signature, ip_hash, user_agent_hash, status, started_at, updated_at
       from game_runs
       where run_id = ${runId}
       limit 1
@@ -305,12 +305,32 @@ exports.handler = async function handler(event) {
         bonus,
         runComplete: body.runComplete
       });
+      /* Endless runs used to submit ONLY on death. A run that lasts an hour and
+         ends with the player closing the tab left the token 'active' forever and
+         the score was lost — the single most common way an endless score never
+         reached the board.
+
+         A checkpoint keeps the run open: the token stays 'active' so started_at
+         remains the true run start (which makes the runtime floor stricter, not
+         weaker), and the leaderboard row is upserted on run_id rather than
+         duplicated. Only the final submission closes the run. */
+      const isCheckpoint = body.runComplete === false && run.mode === "endless";
+
+      // Without a counter column, bound checkpoint spam by requiring a gap
+      // between them. The token expires in 6h, so this caps a run's writes.
+      if (isCheckpoint) {
+        const sinceLastMs = Date.now() - new Date(run.updated_at || run.started_at).getTime();
+        if (sinceLastMs < 45_000) {
+          return reject({ statusCode: 429, error: "Checkpoint too soon", ipHash, playerName, runId, payload, runDbId });
+        }
+      }
+
       const committed = await sql`
         with claimed_run as (
           update game_runs
           set
-            status = 'submitted',
-            submitted_at = now(),
+            status = ${isCheckpoint ? "active" : "submitted"},
+            submitted_at = ${isCheckpoint ? null : new Date().toISOString()},
             player_name = ${playerName},
             score_total = ${scoreTotal},
             bonus_score = ${bonus},
@@ -328,6 +348,12 @@ exports.handler = async function handler(event) {
             ${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount},
             ${run.mode}, ${runId}, ${ipHash}, ${sessionUserId}, ${dailyKey}
           from claimed_run
+          on conflict (run_id) do update set
+            score_total = excluded.score_total,
+            bonus_score = excluded.bonus_score,
+            wave_reached = excluded.wave_reached,
+            kills = excluded.kills,
+            player_name = excluded.player_name
           returning id
         ),
         updated_profile as (

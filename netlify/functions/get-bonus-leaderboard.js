@@ -29,7 +29,7 @@ exports.handler = async function handler() {
         from ranked
         where player_rank = 1
         order by bonus_score desc, wave_reached desc, created_at asc
-        limit 5
+        limit 10
       `;
     } catch (_) {
       rows = await sql`
@@ -54,7 +54,7 @@ exports.handler = async function handler() {
         from ranked
         where player_rank = 1
         order by bonus_score desc, wave_reached desc, created_at asc
-        limit 5
+        limit 10
       `;
     }
 
