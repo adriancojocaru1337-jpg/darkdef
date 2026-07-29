@@ -197,7 +197,10 @@
       rarityBands: Object.freeze([
         Object.freeze({ maxStage: 2, weights: weights(46, 32, 17, 4.5, 0.5) }),
         Object.freeze({ maxStage: 4, weights: weights(31, 34, 25, 9, 1) }),
-        Object.freeze({ maxStage: 6, weights: weights(18, 31, 33, 15.5, 2.5) })
+        Object.freeze({ maxStage: 6, weights: weights(18, 31, 33, 15.5, 2.5) }),
+        Object.freeze({ maxStage: 8, weights: weights(12, 29, 35, 20, 4) }),
+        Object.freeze({ maxStage: 10, weights: weights(8, 24, 38, 24, 6) }),
+        Object.freeze({ maxStage: 12, weights: weights(5, 18, 40, 29, 8) })
       ])
     }),
     boss_endless: Object.freeze({

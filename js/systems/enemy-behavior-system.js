@@ -8,18 +8,27 @@
     const getPosition = options.getPosition || ((enemy) => ({ x: enemy.progress || 0, y: 0 }));
     const events = options.events || DarkDefense.events || null;
     const onActivated = options.onActivated || (() => {});
+    const onCast = options.onCast || (() => false);
 
     function initialize(enemy) {
       if (!enemy || enemy.behavior) return enemy;
       const trait = definitions[enemy.type];
       enemy.behavior = {
         traitId: trait?.id || null,
-        active: trait?.id === "bulwark",
+        active: trait?.id === "bulwark" || trait?.id === "tower_hex" || trait?.id === "ley_ward",
         activatedOnce: false,
+        leaped: false,
+        recharged: false,
+        castTimer: Math.max(0, Number(trait?.initialDelay) || 0),
         speedMultiplier: 1,
         slowFloor: 0,
         protectedByBulwark: false
       };
+      if (trait?.id === "ley_ward") {
+        const shield = Math.max(0, enemy.maxHp || 0) * trait.initialShieldRatio;
+        enemy.shieldHp = Math.max(enemy.shieldHp || 0, shield);
+        enemy.shieldMax = Math.max(enemy.shieldMax || 0, enemy.shieldHp);
+      }
       return enemy;
     }
 
@@ -40,8 +49,9 @@
       });
     }
 
-    function updateAll(enemies) {
+    function updateAll(enemies, dt = 0) {
       if (!Array.isArray(enemies)) return;
+      const elapsed = Math.max(0, Number(dt) || 0);
       enemies.forEach((enemy) => {
         initialize(enemy);
         enemy.behavior.protectedByBulwark = false;
@@ -76,6 +86,45 @@
         if (trait.id === "bulwark") {
           enemy.behavior.active = true;
           announceOnce(enemy, trait);
+        }
+
+        if (trait.id === "cinder_leap") {
+          if (
+            !enemy.behavior.leaped
+            && enemy.hp / Math.max(1, enemy.maxHp) <= trait.triggerHpRatio
+          ) {
+            enemy.behavior.leaped = true;
+            enemy.progress = Math.min(0.985, Math.max(0, enemy.progress || 0) + trait.progressBoost);
+            announceOnce(enemy, trait);
+          }
+          enemy.behavior.active = enemy.behavior.leaped;
+          enemy.behavior.speedMultiplier = enemy.behavior.leaped ? trait.speedMultiplier : 1;
+        }
+
+        if (trait.id === "tower_hex") {
+          enemy.behavior.active = true;
+          const disabled = enemy.freezeTimer > 0 || enemy.stunTimer > 0;
+          if (!disabled && elapsed > 0) {
+            enemy.behavior.castTimer -= elapsed;
+            if (enemy.behavior.castTimer <= 0) {
+              const castSucceeded = onCast(enemy, trait) !== false;
+              enemy.behavior.castTimer = castSucceeded ? trait.cooldown : 0.75;
+              if (castSucceeded) announceOnce(enemy, trait);
+            }
+          }
+        }
+
+        if (trait.id === "ley_ward") {
+          const hpRatio = enemy.hp / Math.max(1, enemy.maxHp);
+          if (!enemy.behavior.recharged && hpRatio <= trait.rechargeHpRatio) {
+            const restored = enemy.maxHp * trait.rechargeShieldRatio;
+            enemy.shieldHp = Math.max(enemy.shieldHp || 0, restored);
+            enemy.shieldMax = Math.max(enemy.shieldMax || 0, enemy.shieldHp);
+            enemy.shieldFxTimer = Math.max(enemy.shieldFxTimer || 0, 1.2);
+            enemy.behavior.recharged = true;
+            announceOnce(enemy, trait);
+          }
+          enemy.behavior.active = (enemy.shieldHp || 0) > 0;
         }
       }
 

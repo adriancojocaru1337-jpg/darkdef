@@ -4,6 +4,17 @@
   const DarkDefense = global.DarkDefense = global.DarkDefense || {};
   const HERO_ID = "varyn";
   const MAX_LEVEL = 20;
+  const HERO_SPRITE_FRAME_SIZE = 128;
+  const HERO_WALK_FRAME_COUNT = 20;
+  const HERO_ATTACK_FRAME_COUNT = 20;
+  const HERO_SPRITE_ATTACK_ROW_OFFSET = 5;
+  const HERO_SPRITE_ROWS = Object.freeze({
+    front: 0,
+    frontQuarter: 1,
+    side: 2,
+    backQuarter: 3,
+    back: 4
+  });
 
   const HERO_DEFINITION = Object.freeze({
     id: HERO_ID,
@@ -20,6 +31,31 @@
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  function selectHeroSpriteFacing(dx, dy) {
+    const horizontal = Number(dx) || 0;
+    const vertical = Number(dy) || 0;
+    const absHorizontal = Math.abs(horizontal);
+    const absVertical = Math.abs(vertical);
+    if (absVertical <= absHorizontal * 0.42) {
+      return { view: "side", flip: horizontal < 0 };
+    }
+    if (absHorizontal <= absVertical * 0.42) {
+      return { view: vertical > 0 ? "front" : "back", flip: false };
+    }
+    return {
+      view: vertical > 0 ? "frontQuarter" : "backQuarter",
+      flip: horizontal < 0
+    };
+  }
+
+  function heroSpriteFacingAngle(facing) {
+    if (facing.view === "front") return Math.PI / 2;
+    if (facing.view === "back") return -Math.PI / 2;
+    if (facing.view === "frontQuarter") return facing.flip ? Math.PI * 0.75 : Math.PI * 0.25;
+    if (facing.view === "backQuarter") return facing.flip ? -Math.PI * 0.75 : -Math.PI * 0.25;
+    return facing.flip ? Math.PI : 0;
   }
 
   function xpForNextLevel(level) {
@@ -72,6 +108,7 @@
     const profileStore = options.profileStore;
     const events = options.events || DarkDefense.events || null;
     const statPipeline = options.statPipeline || null;
+    const spriteSheet = options.spriteSheet || null;
     const getEnemies = options.getEnemies;
     const getPathPosition = options.getPathPosition;
     const dealDamage = options.dealDamage || ((enemy, damage) => {
@@ -93,6 +130,7 @@
     let state = createRunState();
     let lastContext = { active: false, paused: false, difficulty: 1 };
     let uiRefreshTimer = 0;
+    let spriteFacing = { view: "side", flip: false };
 
     function createRunState() {
       const stats = getCurrentStats();
@@ -205,7 +243,7 @@
       let bestDistance = 28;
       for (const enemy of enemies) {
         if (!enemy || enemy.hp <= 0 || enemy.type === "boss") continue;
-        const enemyPosition = getPathPosition(enemy.progress);
+        const enemyPosition = getPathPosition(enemy.progress, enemy);
         const distance = Math.hypot(enemyPosition.x - heroPosition.x, enemyPosition.y - heroPosition.y);
         if (distance < bestDistance) {
           target = enemy;
@@ -220,7 +258,7 @@
       let bestProgress = -Infinity;
       for (const enemy of enemies) {
         if (!enemy || enemy.hp <= 0) continue;
-        const enemyPosition = getPathPosition(enemy.progress);
+        const enemyPosition = getPathPosition(enemy.progress, enemy);
         const distance = Math.hypot(enemyPosition.x - heroPosition.x, enemyPosition.y - heroPosition.y);
         if (distance <= range && enemy.progress > bestProgress) {
           target = { enemy, position: enemyPosition };
@@ -348,7 +386,7 @@
       let targetsHit = 0;
       for (const enemy of getEnemies()) {
         if (!enemy || enemy.hp <= 0) continue;
-        const enemyPosition = getPathPosition(enemy.progress);
+        const enemyPosition = getPathPosition(enemy.progress, enemy);
         const distance = Math.hypot(enemyPosition.x - heroPosition.x, enemyPosition.y - heroPosition.y);
         if (distance > HERO_DEFINITION.abilityRadius) continue;
         const targetMultiplier = enemy.type === "boss" ? stats.bossDamageMultiplier : 1;
@@ -463,6 +501,24 @@
       syncUi();
     }
 
+    function drawHeroHealthBar(ctx, position, stats, barY = -30) {
+      ctx.save();
+      ctx.translate(position.x, position.y);
+      const healthRatio = clamp(state.hp / stats.maxHp, 0, 1);
+      ctx.fillStyle = "rgba(2,6,23,.86)";
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-19, barY, 38, 5, 2);
+      else ctx.rect(-19, barY, 38, 5);
+      ctx.fill();
+      const hpColor = healthRatio > 0.5 ? "#22c55e" : healthRatio > 0.25 ? "#eab308" : "#ef4444";
+      ctx.fillStyle = hpColor;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(-19, barY, 38 * healthRatio, 5, 2);
+      else ctx.rect(-19, barY, 38 * healthRatio, 5);
+      ctx.fill();
+      ctx.restore();
+    }
+
     function draw(ctx) {
       state.pulses.forEach((pulse) => {
         const alpha = clamp(pulse.life / pulse.maxLife, 0, 1);
@@ -526,7 +582,7 @@
       // Ground shadow
       ctx.fillStyle = "rgba(0,0,0,.34)";
       ctx.beginPath();
-      ctx.ellipse(0, 13, 16, 6, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 11, 13, 5, 0, 0, Math.PI * 2);
       ctx.fill();
 
       if (state.commandMode) {
@@ -537,6 +593,123 @@
         ctx.arc(0, 0, 26, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
+      }
+
+      const spriteReady = Boolean(
+        spriteSheet?.complete
+        && spriteSheet.naturalWidth >= HERO_SPRITE_FRAME_SIZE * HERO_WALK_FRAME_COUNT
+        && spriteSheet.naturalHeight >= HERO_SPRITE_FRAME_SIZE * HERO_SPRITE_ATTACK_ROW_OFFSET * 2
+      );
+      if (spriteReady) {
+        const attackElapsed = stats.attackInterval - state.attackCooldown;
+        const attackWindow = 0.26;
+        const attacking = attackElapsed >= 0 && attackElapsed <= attackWindow;
+        const attackPhase = attacking ? clamp(attackElapsed / attackWindow, 0, 1) : 0;
+        const attackShot = attacking && state.shots.length
+          ? state.shots[state.shots.length - 1]
+          : null;
+
+        if (attackShot) {
+          spriteFacing = selectHeroSpriteFacing(
+            attackShot.to.x - attackShot.from.x,
+            attackShot.to.y - attackShot.from.y
+          );
+        } else if (moving) {
+          const travelDirection = state.targetProgress >= state.progress ? 1 : -1;
+          spriteFacing = selectHeroSpriteFacing(
+            (ahead.x - behind.x) * travelDirection,
+            (ahead.y - behind.y) * travelDirection
+          );
+        }
+
+        const walkFrameIndex = moving
+          ? Math.floor(t * 16) % HERO_WALK_FRAME_COUNT
+          : 0;
+        const attackFrameIndex = attacking
+          ? Math.min(
+            HERO_ATTACK_FRAME_COUNT - 1,
+            Math.floor(attackPhase * HERO_ATTACK_FRAME_COUNT)
+          )
+          : 0;
+        const frameIndex = attacking ? attackFrameIndex : walkFrameIndex;
+        const row = HERO_SPRITE_ROWS[spriteFacing.view]
+          + (attacking ? HERO_SPRITE_ATTACK_ROW_OFFSET : 0);
+        const drawSize = 46;
+        const walking = moving && !attacking;
+        const idleBob = walking ? 0 : breathe;
+        const walkPhase = walkFrameIndex / HERO_WALK_FRAME_COUNT * Math.PI * 2;
+        const walkLift = walking ? -Math.abs(Math.sin(walkPhase * 2)) * 2.15 : idleBob;
+        const walkDrift = walking ? Math.sin(walkPhase) * 1.2 : 0;
+        const walkSway = walking ? Math.sin(walkPhase) * 0.045 : 0;
+
+        const attackLunge = attacking
+          ? Math.sin(attackPhase * Math.PI) * 2.8
+          : 0;
+        let attackX = 0;
+        let attackY = 0;
+        if (spriteFacing.view === "side") {
+          attackX = (spriteFacing.flip ? -1 : 1) * attackLunge;
+        } else if (spriteFacing.view === "front") {
+          attackY = attackLunge;
+        } else if (spriteFacing.view === "back") {
+          attackY = -attackLunge;
+        } else {
+          attackX = (spriteFacing.flip ? -1 : 1) * attackLunge * 0.72;
+          attackY = (spriteFacing.view === "frontQuarter" ? 1 : -1) * attackLunge * 0.72;
+        }
+
+        const aura = ctx.createRadialGradient(0, -4, 2, 0, -4, 21);
+        aura.addColorStop(0, "rgba(167,139,250,.13)");
+        aura.addColorStop(0.56, "rgba(245,158,11,.07)");
+        aura.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = aura;
+        ctx.beginPath();
+        ctx.arc(0, -4, 21, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(walkDrift + attackX, walkLift + attackY);
+        ctx.rotate(walkSway * (spriteFacing.flip ? -1 : 1));
+        ctx.scale(spriteFacing.flip ? -1 : 1, 1);
+        ctx.drawImage(
+          spriteSheet,
+          frameIndex * HERO_SPRITE_FRAME_SIZE,
+          row * HERO_SPRITE_FRAME_SIZE,
+          HERO_SPRITE_FRAME_SIZE,
+          HERO_SPRITE_FRAME_SIZE,
+          -drawSize / 2,
+          -drawSize + 13,
+          drawSize,
+          drawSize
+        );
+        ctx.restore();
+
+        if (attacking) {
+          const slashAlpha = Math.sin(attackPhase * Math.PI);
+          ctx.save();
+          ctx.translate(attackX, attackY - 7);
+          ctx.rotate(heroSpriteFacingAngle(spriteFacing));
+          ctx.globalAlpha = slashAlpha * 0.72;
+          ctx.strokeStyle = "#fde68a";
+          ctx.lineWidth = 2.1;
+          ctx.lineCap = "round";
+          ctx.shadowColor = "#a78bfa";
+          ctx.shadowBlur = 7;
+          ctx.beginPath();
+          ctx.arc(0, 0, 19, -1.35 + attackPhase * 0.42, 0.72 + attackPhase * 0.42);
+          ctx.stroke();
+          ctx.globalAlpha = slashAlpha * 0.34;
+          ctx.strokeStyle = "#c4b5fd";
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.arc(0, 0, 22, -1.24 + attackPhase * 0.42, 0.62 + attackPhase * 0.42);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        ctx.restore();
+        drawHeroHealthBar(ctx, position, stats, -40);
+        return;
       }
 
       // Flip so the warden faces the travel direction.
@@ -672,19 +845,7 @@
       ctx.restore(); // undo flip/translate
 
       // --- Health bar (screen-aligned, not flipped) ---
-      ctx.save();
-      ctx.translate(position.x, position.y);
-      const healthRatio = clamp(state.hp / stats.maxHp, 0, 1);
-      ctx.fillStyle = "rgba(2,6,23,.86)";
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(-19, -30, 38, 5, 2); else ctx.rect(-19, -30, 38, 5);
-      ctx.fill();
-      const hpColor = healthRatio > 0.5 ? "#22c55e" : healthRatio > 0.25 ? "#eab308" : "#ef4444";
-      ctx.fillStyle = hpColor;
-      ctx.beginPath();
-      if (ctx.roundRect) ctx.roundRect(-19, -30, 38 * healthRatio, 5, 2); else ctx.rect(-19, -30, 38 * healthRatio, 5);
-      ctx.fill();
-      ctx.restore();
+      drawHeroHealthBar(ctx, position, stats);
     }
 
     function syncUi() {
@@ -750,5 +911,6 @@
   DarkDefense.HERO_DEFINITION = HERO_DEFINITION;
   DarkDefense.heroXpForNextLevel = xpForNextLevel;
   DarkDefense.getHeroStats = getStats;
+  DarkDefense.selectHeroSpriteFacing = selectHeroSpriteFacing;
   DarkDefense.createHeroSystem = createHeroSystem;
 })(typeof window !== "undefined" ? window : globalThis);
