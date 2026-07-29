@@ -32,3 +32,22 @@ test("the command bar updates live state and has responsive themed styling", () 
   assert.match(styles, /\.panel-header-run-status\.is-battle/);
   assert.match(styles, /@media \(max-width:900px\)\{[\s\S]*\.war-council-header/);
 });
+
+test("Endless Mode sits beside Daily Challenge and unlocks after Act I", () => {
+  assert.match(
+    index,
+    /id="dailyChallengeBtn"[\s\S]*id="headerEndlessBtn"[\s\S]*id="panelHeaderRunStatus"/
+  );
+  assert.match(index, /id="headerEndlessBtn"[^>]*disabled[^>]*aria-disabled="true"/);
+  assert.match(index, /id="headerEndlessState">Clear Act I</);
+  assert.match(game, /function refreshHeaderEndlessUI\(\)/);
+  assert.match(game, /const canEnter = endlessUnlocked && !active/);
+  assert.match(
+    game,
+    /if\(options\.unlockEndless\)\{[\s\S]*?endlessUnlocked = true;[\s\S]*?sdcEndlessUnlocked/
+  );
+  assert.match(game, /headerEndlessBtn\?\.addEventListener\("click"/);
+  assert.match(game, /enterEndlessModeFromUnlock\(\)/);
+  assert.match(styles, /\.endless-mode-btn\s*\{/);
+  assert.match(styles, /\.endless-mode-btn:disabled\s*\{/);
+});

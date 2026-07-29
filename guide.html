@@ -4,13 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Ashen Bastion &mdash; Complete Guide: Towers, Enemies, Bosses &amp; Strategy</title>
-  <meta name="description" content="The complete Ashen Bastion guide: how to play, every tower and upgrade, all enemy types, all six bosses with their abilities, Ascension progression, Endless mode, and advanced high-score strategy." />
+  <meta name="description" content="The complete Ashen Bastion guide: how to play, every tower and upgrade, all enemy types, all twelve campaign bosses, Ascension progression, Endless mode, and advanced high-score strategy." />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
   <link rel="canonical" href="https://darkdefense.netlify.app/guide.html" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=77790140b9" />
+  <link rel="stylesheet" href="style.css?v=6037f7faf4" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
   <script src="site-nav.js?v=c199e0a0dd" defer></script>
@@ -294,6 +294,20 @@
   width:100%; aspect-ratio:1/1; object-fit:cover; object-position:center 22%;
   display:block;
 }
+.gd-boss.act-two-boss{
+  border-color:rgba(218,173,91,.16);
+  background:linear-gradient(180deg,rgba(218,173,91,.035),rgba(255,255,255,.022));
+}
+.gd-boss.act-two-boss:hover{ border-color:rgba(218,173,91,.46); }
+.gd-boss.act-two-boss .gd-boss-art img{
+  aspect-ratio:2/3;
+  object-position:center top;
+}
+.gd-boss.act-two-boss .gd-boss-stage{
+  color:#f8ead2;
+  border:1px solid rgba(230,193,125,.38);
+  background:linear-gradient(180deg,rgba(73,54,34,.96),rgba(25,20,18,.96));
+}
 /* Fade the portrait into the card body. */
 .gd-boss-art::after{
   content:"";
@@ -382,7 +396,7 @@
       <div class="gd-banner-inner">
         <div class="gd-eyebrow">Field Manual</div>
         <h1 class="gd-title">Complete Guide</h1>
-        <p class="gd-sub">Everything in one place: the basics, every tower and its specializations, all enemy types, all six bosses and their abilities, Ascension progression, Endless mode, and the strategy that separates a quick loss from a high-score run.</p>
+        <p class="gd-sub">Everything in one place: the basics, every tower and its specializations, all enemy types, both campaign acts and their twelve bosses, Ascension progression, Endless mode, and the strategy that separates a quick loss from a high-score run.</p>
         <div class="gd-banner-actions">
           <a href="/index.html" class="gd-plate">Play Ashen Bastion</a>
         </div>
@@ -423,7 +437,9 @@
         <li><strong>Kill enemies to earn gold</strong>, then spend it on more towers or upgrades. Gold is the only resource during a run.</li>
         <li><strong>Click a tower to upgrade it</strong> or choose a specialization once it reaches the required level.</li>
         <li><strong>Cast spells</strong> when a wave breaks through &mdash; they are your recovery tools, not your opening move.</li>
-        <li><strong>Survive the wave</strong>, then the boss at the end of each stage. Clear six stages to finish the campaign and unlock Endless.</li>
+        <li><strong>Cover both roads in Act II</strong> &mdash; Stages 8 and 10 split once, while Stage 12 splits and reunites twice.</li>
+        <li><strong>Prepare for attrition</strong> &mdash; after every cleared campaign stage, deployed towers return to reserve one level lower. Level-1 towers are lost completely, even when aura-bound.</li>
+        <li><strong>Survive the wave</strong>, then the boss at the end of each stage. Stage 6 unlocks Act II and Endless; clear all twelve stages to finish the campaign.</li>
       </ol>
       <div class="gd-note">Pausing freezes the field &mdash; you can inspect towers, but you can't place new ones until you resume.</div>
 
@@ -551,38 +567,59 @@
       <div class="gd-enemies">
 
         <article class="gd-enemy">
-          <img src="assets/guide/mob_normal.webp" alt="" loading="lazy" />
+          <img src="assets2/guide/mob_normal.webp" alt="" loading="lazy" />
           <div class="gd-enemy-name">Skeleton</div>
           <div class="gd-tags"><span>Baseline HP</span><span>Medium</span><span>+20 gold</span></div>
           <p class="gd-enemy-desc">The standard foot soldier. Balanced and predictable &mdash; the yardstick every other enemy is measured against.</p>
         </article>
 
         <article class="gd-enemy">
-          <img src="assets/guide/mob_fast.webp" alt="" loading="lazy" />
+          <img src="assets2/guide/mob_fast.webp" alt="" loading="lazy" />
           <div class="gd-enemy-name">Runner</div>
           <div class="gd-tags"><span>Low HP</span><span>Very fast</span><span>+16 gold</span></div>
           <p class="gd-enemy-desc"><b>Pack Hunter:</b> gains 16% speed near another Runner. Frost Nova and Cryo split the formation so tracking towers can finish it.</p>
         </article>
 
         <article class="gd-enemy">
-          <img src="assets/guide/mob_tank.webp" alt="" loading="lazy" />
+          <img src="assets2/guide/mob_tank.webp" alt="" loading="lazy" />
           <div class="gd-enemy-name">Tank</div>
           <div class="gd-tags"><span>2&times; HP</span><span>Slow</span><span>+28 gold</span></div>
           <p class="gd-enemy-desc"><b>Last Stand:</b> below 40% HP it accelerates and resists slows. Stuns and freezes still stop it completely.</p>
         </article>
 
         <article class="gd-enemy">
-          <img src="assets/guide/mob_armored.webp" alt="" loading="lazy" />
+          <img src="assets2/guide/mob_armored.webp" alt="" loading="lazy" />
           <div class="gd-enemy-name">Armored</div>
           <div class="gd-tags"><span>~1.5&times; HP</span><span>Steady</span><span>+26 gold</span></div>
           <p class="gd-enemy-desc"><b>Bulwark:</b> nearby allies take 18% less damage. Destroy the armored carrier first with magic, bombs, and Brittle.</p>
         </article>
 
         <article class="gd-enemy">
-          <img src="assets/guide/mob_splitter.webp" alt="" loading="lazy" />
+          <img src="assets2/guide/mob_splitter.webp" alt="" loading="lazy" />
           <div class="gd-enemy-name">Splitter</div>
           <div class="gd-tags"><span>~1.3&times; HP</span><span>Medium</span><span>Splits</span></div>
           <p class="gd-enemy-desc">Appears from stage 3. Bursts into smaller enemies when killed &mdash; splash towers handle the fragments cleanly.</p>
+        </article>
+
+        <article class="gd-enemy">
+          <img src="assets2/enemies/cinder_skirmisher_rig_source.webp" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Cinder Skirmisher</div>
+          <div class="gd-tags"><span>Act II</span><span>Fast</span><span>+26 gold</span></div>
+          <p class="gd-enemy-desc"><b>Cinder Leap:</b> below 55% HP it vaults ahead once, then keeps a 12% speed boost. Burst it down before the threshold or save hard control for the leap.</p>
+        </article>
+
+        <article class="gd-enemy">
+          <img src="assets2/enemies/hollow_binder_rig_source.webp" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Hollow Binder</div>
+          <div class="gd-tags"><span>Act II</span><span>Support</span><span>+30 gold</span></div>
+          <p class="gd-enemy-desc"><b>Tower Hex:</b> disables a nearby tower for 2.2 seconds every seven seconds. Prioritize it before it reaches the center of your formation.</p>
+        </article>
+
+        <article class="gd-enemy">
+          <img src="assets2/enemies/ley_revenant_rig_source.webp" alt="" loading="lazy" />
+          <div class="gd-enemy-name">Ley Revenant</div>
+          <div class="gd-tags"><span>Act II</span><span>Heavy</span><span>+34 gold</span></div>
+          <p class="gd-enemy-desc"><b>Ley Ward:</b> enters with an 18% shield and restores a 24% ward once below 45% HP. Hunter focus and sustained damage prevent it from stalling the line.</p>
         </article>
 
       </div>
@@ -669,6 +706,78 @@
           </div>
         </article>
 
+        <article class="gd-boss act-two-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 7</span>
+            <img src="assets/ui/boss-stage7.webp" alt="Commander Oren at the Broken Gate" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Commander Oren</div>
+            <div class="gd-boss-meta">The Broken Gate &middot; difficulty &times;3.35</div>
+            <p class="gd-boss-ability"><b>Gatekeeper's Guard &rarr; The Last Command</b> &mdash; breaks your burst with a shield, then accelerates for the final push.</p>
+          </div>
+        </article>
+
+        <article class="gd-boss act-two-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 8</span>
+            <img src="assets/ui/boss-stage8.webp" alt="The Ash Shepherd on the Ashen Road" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Ash Shepherd</div>
+            <div class="gd-boss-meta">The Ashen Road &middot; difficulty &times;3.65</div>
+            <p class="gd-boss-ability"><b>Ash Flock &rarr; Cinder Stampede</b> &mdash; floods the road with reinforcements before entering a late rage.</p>
+          </div>
+        </article>
+
+        <article class="gd-boss act-two-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 9</span>
+            <img src="assets/ui/boss-stage9.webp" alt="The Hollow Saint of the abandoned village" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Hollow Saint</div>
+            <div class="gd-boss-meta">The Hollow Village &middot; difficulty &times;3.95</div>
+            <p class="gd-boss-ability"><b>Hollow Grasp &rarr; Lost Congregation</b> &mdash; disables tower coverage, then summons a dense final congregation.</p>
+          </div>
+        </article>
+
+        <article class="gd-boss act-two-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 10</span>
+            <img src="assets/ui/boss-stage10.webp" alt="The Iron Procession at the Sunken Crossing" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Iron Procession</div>
+            <div class="gd-boss-meta">The Sunken Crossing &middot; difficulty &times;4.25</div>
+            <p class="gd-boss-ability"><b>Iron Screen &rarr; Forced March</b> &mdash; absorbs the opening barrage and rushes the crossing at low health.</p>
+          </div>
+        </article>
+
+        <article class="gd-boss act-two-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 11</span>
+            <img src="assets/ui/boss-stage11.webp" alt="The Leybound Titan at the First Flame" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Leybound Titan</div>
+            <div class="gd-boss-meta">The First Flame &middot; difficulty &times;4.65</div>
+            <p class="gd-boss-ability"><b>Ley Snare &rarr; Primordial Ward</b> &mdash; locks key towers before raising its strongest damage-absorbing shell.</p>
+          </div>
+        </article>
+
+        <article class="gd-boss act-two-boss">
+          <div class="gd-boss-art">
+            <span class="gd-boss-stage">Stage 12</span>
+            <img src="assets/ui/boss-stage12.webp" alt="Lord Marshal Vael on the Field of Dawn" loading="lazy" />
+          </div>
+          <div class="gd-boss-body">
+            <div class="gd-boss-name">Lord Marshal Vael</div>
+            <div class="gd-boss-meta">The Field of Dawn &middot; difficulty &times;5.10</div>
+            <p class="gd-boss-ability"><b>Marshal's Guard &rarr; The Final Order</b> &mdash; demands shield discipline first and full control for the final rage.</p>
+          </div>
+        </article>
+
       </div>
       <div class="gd-note"><strong>Boss loot:</strong> every defeated boss secures one deterministic equipment item in your persistent Loot Cache. Open <strong>Inventory &amp; Equipment</strong> with the Bag button or <kbd>I</kbd>, claim the reward, then equip it to Varyn. Equipment changes combat stats immediately, persists after reload, and can be removed without losing the item. Separate Campaign, Endless, and Daily pity counters guarantee a Rare after a short dry streak and an Epic after a longer one; duplicate rewards never advance the counters.</div>
     </section>
@@ -690,7 +799,7 @@
     <!-- Endless -->
     <section class="gd-panel" id="panel-endless" role="tabpanel" aria-labelledby="tab-endless" hidden>
       <h2>Endless mode</h2>
-          <p class="gd-lede">After you clear the campaign, Endless pits you against unlimited waves that scale forever. It's where high scores enter the global Rankings.</p>
+          <p class="gd-lede">Endless unlocks after Act I at Stage 6 and remains available while you advance through Act II. It pits you against unlimited waves that scale forever.</p>
       <ul class="gd-list">
         <li><strong>Doubled enemy health</strong> &mdash; every non-boss mob has 2&times; HP, and health keeps rising each wave.</li>
         <li><strong>Boss pairs with a horde</strong> &mdash; every tenth wave sends two bosses, preceded by a full wave of mobs, not just the pair alone.</li>

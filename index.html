@@ -30,7 +30,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=77790140b9" />
+  <link rel="stylesheet" href="style.css?v=6037f7faf4" />
+  <link rel="stylesheet" href="completion-screen.css?v=9f7d1f3615" />
+  <link rel="stylesheet" href="stage-intermission.css?v=40c17f4d43" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
   <script src="site-nav.js?v=c199e0a0dd" defer></script>
@@ -100,7 +102,7 @@
     <div class="overlay-card overlay-reward">
       <div class="reward-kicker">Boss Reward</div>
       <h1>Choose a legendary aura</h1>
-      <p id="auraRewardText">You defeated the boss. Choose 1 of 3 auras and apply it to a single tower. The aura stays on that tower in the next stages too.</p>
+      <p id="auraRewardText">You defeated the boss. Choose an aura and bind it to one tower. The aura remains only while that tower survives between-stage attrition.</p>
       <div class="boss-loot-reward hidden" id="bossLootReward" aria-live="polite"></div>
       <div class="reward-grid" id="auraRewardList"></div>
       <div class="reward-bonus" id="auraRewardBonus">Stage clear reward: +0 gold</div>
@@ -215,10 +217,15 @@
   <div class="screen-overlay hidden hero-skills-overlay" id="heroSkillsOverlay">
     <section class="overlay-card hero-skills-card" role="dialog" aria-modal="true" aria-labelledby="heroSkillsTitle">
       <header class="hero-skills-header">
-        <div>
-          <div class="reward-kicker">Varyn · Ashen Warden</div>
-          <h1 id="heroSkillsTitle">Hero Skill Tree</h1>
-          <p>Spend one point per hero level after Level 1. Skills combine with equipment through the same combat stat pipeline.</p>
+        <div class="hero-skills-identity">
+          <div class="hero-skills-portrait" aria-hidden="true">
+            <img src="assets/ui/varyn-portrait.webp" alt="" draggable="false">
+          </div>
+          <div class="hero-skills-intro">
+            <div class="reward-kicker"><span id="heroSkillIdentityName">Varyn</span> · Ashen Warden</div>
+            <h1 id="heroSkillsTitle">Hero Skill Tree</h1>
+            <p>Spend one point per hero level after Level 1. Skills combine with equipment through the same combat stat pipeline.</p>
+          </div>
         </div>
         <button class="hero-skills-close" id="closeHeroSkillsBtn" type="button" aria-label="Close hero skill tree">×</button>
       </header>
@@ -243,15 +250,86 @@
   </div>
 
   <div class="screen-overlay hidden gameover-overlay endless-unlocked-overlay" id="endlessUnlockOverlay">
-    <div class="endless-unlocked-artwork" aria-label="Campaign complete. Endless mode unlocked.">
-      <img src="assets/ui/endless-unlocked.jpg" alt="Campaign Complete. Endless Mode Unlocked." />
-      <div class="endless-unlocked-textstack">
-        <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;You thought you’d seen it all. You were wrong.&rdquo;</p>
-        <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Final stage clear reward: +200 gold</p>
+    <div class="endless-unlocked-artwork" aria-label="Act complete. Choose the next campaign path.">
+      <img id="campaignCompleteArtwork" src="assets/ui/act1-complete-background.webp" alt="" />
+      <div class="campaign-complete-shade" aria-hidden="true"></div>
+      <div class="campaign-complete-content">
+        <div class="campaign-complete-heading">
+          <p class="campaign-complete-eyebrow" id="campaignCompleteEyebrow">ACT I COMPLETE</p>
+          <h2 class="campaign-complete-title" id="campaignCompleteTitle">THE EASTERN ROAD OPENS</h2>
+          <p class="campaign-complete-subtitle" id="campaignCompleteSubtitle">ACT II AND ENDLESS MODE ARE NOW AVAILABLE</p>
+          <span class="campaign-complete-divider" aria-hidden="true"><i></i><b>◆</b><i></i></span>
+        </div>
+        <div class="campaign-complete-footer">
+          <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;The portal is broken. The eastern road is not.&rdquo;</p>
+          <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Act I clear reward: +200 gold</p>
+          <div class="campaign-complete-actions">
+            <button class="campaign-complete-btn campaign-complete-btn-primary" id="continueActTwoBtn" type="button">
+              <span>Continue to</span><strong>Act II</strong>
+            </button>
+            <button class="campaign-complete-btn campaign-complete-btn-endless" id="enterEndlessBtn" type="button">
+              <span>Enter</span><strong>Endless</strong>
+            </button>
+            <button class="campaign-complete-btn campaign-complete-btn-secondary" id="backToMenuFromEndlessBtn" type="button">
+              <span>Return to</span><strong>World Map</strong>
+            </button>
+          </div>
+        </div>
       </div>
-      <button class="artwork-hitbox artwork-hitbox-enter" id="enterEndlessBtn" aria-label="Enter Endless">Enter Endless</button>
-      <button class="artwork-hitbox artwork-hitbox-menu" id="backToMenuFromEndlessBtn" aria-label="Back to Menu">Back to Menu</button>
     </div>
+  </div>
+
+  <div class="screen-overlay hidden stage-intermission-overlay" id="stageIntermissionOverlay">
+    <section class="stage-intermission-card" role="dialog" aria-modal="true" aria-labelledby="stageIntermissionTitle">
+      <div class="stage-intermission-ornament" aria-hidden="true"><i></i><b>◆</b><i></i></div>
+      <header class="stage-intermission-header">
+        <p class="stage-intermission-kicker" id="stageIntermissionKicker">STAGE DEBRIEF</p>
+        <h1 id="stageIntermissionTitle">REGION SECURED</h1>
+        <p id="stageIntermissionSubtitle">The army returns to reserve and prepares for the road ahead.</p>
+      </header>
+
+      <div class="stage-intermission-steps" aria-label="Intermission progress">
+        <span class="active" id="stageDebriefStep"><b>1</b> Battle Report</span>
+        <i aria-hidden="true"></i>
+        <span id="stageReserveStep"><b>2</b> Reserve</span>
+      </div>
+
+      <div class="stage-intermission-pane" id="stageDebriefPane">
+        <div class="stage-debrief-rewards" id="stageDebriefRewards"></div>
+        <section class="stage-attrition-panel">
+          <div class="stage-section-heading">
+            <div>
+              <span>Between-stage attrition</span>
+              <h2>Army Condition</h2>
+            </div>
+            <div class="stage-attrition-summary" id="stageAttritionSummary"></div>
+          </div>
+          <div class="stage-attrition-list" id="stageAttritionList"></div>
+        </section>
+      </div>
+
+      <div class="stage-intermission-pane hidden" id="stageReservePane">
+        <div class="stage-next-mission" id="stageNextMission"></div>
+        <section class="stage-reserve-panel">
+          <div class="stage-section-heading">
+            <div>
+              <span>Free redeployment</span>
+              <h2>Reserve Priority</h2>
+            </div>
+            <p>The #1 tower is the first one redeployed from its category.</p>
+          </div>
+          <div class="stage-reserve-list" id="stageReserveList"></div>
+        </section>
+      </div>
+
+      <footer class="stage-intermission-footer">
+        <p id="stageIntermissionHint">Review the battle report before organizing the reserve.</p>
+        <button class="stage-intermission-continue" id="stageIntermissionContinueBtn" type="button">
+          <span>Continue to</span>
+          <strong>Reserve Management</strong>
+        </button>
+      </footer>
+    </section>
   </div>
 
   <main class="app">
@@ -322,6 +400,15 @@
                 <span class="daily-challenge-best" id="dailyChallengeBest"></span>
               </span>
               <span class="daily-challenge-cta" aria-hidden="true">Play ▸</span>
+            </button>
+            <button class="endless-mode-btn is-locked" id="headerEndlessBtn" type="button" disabled aria-disabled="true" title="Clear Act I to unlock Endless Mode">
+              <span class="endless-mode-emoji" aria-hidden="true">♾</span>
+              <span class="endless-mode-copy">
+                <span class="endless-mode-kicker">Survival</span>
+                <span class="endless-mode-name">Endless Mode</span>
+                <span class="endless-mode-state" id="headerEndlessState">Clear Act I</span>
+              </span>
+              <span class="endless-mode-cta" id="headerEndlessCta" aria-hidden="true">🔒</span>
             </button>
           </div>
           <div class="panel-header-run-status is-ready" id="panelHeaderRunStatus" role="status" aria-live="polite">
@@ -394,7 +481,31 @@
               <img class="worldmap-image" id="worldMapImage" src="assets/ui/world-map.webp" alt="World map of Ashen Bastion" />
               <div class="worldmap-hotspots" id="worldMapHotspots"></div>
             </div>
+            <div class="worldmap-act-switch" id="worldMapActSwitch" aria-label="Campaign act">
+              <button class="active" id="worldMapActOneBtn" type="button" aria-pressed="true">
+                <span class="act-switch-emblem" aria-hidden="true">
+                  <img src="assets/ui/act1-emblem.webp" alt="" />
+                </span>
+                <span class="act-switch-copy">
+                  <span class="act-switch-kicker">Origins</span>
+                  <strong>Act I</strong>
+                  <small>Ashen Bastion</small>
+                </span>
+              </button>
+              <span class="act-switch-divider" aria-hidden="true">◆</span>
+              <button id="worldMapActTwoBtn" type="button" aria-pressed="false">
+                <span class="act-switch-emblem" aria-hidden="true">
+                  <img src="assets/ui/act2-emblem.webp" alt="" />
+                </span>
+                <span class="act-switch-copy">
+                  <span class="act-switch-kicker">Eastern Campaign</span>
+                  <strong>Act II</strong>
+                  <small>The Road to Dawn</small>
+                </span>
+              </button>
+            </div>
             <button class="worldmap-resume-chip hidden" id="worldMapResumeBtn" type="button">▶ Resume Run</button>
+            <button class="worldmap-endless-chip hidden" id="worldMapEndlessBtn" type="button">♾ Enter Endless</button>
           </div>
           <div class="canvas-overlay">
             <div class="overlay-chip" id="hintChip">Click empty tiles to place towers. Click towers to upgrade them.</div>
@@ -406,6 +517,21 @@
               <button class="badge ley" id="leyHudBadge" title="Shop — spend Crystals">✦ 0</button>
             </div>
           </div>
+
+          <section class="campaign-objective hidden" id="campaignObjective" aria-live="polite">
+            <div class="campaign-objective-icon" id="campaignObjectiveIcon" aria-hidden="true">🔥</div>
+            <div class="campaign-objective-copy">
+              <span class="campaign-objective-kicker">Act II objective</span>
+              <strong id="campaignObjectiveTitle">Protect the Exodus</strong>
+              <span id="campaignObjectiveDetail">Hold the road until all caravans escape.</span>
+            </div>
+            <div class="campaign-objective-progress">
+              <span id="campaignObjectiveProgress">0 / 3</span>
+              <div class="caravan-pips" id="campaignObjectivePips" aria-hidden="true">
+                <i></i><i></i><i></i>
+              </div>
+            </div>
+          </section>
 
           <div class="map-controls" id="mapControls">
             <button class="map-btn map-btn-start" id="startWaveBtn" title="Start Wave · double-tap for Auto">✦</button>
@@ -437,7 +563,9 @@
 
           <section class="hero-hud" id="heroHud" aria-label="Hero controls">
             <button class="hero-command-btn" id="heroCommandBtn" type="button" aria-pressed="false" title="Select Varyn, then choose a point on the road">
-              <span class="hero-portrait" aria-hidden="true">&#9876;</span>
+              <span class="hero-portrait" aria-hidden="true">
+                <img src="assets/ui/varyn-portrait.webp" alt="" draggable="false">
+              </span>
               <span class="hero-hud-copy">
                 <strong id="heroHudName">Varyn &middot; Lv.1</strong>
                 <span id="heroHudState">230 / 230 HP</span>
@@ -664,19 +792,20 @@
   <script src="js/core/api-client.js?v=8a604d59d6"></script>
   <script src="js/core/run-state-machine.js?v=730624aa27"></script>
   <script src="js/core/run-rng.js?v=e0572e6cbb"></script>
-  <script src="js/content/combat-content.js?v=faa6da462d"></script>
-  <script src="js/content/reward-content.js?v=5a8e4d9f76"></script>
+  <script src="js/content/combat-content.js?v=f74fb37eac"></script>
+  <script src="js/content/reward-content.js?v=137ce21de0"></script>
   <script src="js/content/hero-skill-content.js?v=0a62381034"></script>
-  <script src="js/systems/enemy-behavior-system.js?v=f8d17ef998"></script>
+  <script src="js/systems/enemy-behavior-system.js?v=8ee77a5eed"></script>
   <script src="js/systems/boss-phase-system.js?v=90c571a2dc"></script>
-  <script src="js/systems/hero-system.js?v=8b5e67f0a8"></script>
+  <script src="js/systems/tower-reserve-system.js?v=3a44b2e158"></script>
+  <script src="js/systems/hero-system.js?v=032c9f5d6b"></script>
   <script src="js/systems/reward-generator.js?v=cd51d4e87f"></script>
   <script src="js/systems/reward-inbox.js?v=78e4afff96"></script>
   <script src="js/systems/inventory-system.js?v=1a086c3cfd"></script>
   <script src="js/systems/equipment-system.js?v=68019be46d"></script>
   <script src="js/systems/hero-stat-pipeline.js?v=76b448f708"></script>
   <script src="js/systems/hero-skill-tree-system.js?v=730b549e71"></script>
-  <script src="game.js?v=f011ee4b5d"></script>
+  <script src="game.js?v=97032d8c0b"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>

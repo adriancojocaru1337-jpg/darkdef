@@ -1,10 +1,11 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Painted map assets shared with Ashen Bastion Mobile. Images load
-// asynchronously; the existing procedural renderer remains as a fallback.
+// Painted battlefield assets. Act I keeps the original six grounds while
+// Act II loads six dedicated generated biomes. Images load asynchronously;
+// the procedural renderer remains as a fallback.
 const stageGroundTextures = {};
-for(let stage = 1; stage <= 6; stage++){
+for(let stage = 1; stage <= 12; stage++){
   const image = new Image();
   image.decoding = "async";
   image.src = `assets/terrain/ground_${stage}.webp`;
@@ -95,6 +96,7 @@ const heroSkillLevel = document.getElementById("heroSkillLevel");
 const heroSkillAvailable = document.getElementById("heroSkillAvailable");
 const heroSkillSpent = document.getElementById("heroSkillSpent");
 const heroSkillDamage = document.getElementById("heroSkillDamage");
+const heroSkillIdentityName = document.getElementById("heroSkillIdentityName");
 const heroSkillBranches = document.getElementById("heroSkillBranches");
 const heroSkillFeedback = document.getElementById("heroSkillFeedback");
 const heroSkillRespecBtn = document.getElementById("heroSkillRespecBtn");
@@ -140,6 +142,16 @@ const startOverlay = document.getElementById("startOverlay");
 const worldMapOverlay = document.getElementById("worldMapLayer");
 const worldMapBoard = document.getElementById("worldMapHotspots");
 const worldMapResumeBtn = document.getElementById("worldMapResumeBtn");
+const worldMapEndlessBtn = document.getElementById("worldMapEndlessBtn");
+const worldMapImage = document.getElementById("worldMapImage");
+const worldMapActOneBtn = document.getElementById("worldMapActOneBtn");
+const worldMapActTwoBtn = document.getElementById("worldMapActTwoBtn");
+const campaignObjective = document.getElementById("campaignObjective");
+const campaignObjectiveIcon = document.getElementById("campaignObjectiveIcon");
+const campaignObjectiveTitle = document.getElementById("campaignObjectiveTitle");
+const campaignObjectiveDetail = document.getElementById("campaignObjectiveDetail");
+const campaignObjectiveProgress = document.getElementById("campaignObjectiveProgress");
+const campaignObjectivePips = document.getElementById("campaignObjectivePips");
 const gameOverOverlay = document.getElementById("gameOverOverlay");
 const leaderboardNameOverlay = document.getElementById("leaderboardNameOverlay");
 const leaderboardNameTitle = document.getElementById("leaderboardNameTitle");
@@ -149,6 +161,9 @@ const leaderboardNameSubmitBtn = document.getElementById("leaderboardNameSubmitB
 const leaderboardNameCancelBtn = document.getElementById("leaderboardNameCancelBtn");
 const startGameBtn = document.getElementById("startGameBtn");
 const dailyChallengeBtn = document.getElementById("dailyChallengeBtn");
+const headerEndlessBtn = document.getElementById("headerEndlessBtn");
+const headerEndlessState = document.getElementById("headerEndlessState");
+const headerEndlessCta = document.getElementById("headerEndlessCta");
 const openWorldMapBtn = document.getElementById("openWorldMapBtn");
 const dailyChallengeEmoji = document.getElementById("dailyChallengeEmoji");
 const dailyChallengeName = document.getElementById("dailyChallengeName");
@@ -180,10 +195,29 @@ const bossLootReward = document.getElementById("bossLootReward");
 const endlessUnlockOverlay = document.getElementById("endlessUnlockOverlay");
 const endlessUnlockText = document.getElementById("endlessUnlockText");
 const endlessUnlockReward = document.getElementById("endlessUnlockReward");
+const campaignCompleteArtwork = document.getElementById("campaignCompleteArtwork");
+const campaignCompleteEyebrow = document.getElementById("campaignCompleteEyebrow");
+const campaignCompleteTitle = document.getElementById("campaignCompleteTitle");
+const campaignCompleteSubtitle = document.getElementById("campaignCompleteSubtitle");
+const continueActTwoBtn = document.getElementById("continueActTwoBtn");
 const enterEndlessBtn = document.getElementById("enterEndlessBtn");
 const backToMenuFromEndlessBtn = document.getElementById("backToMenuFromEndlessBtn");
 const endlessUnlockArtwork = document.querySelector(".endless-unlocked-artwork");
-const endlessUnlockArtworkImage = endlessUnlockArtwork?.querySelector("img");
+const stageIntermissionOverlay = document.getElementById("stageIntermissionOverlay");
+const stageIntermissionKicker = document.getElementById("stageIntermissionKicker");
+const stageIntermissionTitle = document.getElementById("stageIntermissionTitle");
+const stageIntermissionSubtitle = document.getElementById("stageIntermissionSubtitle");
+const stageDebriefStep = document.getElementById("stageDebriefStep");
+const stageReserveStep = document.getElementById("stageReserveStep");
+const stageDebriefPane = document.getElementById("stageDebriefPane");
+const stageReservePane = document.getElementById("stageReservePane");
+const stageDebriefRewards = document.getElementById("stageDebriefRewards");
+const stageAttritionSummary = document.getElementById("stageAttritionSummary");
+const stageAttritionList = document.getElementById("stageAttritionList");
+const stageNextMission = document.getElementById("stageNextMission");
+const stageReserveList = document.getElementById("stageReserveList");
+const stageIntermissionHint = document.getElementById("stageIntermissionHint");
+const stageIntermissionContinueBtn = document.getElementById("stageIntermissionContinueBtn");
 
 const unitButtons = document.querySelectorAll(".map-unit-btn");
 const unitInfoPanel = document.getElementById("unitInfoPanel");
@@ -376,6 +410,10 @@ function clampTowerMenuPosition(targetLeft, targetTop){
 const COLS = 18, ROWS = 10, CELL = 56;
 const START_LIVES = 20, START_MONEY = 300;
 
+const heroBattlefieldSprite = new Image();
+heroBattlefieldSprite.decoding = "async";
+heroBattlefieldSprite.src = "assets/ui/varyn-battlefield-walk.webp";
+
 const towerSpriteSources = {
   archer: "assets/towers/archer.webp",
   hunter: "assets/towers/hunter.webp",
@@ -396,29 +434,44 @@ loadTowerSprites();
 // fallbacks; normal rendering uses 12-frame Bone2D exports for each direction.
 const enemyArtSources = {
   normal: {
-    front: "assets/enemies/normal_rig_source.webp",
-    side: "assets/enemies/normal_side_rig_source.webp",
-    back: "assets/enemies/normal_back_rig_source.webp"
+    front: "assets2/enemies/normal_rig_source.webp",
+    side: "assets2/enemies/normal_side_rig_source.webp",
+    back: "assets2/enemies/normal_back_rig_source.webp"
   },
   fast: {
-    front: "assets/enemies/fast_rig_source.webp",
-    side: "assets/enemies/fast_side_rig_source.webp",
-    back: "assets/enemies/fast_back_rig_source.webp"
+    front: "assets2/enemies/fast_rig_source.webp",
+    side: "assets2/enemies/fast_side_rig_source.webp",
+    back: "assets2/enemies/fast_back_rig_source.webp"
   },
   armored: {
-    front: "assets/enemies/armored_rig_source.webp",
-    side: "assets/enemies/armored_side_rig_source.webp",
-    back: "assets/enemies/armored_back_rig_source.webp"
+    front: "assets2/enemies/armored_rig_source.webp",
+    side: "assets2/enemies/armored_side_rig_source.webp",
+    back: "assets2/enemies/armored_back_rig_source.webp"
   },
   tank: {
-    front: "assets/enemies/tank_rig_source.webp",
-    side: "assets/enemies/tank_side_rig_source.webp",
-    back: "assets/enemies/tank_back_rig_source.webp"
+    front: "assets2/enemies/tank_rig_source.webp",
+    side: "assets2/enemies/tank_side_rig_source.webp",
+    back: "assets2/enemies/tank_back_rig_source.webp"
   },
   splitter: {
-    front: "assets/enemies/splitter_rig_source.webp",
-    side: "assets/enemies/splitter_side_rig_source.webp",
-    back: "assets/enemies/splitter_back_rig_source.webp"
+    front: "assets2/enemies/splitter_rig_source.webp",
+    side: "assets2/enemies/splitter_side_rig_source.webp",
+    back: "assets2/enemies/splitter_back_rig_source.webp"
+  },
+  cinder_skirmisher: {
+    front: "assets2/enemies/cinder_skirmisher_rig_source.webp",
+    side: "assets2/enemies/cinder_skirmisher_side_rig_source.webp",
+    back: "assets2/enemies/cinder_skirmisher_back_rig_source.webp"
+  },
+  hollow_binder: {
+    front: "assets2/enemies/hollow_binder_rig_source.webp",
+    side: "assets2/enemies/hollow_binder_side_rig_source.webp",
+    back: "assets2/enemies/hollow_binder_back_rig_source.webp"
+  },
+  ley_revenant: {
+    front: "assets2/enemies/ley_revenant_rig_source.webp",
+    side: "assets2/enemies/ley_revenant_side_rig_source.webp",
+    back: "assets2/enemies/ley_revenant_back_rig_source.webp"
   }
 };
 const enemyArt = {};
@@ -433,7 +486,7 @@ function loadEnemyRigSheets(){
     Object.entries(views).forEach(([view, fallbackSrc]) => {
       const img = new Image();
       img.decoding = "async";
-      img.src = `assets/enemies/animated/${type}_${view}_walk.webp`;
+      img.src = `assets2/enemies/animated/${type}_${view}_walk.webp`;
       img.onerror = () => {
         const fallback = new Image();
         fallback.decoding = "async";
@@ -446,16 +499,16 @@ function loadEnemyRigSheets(){
 }
 loadEnemyRigSheets();
 
-// Godot Bone2D cutout walk sheets for the six campaign bosses, baked to the same
-// 12-frame / 128px format as the regular mobs. One sheet per stage per view.
+// Dedicated cutout walk sheets for all twelve campaign bosses, baked to the
+// same 12-frame / 128px format as the regular mobs. One sheet per stage/view.
 const bossRigSheets = {};
 function loadBossRigSheets(){
-  for(let stage = 1; stage <= 6; stage++){
+  for(let stage = 1; stage <= 12; stage++){
     bossRigSheets[stage] = {};
     ["front", "side", "back"].forEach((view) => {
       const img = new Image();
       img.decoding = "async";
-      img.src = `assets/enemies/animated/boss${stage}_${view}_walk.webp`;
+      img.src = `assets2/enemies/animated/boss${stage}_${view}_walk.webp`;
       bossRigSheets[stage][view] = img;
     });
   }
@@ -468,7 +521,13 @@ const bossSplashSources = {
   3: "assets/ui/boss-stage3.jpg",
   4: "assets/ui/boss-stage4.jpg",
   5: "assets/ui/boss-stage5.jpg",
-  6: "assets/ui/boss-stage6.jpg"
+  6: "assets/ui/boss-stage6.jpg",
+  7: "assets/ui/boss-stage7.webp",
+  8: "assets/ui/boss-stage8.webp",
+  9: "assets/ui/boss-stage9.webp",
+  10: "assets/ui/boss-stage10.webp",
+  11: "assets/ui/boss-stage11.webp",
+  12: "assets/ui/boss-stage12.webp"
 };
 const bossSplashImages = {};
 function loadBossSplashImages(){
@@ -525,8 +584,87 @@ const STAGES = {
     route:[{c:0,r:2},{c:5,r:2},{c:5,r:7},{c:8,r:7},{c:8,r:2},{c:13,r:2},{c:13,r:7},{c:17,r:7}],
     blocked:[{c:4,r:3},{c:9,r:3},{c:7,r:6},{c:16,r:1},{c:11,r:4}], ley:[{c:6,r:4,kind:"damage"},{c:10,r:1,kind:"range"}],
     grassPatches:[{x:86,y:42,w:120,h:62},{x:752,y:344,w:166,h:84},{x:500,y:458,w:124,h:52}],
-    ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]}
+    ruins:[{x:184,y:144},{x:492,y:340},{x:856,y:214},{x:952,y:430}]},
+  7: { name:"The Broken Gate", bossWave:8, difficulty:3.35, bossAbility:"shield",
+    act:2, terrainStage:7, bossArtStage:7, musicStage:7,
+    objective:{ type:"evacuation", icon:"🔥", title:"Protect the Exodus", detail:"Hold the road until all caravans escape.", unitLabel:"caravan", groups:3, waveMilestones:[2,5,7], rewardGold:35 },
+    enemyWeights:{ fast:.18, tank:.20, splitter:.16, armored:.22 },
+    specialEnemyWeights:{ cinder_skirmisher:.12 },
+    route:[{c:0,r:8},{c:2,r:8},{c:2,r:4},{c:5,r:4},{c:5,r:1},{c:9,r:1},{c:9,r:6},{c:13,r:6},{c:13,r:3},{c:17,r:3}],
+    blocked:[{c:1,r:3},{c:3,r:6},{c:4,r:2},{c:7,r:4},{c:10,r:8},{c:11,r:3},{c:15,r:6}],
+    ley:[{c:4,r:5,kind:"range"},{c:11,r:5,kind:"damage"}],
+    grassPatches:[{x:52,y:54,w:150,h:70},{x:418,y:394,w:146,h:66},{x:790,y:286,w:150,h:82}],
+    ruins:[{x:116,y:212},{x:350,y:102},{x:642,y:334},{x:892,y:170}]},
+  8: { name:"The Ashen Road", bossWave:7, difficulty:3.65, bossAbility:"summon",
+    act:2, terrainStage:8, bossArtStage:8, musicStage:8,
+    objective:{ type:"escort", icon:"🛞", title:"Secure the Supply Train", detail:"Keep three supply wagons moving east.", unitLabel:"wagon", groups:3, waveMilestones:[2,4,6], rewardGold:45 },
+    enemyWeights:{ fast:.30, tank:.12, splitter:.22, armored:.14 },
+    specialEnemyWeights:{ cinder_skirmisher:.16 },
+    route:[{c:0,r:5},{c:3,r:5},{c:3,r:2},{c:8,r:2},{c:8,r:5},{c:12,r:5},{c:12,r:1},{c:17,r:1}],
+    branches:[
+      [{c:0,r:5},{c:3,r:5},{c:3,r:8},{c:8,r:8},{c:8,r:5},{c:12,r:5},{c:12,r:1},{c:17,r:1}]
+    ],
+    junctions:[{c:3,r:5,kind:"split"},{c:8,r:5,kind:"merge"}],
+    blocked:[{c:1,r:2},{c:5,r:4},{c:6,r:6},{c:10,r:3},{c:13,r:4},{c:15,r:7}],
+    ley:[{c:5,r:1,kind:"damage"},{c:10,r:6,kind:"range"}],
+    grassPatches:[{x:62,y:72,w:132,h:66},{x:392,y:362,w:164,h:84},{x:776,y:74,w:150,h:72}],
+    trees:[{x:104,y:136},{x:286,y:438},{x:704,y:118},{x:934,y:408}]},
+  9: { name:"The Hollow Village", bossWave:8, difficulty:3.95, bossAbility:"roots",
+    act:2, terrainStage:9, bossArtStage:9, musicStage:9,
+    objective:{ type:"rescue", icon:"🕯️", title:"Find the Survivors", detail:"Reach three shelters before they are overrun.", unitLabel:"shelter", groups:3, waveMilestones:[2,5,7], rewardLives:1 },
+    enemyWeights:{ fast:.14, tank:.16, splitter:.38, armored:.12 },
+    specialEnemyWeights:{ cinder_skirmisher:.06, hollow_binder:.10 },
+    route:[{c:0,r:7},{c:4,r:7},{c:4,r:3},{c:1,r:3},{c:1,r:1},{c:9,r:1},{c:9,r:4},{c:14,r:4},{c:14,r:8},{c:17,r:8}],
+    blocked:[{c:2,r:5},{c:3,r:9},{c:6,r:3},{c:8,r:6},{c:11,r:2},{c:12,r:7},{c:16,r:4}],
+    ley:[{c:3,r:2,kind:"range"},{c:11,r:5,kind:"damage"}],
+    grassPatches:[{x:88,y:50,w:140,h:58},{x:454,y:402,w:140,h:72},{x:798,y:262,w:146,h:76}],
+    ruins:[{x:132,y:286},{x:366,y:122},{x:612,y:328},{x:862,y:156}]},
+  10: { name:"The Sunken Crossing", bossWave:8, difficulty:4.25, bossAbility:"shield",
+    act:2, terrainStage:10, bossArtStage:10, musicStage:10,
+    objective:{ type:"fortify", icon:"⚓", title:"Stabilize the Crossing", detail:"Secure three bridge anchors during the assault.", unitLabel:"anchor", groups:3, waveMilestones:[2,4,7], rewardGold:55 },
+    enemyWeights:{ fast:.12, tank:.24, splitter:.12, armored:.34 },
+    specialEnemyWeights:{ hollow_binder:.14 },
+    route:[{c:0,r:3},{c:4,r:3},{c:4,r:1},{c:10,r:1},{c:10,r:6},{c:14,r:6},{c:14,r:4},{c:17,r:4}],
+    branches:[
+      [{c:0,r:3},{c:4,r:3},{c:4,r:8},{c:10,r:8},{c:10,r:6},{c:14,r:6},{c:14,r:4},{c:17,r:4}]
+    ],
+    junctions:[{c:4,r:3,kind:"split"},{c:10,r:6,kind:"merge"}],
+    blocked:[{c:1,r:7},{c:2,r:1},{c:6,r:5},{c:8,r:3},{c:11,r:3},{c:12,r:8},{c:15,r:2}],
+    ley:[{c:6,r:2,kind:"damage"},{c:12,r:5,kind:"range"}],
+    grassPatches:[{x:76,y:352,w:156,h:72},{x:424,y:54,w:144,h:68},{x:766,y:356,w:158,h:76}],
+    ruins:[{x:112,y:102},{x:346,y:332},{x:654,y:160},{x:888,y:356}]},
+  11: { name:"The First Flame", bossWave:9, difficulty:4.65, bossAbility:"roots",
+    act:2, terrainStage:11, bossArtStage:11, musicStage:11,
+    objective:{ type:"attunement", icon:"✦", title:"Awaken the Ley Beacons", detail:"Attune three beacons to strengthen your spells.", unitLabel:"beacon", groups:3, waveMilestones:[3,6,8], rewardCooldown:4 },
+    enemyWeights:{ fast:.18, tank:.32, splitter:.18, armored:.16 },
+    specialEnemyWeights:{ hollow_binder:.06, ley_revenant:.09 },
+    route:[{c:0,r:5},{c:3,r:5},{c:3,r:1},{c:7,r:1},{c:7,r:8},{c:11,r:8},{c:11,r:3},{c:15,r:3},{c:15,r:6},{c:17,r:6}],
+    blocked:[{c:1,r:2},{c:2,r:8},{c:5,r:4},{c:6,r:6},{c:9,r:2},{c:10,r:5},{c:13,r:7},{c:16,r:1}],
+    ley:[{c:5,r:2,kind:"damage"},{c:13,r:4,kind:"range"}],
+    grassPatches:[{x:64,y:62,w:148,h:74},{x:410,y:376,w:156,h:80},{x:786,y:66,w:152,h:70}],
+    ruins:[{x:126,y:196},{x:372,y:96},{x:642,y:354},{x:882,y:182}]},
+  12: { name:"The Field of Dawn", bossWave:10, difficulty:5.10, bossAbility:"rage",
+    act:2, terrainStage:12, bossArtStage:12, musicStage:12,
+    objective:{ type:"rally", icon:"☀️", title:"Hold the Final Line", detail:"Rally all three defense lines before Vael arrives.", unitLabel:"line", groups:3, waveMilestones:[3,6,9], rewardGold:70, rewardLives:1 },
+    enemyWeights:{ fast:.22, tank:.22, splitter:.22, armored:.22 },
+    specialEnemyWeights:{ cinder_skirmisher:.03, hollow_binder:.04, ley_revenant:.05 },
+    route:[{c:0,r:6},{c:3,r:6},{c:3,r:2},{c:7,r:2},{c:7,r:5},{c:11,r:5},{c:11,r:1},{c:15,r:1},{c:15,r:5},{c:17,r:5}],
+    branches:[
+      [{c:0,r:6},{c:3,r:6},{c:3,r:8},{c:7,r:8},{c:7,r:5},{c:11,r:5},{c:11,r:9},{c:15,r:9},{c:15,r:5},{c:17,r:5}]
+    ],
+    junctions:[
+      {c:3,r:6,kind:"split"},{c:7,r:5,kind:"merge"},
+      {c:11,r:5,kind:"split"},{c:15,r:5,kind:"merge"}
+    ],
+    blocked:[{c:1,r:2},{c:5,r:4},{c:5,r:6},{c:9,r:2},{c:9,r:8},{c:13,r:5},{c:16,r:2}],
+    ley:[{c:5,r:5,kind:"damage"},{c:13,r:4,kind:"range"}],
+    grassPatches:[{x:58,y:64,w:142,h:64},{x:396,y:382,w:152,h:72},{x:780,y:292,w:158,h:76}],
+    trees:[{x:112,y:146},{x:298,y:448},{x:702,y:110},{x:918,y:386}]}
 };
+
+const ACT_ONE_FINAL_STAGE = 6;
+const CAMPAIGN_FINAL_STAGE = Math.max(...Object.keys(STAGES).map(Number));
+const ENDLESS_BOSS_STAGE_IDS = Object.freeze([1,2,3,4,5,6]);
 
 const WORLDMAP_META = {
   1: { icon:"🌲", color:"#84cc16", blurb:"Where it begins. Ancient roots stir." },
@@ -534,7 +672,13 @@ const WORLDMAP_META = {
   3: { icon:"⚰️", color:"#a78bfa", blurb:"The dead do not rest easily here." },
   4: { icon:"🏰", color:"#60a5fa", blurb:"Shielded walls guard a dark throne." },
   5: { icon:"💀", color:"#f43f5e", blurb:"Deep tunnels seething with fury." },
-  6: { icon:"🌀", color:"#c084fc", blurb:"The rift itself. The final stand." }
+  6: { icon:"🌀", color:"#c084fc", blurb:"The rift itself. The final stand." },
+  7: { icon:"🔥", color:"#fb923c", blurb:"Open the eastern gate. Protect the Exodus." },
+  8: { icon:"🛞", color:"#f59e0b", blurb:"Two ash roads divide the supply train." },
+  9: { icon:"🕯️", color:"#d8b4fe", blurb:"Search the abandoned homes for survivors." },
+  10: { icon:"⚓", color:"#7dd3fc", blurb:"Secure both drowned approaches to the crossing." },
+  11: { icon:"✦", color:"#e879f9", blurb:"Awaken the beacons around the First Flame." },
+  12: { icon:"☀️", color:"#fde68a", blurb:"The final road divides and reunites twice." }
 };
 
 const stageFxState = {
@@ -570,7 +714,13 @@ const STAGE_VEGETATION = {
   3:[{x:110,y:118,size:19,kind:'thorn',phase:0.6},{x:382,y:448,size:22,kind:'thorn',phase:1.9},{x:932,y:278,size:18,kind:'thorn',phase:2.8}],
   4:[{x:116,y:432,size:18,kind:'ivy',phase:0.5},{x:708,y:106,size:20,kind:'ivy',phase:1.5},{x:904,y:426,size:17,kind:'ivy',phase:2.4}],
   5:[{x:174,y:98,size:20,kind:'moss',phase:0.9},{x:438,y:316,size:18,kind:'moss',phase:1.8},{x:910,y:430,size:22,kind:'moss',phase:2.9}],
-  6:[{x:102,y:78,size:18,kind:'voidbloom',phase:0.2},{x:572,y:466,size:20,kind:'voidbloom',phase:1.7},{x:896,y:342,size:19,kind:'voidbloom',phase:2.5}]
+  6:[{x:102,y:78,size:18,kind:'voidbloom',phase:0.2},{x:572,y:466,size:20,kind:'voidbloom',phase:1.7},{x:896,y:342,size:19,kind:'voidbloom',phase:2.5}],
+  7:[{x:94,y:86,size:18,kind:'deadbush',phase:0.4},{x:542,y:452,size:21,kind:'grass',phase:1.6},{x:884,y:310,size:18,kind:'deadbush',phase:2.7}],
+  8:[{x:116,y:118,size:18,kind:'deadbush',phase:0.2},{x:602,y:438,size:22,kind:'grass',phase:1.4},{x:892,y:150,size:17,kind:'deadbush',phase:2.8}],
+  9:[{x:108,y:104,size:19,kind:'thorn',phase:0.5},{x:438,y:448,size:21,kind:'thorn',phase:1.7},{x:910,y:282,size:18,kind:'moss',phase:2.6}],
+  10:[{x:122,y:392,size:18,kind:'ivy',phase:0.3},{x:586,y:102,size:20,kind:'deadbush',phase:1.8},{x:900,y:410,size:18,kind:'ivy',phase:2.5}],
+  11:[{x:102,y:82,size:20,kind:'voidbloom',phase:0.4},{x:536,y:452,size:22,kind:'voidbloom',phase:1.5},{x:888,y:298,size:20,kind:'thorn',phase:2.9}],
+  12:[{x:118,y:118,size:20,kind:'grass',phase:0.2},{x:598,y:438,size:22,kind:'bush',phase:1.6},{x:906,y:146,size:19,kind:'fern',phase:2.7}]
 };
 
 const UNIT_TYPES = {
@@ -774,7 +924,13 @@ const STAGE_CLEAR_GOLD_REWARD = {
   3: 120,
   4: 140,
   5: 160,
-  6: 200
+  6: 200,
+  7: 240,
+  8: 260,
+  9: 280,
+  10: 300,
+  11: 340,
+  12: 400
 };
 
 function getStageClearGoldReward(stage){
@@ -787,7 +943,13 @@ const STAGE_BOSS = {
   3: { name: "Grave Necromancer", color: "#a78bfa" },
   4: { name: "Iron Castellan", color: "#f59e0b" },
   5: { name: "Catacomb Devourer", color: "#fb7185" },
-  6: { name: "Dark Portal Overlord", color: "#c084fc" }
+  6: { name: "Dark Portal Overlord", color: "#c084fc" },
+  7: { name: "Commander Oren", color: "#fb923c" },
+  8: { name: "Ash Shepherd", color: "#f59e0b" },
+  9: { name: "Hollow Saint", color: "#d8b4fe" },
+  10: { name: "Iron Procession", color: "#7dd3fc" },
+  11: { name: "Leybound Titan", color: "#e879f9" },
+  12: { name: "Lord Marshal Vael", color: "#fde68a" }
 };
 
 const BOSS_ABILITY_META = {
@@ -844,7 +1006,7 @@ const AURA_REWARDS = {
 const FONT_UI = '"Inter", Arial, Helvetica, sans-serif';
 const FONT_DISPLAY = '"Cinzel", Georgia, "Times New Roman", serif';
 
-let currentStage = 1, path = STAGES[currentStage].route, pathCells = buildPathCells(path);
+let currentStage = 1, paths = getStageRoutes(currentStage), path = paths[0], pathCells = buildPathCells(paths);
 let units = [], enemies = [], projectiles = [], particles = [], popups = [], placementEffects = [], upgradeEffects = [], impactBursts = [], screenFlashes = [];
 let money = START_MONEY, lives = START_LIVES, score = 0, bonusScore = 0, kills = 0;
 let gameOverTriggered = false;
@@ -852,6 +1014,7 @@ let wave = 1, stageWave = 1, waveActive = false, spawnLeft = 0, selectedUnitType
 let isHudManuallyHidden = false, isPlacementHudAutoHidden = false;
 let spawnTimer = 0, idCounter = 1, lastTime = 0, hoveredCell = null, isPaused = false, hasStarted = false, bossBannerTimer = 0, stageStartLives = START_LIVES;
 let currentMode = "campaign", endlessUnlocked = false;
+let stageObjectiveState = { stage:1, progress:0 };
 
 /* ============================================================
    CHALLENGE OF THE DAY
@@ -1063,6 +1226,38 @@ function refreshDailyChallengeUI(){
   }
 }
 
+function refreshHeaderEndlessUI(){
+  if(!headerEndlessBtn) return;
+  const active = currentMode === "endless" && !dailyChallengeActive;
+  const canEnter = endlessUnlocked && !active;
+
+  headerEndlessBtn.disabled = !canEnter;
+  headerEndlessBtn.setAttribute("aria-disabled", String(!canEnter));
+  headerEndlessBtn.classList.toggle("is-locked", !endlessUnlocked);
+  headerEndlessBtn.classList.toggle("is-active", active);
+
+  if(!endlessUnlocked){
+    headerEndlessBtn.title = "Clear Act I to unlock Endless Mode";
+    if(headerEndlessState) headerEndlessState.textContent = "Clear Act I";
+    if(headerEndlessCta) headerEndlessCta.textContent = "🔒";
+    return;
+  }
+  if(active){
+    headerEndlessBtn.title = `Endless Mode is active — Wave ${stageWave}`;
+    if(headerEndlessState) headerEndlessState.textContent = `Wave ${stageWave}`;
+    if(headerEndlessCta) headerEndlessCta.textContent = "Active";
+    return;
+  }
+
+  headerEndlessBtn.title = "Enter Endless Mode";
+  if(headerEndlessState){
+    headerEndlessState.textContent = bestEndlessWave > 0
+      ? `Best: Wave ${bestEndlessWave}`
+      : "Unlocked";
+  }
+  if(headerEndlessCta) headerEndlessCta.textContent = "Play ▸";
+}
+
 let comboCount = 0, comboTimer = 0, comboPop = 0, comboBest = 0;
 let waveCallBonus = 0, waveCallBonusMax = 0;
 const WAVE_CALL_DECAY_SECONDS = 30;
@@ -1130,14 +1325,18 @@ const GAME_OVER_QUOTES = [
   "“Every fall teaches the next stand.”"
 ];
 
-const ENDLESS_UNLOCK_QUOTES = [
-  "“You thought you’d seen it all. You were wrong.”",
-  "“The quiet wasn’t peace… it was a warning.”",
-  "“Something ancient just woke up.”",
-  "“The shadows have been waiting for this moment.”",
-  "“What comes next was never meant to be seen.”",
-  "“The darkness didn’t retreat. It regrouped.”",
-  "“You’ve crossed the threshold. Now the unknown crosses back.”"
+const ACT_ONE_COMPLETE_QUOTES = [
+  "The portal is broken. The eastern road is not.",
+  "One darkness fell. Another waits beyond the gate.",
+  "The Bastion still stands, but the war has moved east.",
+  "Victory opened the road. It did not make it safe."
+];
+
+const ACT_TWO_COMPLETE_QUOTES = [
+  "Dawn came because the line refused to break.",
+  "The field is silent. The Bastion remembers every tower.",
+  "Vael has fallen. The road belongs to the living again.",
+  "This war is won. Endless darkness still remembers your name."
 ];
 
 const STAGE_QUOTES = [
@@ -1214,6 +1413,9 @@ let pendingAuraDraft = null;
 let pendingAuraChoice = null;
 let pendingBossResolution = null;
 let pendingLootReward = null;
+let campaignCompletionMode = null;
+let campaignCompletionRewardText = "";
+let pendingStageIntermission = null;
 let pendingEndlessBossPair = [];
 let lastEndlessBossPairKey = "";
 let runEndlessBossPairsDefeated = 0;
@@ -1328,14 +1530,41 @@ function resetRunRng(){
 const enemyBehaviorSystem = window.DarkDefense.createEnemyBehaviorSystem({
   definitions: window.DarkDefense.ENEMY_TRAITS,
   events: window.DarkDefense.events,
-  getPosition: (enemy) => getPathPosition(enemy.progress),
+  getPosition: (enemy) => getEnemyPosition(enemy),
   onActivated: (enemy, trait) => {
-    const pos = getPathPosition(enemy.progress);
+    const pos = getEnemyPosition(enemy);
     showPopup(pos.x, pos.y - 28, trait.short, trait.color);
     if(!announcedEnemyTraits.has(trait.id)){
       announcedEnemyTraits.add(trait.id);
       pushNotification("stage", `Enemy trait: ${trait.name}`, trait.description);
     }
+  },
+  onCast: (enemy, trait) => {
+    if(trait.id !== "tower_hex") return true;
+    const enemyPos = getEnemyPosition(enemy);
+    const target = units
+      .filter(unit => (unit.snareTimer || 0) <= 0)
+      .map(unit => ({ unit, distance:distance(cellCenter(unit.c, unit.r), enemyPos) }))
+      .filter(candidate => candidate.distance <= trait.radius)
+      .sort((a,b)=>a.distance-b.distance)[0]?.unit;
+    if(!target) return false;
+    target.snareTimer = Math.max(target.snareTimer || 0, trait.duration);
+    target.snareColor = trait.color;
+    target.snareLabel = "HEXED";
+    target.cooldown = Math.max(target.cooldown || 0, 0.45);
+    const targetPos = cellCenter(target.c, target.r);
+    showPopup(targetPos.x, targetPos.y - 28, "Hexed!", trait.color);
+    addHitParticles(targetPos.x, targetPos.y - 4, 8, trait.color, {
+      speed: 85,
+      speedY: 75,
+      lifeMin: .25,
+      lifeMax: .5,
+      sizeMin: 1.4,
+      sizeMax: 3,
+      glow: 8,
+      shape: "diamond"
+    });
+    return true;
   }
 });
 
@@ -1357,14 +1586,15 @@ const heroSystem = window.DarkDefense.createHeroSystem({
   profileStore,
   statPipeline: heroStatPipeline,
   events: window.DarkDefense.events,
+  spriteSheet: heroBattlefieldSprite,
   getDisplayName: () => getHeroName(),
   getEnemies: () => enemies,
-  getPathPosition: (progress) => getPathPosition(progress),
+  getPathPosition: (progress, enemy) => getPathPosition(progress, enemy?.pathIndex || 0),
   dealDamage: (enemy, baseDamage, source) => {
     const projectileType = source?.source === "ability" ? "mage" : "archer";
     const finalDamage = dealDamageToEnemy(enemy, baseDamage, projectileType);
     enemy.lastHitByHeroId = source?.heroId || "varyn";
-    const pos = getPathPosition(enemy.progress);
+    const pos = getEnemyPosition(enemy);
     const color = source?.source === "ability" ? "#fde68a" : "#f59e0b";
     addHitParticles(pos.x, pos.y, source?.source === "ability" ? 7 : 3, color, {
       speed: source?.source === "ability" ? 150 : 90,
@@ -1409,6 +1639,8 @@ const achievements = {
   first_spell_cast:false,
   first_tower_upgrade:false,
   stage6_clear:false,
+  stage7_clear:false,
+  act2_clear:false,
   first_endless_boss_pair:false,
   endless_wave_20:false,
   endless_wave_30:false,
@@ -1425,7 +1657,9 @@ const ACHIEVEMENT_CONFIG = {
   survivor:{ title:"Survivor", goldReward:0 },
   first_spell_cast:{ title:"Arcane Initiate", goldReward:25 },
   first_tower_upgrade:{ title:"Forged for War", goldReward:25 },
-  stage6_clear:{ title:"Campaign Conqueror", goldReward:100 },
+  stage6_clear:{ title:"Portal Breaker", goldReward:100 },
+  stage7_clear:{ title:"The Exodus Begins", goldReward:125 },
+  act2_clear:{ title:"Dawnkeeper", goldReward:250 },
   first_endless_boss_pair:{ title:"Twin Terrors Broken", goldReward:75 },
   endless_wave_20:{ title:"Abyss Walker", goldReward:75 },
   endless_wave_30:{ title:"Beyond the Threshold", goldReward:100 },
@@ -1732,6 +1966,66 @@ function getHeroName(){
     if(typeof name === "string" && name.trim()) return name.trim();
   }catch(_){}
   return HERO_DEFAULT_NAME;
+}
+
+function resetStageObjectiveState(stage=currentStage){
+  stageObjectiveState = { stage, progress:0 };
+  updateCampaignObjectiveUI();
+}
+
+function updateCampaignObjectiveUI(){
+  const objective = currentMode === "campaign" ? STAGES[currentStage]?.objective : null;
+  if(!campaignObjective || !objective){
+    campaignObjective?.classList.add("hidden");
+    return;
+  }
+
+  const completed = Math.max(0, Math.min(objective.groups || 0, stageObjectiveState.progress || 0));
+  campaignObjective.classList.remove("hidden");
+  if(campaignObjectiveIcon) campaignObjectiveIcon.textContent = objective.icon || "✦";
+  if(campaignObjectiveTitle) campaignObjectiveTitle.textContent = objective.title || "Campaign objective";
+  if(campaignObjectiveDetail) campaignObjectiveDetail.textContent = objective.detail || "Complete every milestone before the boss arrives.";
+  if(campaignObjectiveProgress) campaignObjectiveProgress.textContent = `${completed} / ${objective.groups}`;
+  campaignObjectivePips?.querySelectorAll("i").forEach((pip, index)=>{
+    pip.classList.toggle("complete", index < completed);
+  });
+}
+
+function advanceStageObjectiveOnWaveClear(clearedWave){
+  const objective = currentMode === "campaign" ? STAGES[currentStage]?.objective : null;
+  if(!objective) return;
+  if(!objective.waveMilestones.includes(clearedWave)) return;
+
+  stageObjectiveState.progress = Math.min(objective.groups, stageObjectiveState.progress + 1);
+  const remaining = Math.max(0, objective.groups - stageObjectiveState.progress);
+  const unitLabel = objective.unitLabel || "objective";
+  const titleUnit = unitLabel.charAt(0).toUpperCase() + unitLabel.slice(1);
+
+  if(objective.rewardGold){
+    money += objective.rewardGold;
+    bonusScore += Math.round(objective.rewardGold * 0.5);
+  }
+  if(objective.rewardLives){
+    lives = Math.min(getMaxLives(), lives + objective.rewardLives);
+  }
+  if(objective.rewardCooldown){
+    spellCooldown.slow = Math.max(0, spellCooldown.slow - objective.rewardCooldown);
+    spellCooldown.damage = Math.max(0, spellCooldown.damage - objective.rewardCooldown);
+    spellCooldown.bomb = Math.max(0, spellCooldown.bomb - objective.rewardCooldown);
+  }
+
+  const rewards = [
+    objective.rewardGold ? `+${objective.rewardGold} gold` : "",
+    objective.rewardLives ? `+${objective.rewardLives} life` : "",
+    objective.rewardCooldown ? `-${objective.rewardCooldown}s spell cooldowns` : ""
+  ].filter(Boolean).join(" · ");
+  pushNotification(
+    "stage",
+    `${titleUnit} ${stageObjectiveState.progress} secured`,
+    `${remaining > 0 ? `${remaining} milestone${remaining === 1 ? "" : "s"} remaining.` : "Objective complete."}${rewards ? ` ${rewards}.` : ""}`
+  );
+  showPopup(canvas.width / 2, 116, `${titleUnit} ${stageObjectiveState.progress}/${objective.groups}`, "#fbbf24");
+  updateCampaignObjectiveUI();
 }
 
 function setHeroName(name){
@@ -2274,7 +2568,10 @@ function triggerSpecializationChain(sourceEnemy, sourceUnit, sourcePos){
   for(let jump=0; jump<jumps; jump++){
     const next = enemies
       .filter(enemy => !visited.has(enemy.id))
-      .map(enemy => ({ enemy, pos:getPathPosition(enemy.progress), dist:distance(currentPos, getPathPosition(enemy.progress)) }))
+      .map(enemy => {
+        const pos = getEnemyPosition(enemy);
+        return { enemy, pos, dist:distance(currentPos, pos) };
+      })
       .filter(item => item.dist <= 90)
       .sort((a,b)=>a.dist-b.dist)[0];
     if(!next) break;
@@ -2299,7 +2596,10 @@ function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
   for(let jump=0;jump<maxJumps;jump++) {
     const next = enemies
       .filter(enemy => !visited.has(enemy.id))
-      .map(enemy => ({ enemy, pos:getPathPosition(enemy.progress), dist:distance(currentPos, getPathPosition(enemy.progress)) }))
+      .map(enemy => {
+        const pos = getEnemyPosition(enemy);
+        return { enemy, pos, dist:distance(currentPos, pos) };
+      })
       .filter(item => item.dist <= chainRange)
       .sort((a,b)=>a.dist-b.dist)[0];
     if(!next) break;
@@ -2323,13 +2623,13 @@ function chainStormDamage(sourceEnemy, sourceUnit, sourcePos){
 
 function triggerInfernoExplosion(deadEnemy){
   if(deadEnemy.lastHitAuraType !== "inferno") return;
-  const center = getPathPosition(deadEnemy.progress);
+  const center = getEnemyPosition(deadEnemy);
   const owner = getUnitById(deadEnemy.lastHitByUnitId);
   const ownerStats = owner ? getAuraAdjustedStats(owner) : null;
   const dmg = ownerStats ? ownerStats.damage * (owner && (owner.type === "mage" || owner.type === "bomb") ? 0.75 : 0.60) : 65;
   for(const enemy of enemies){
     if(enemy.id === deadEnemy.id) continue;
-    const pos = getPathPosition(enemy.progress);
+    const pos = getEnemyPosition(enemy);
     if(distance(center, pos) <= 55){
       const finalDamage = dealDamageToEnemy(enemy, dmg, "burn");
       if(owner) markEnemyHit(enemy, owner, finalDamage);
@@ -2756,6 +3056,7 @@ function renderHeroSkillTree(){
   if(heroSkillAvailable) heroSkillAvailable.textContent = String(state.availablePoints);
   if(heroSkillSpent) heroSkillSpent.textContent = String(state.spentPoints);
   if(heroSkillDamage) heroSkillDamage.textContent = String(Math.round(stats.damage * 10) / 10);
+  if(heroSkillIdentityName) heroSkillIdentityName.textContent = getHeroName();
 
   heroSkillBranches.innerHTML = window.DarkDefense.HERO_SKILL_BRANCHES.map((branch) => {
     const nodes = branch.skillIds.map((skillId) => {
@@ -2905,7 +3206,7 @@ function showAuraRewardOverlay(){
   renderAuraRewardCards();
   updateAuraRerollButton();
   renderBossLootReward();
-  auraRewardText.textContent = `The boss has been defeated. Choose 1 of ${pendingAuraDraft.length} legendary auras, then apply it to a single tower. That aura stays on the tower in future stages.`;
+  auraRewardText.textContent = `The boss has been defeated. Choose 1 of ${pendingAuraDraft.length} legendary auras, then apply it to a single tower. The aura remains bound while that tower survives between-stage attrition.`;
   const upcomingClearReward = pendingBossResolution?.type === "campaign-next-stage" ? getStageClearGoldReward(Math.max(1, pendingBossResolution.nextStage - 1)) : 0;
   if(auraRewardBonus){
     auraRewardBonus.textContent = upcomingClearReward > 0 ? `Stage clear reward: +${upcomingClearReward} gold` : "";
@@ -2933,12 +3234,16 @@ function beginBossAuraReward(){
 function queueBossAuraReward(){
   bossDefeatIntroTimer = 2.7;
   bossDefeatRewardDelayTimer = 3.0;
-  bossDefeatIntroText = "AN ANCIENT EVIL FALLS";
+  bossDefeatIntroText = currentMode === "campaign" && currentStage > ACT_ONE_FINAL_STAGE
+    ? "THE ROAD IS SECURED"
+    : "AN ANCIENT EVIL FALLS";
   bossDefeatIntroSubtext = "";
   queueBossLootReward();
   runStateMachine.send("REWARD_OPENED", { reason:"boss-defeated" });
   isPaused = true;
-  setMessage(currentMode === "campaign" ? "An ancient evil falls." : "The endless horror falters.");
+  setMessage(currentMode === "campaign"
+    ? `${STAGE_BOSS[currentStage]?.name || "The boss"} has fallen.`
+    : "The endless horror falters.");
   updateUI();
 }
 
@@ -2979,7 +3284,7 @@ function applyPendingAuraToUnit(unit){
   pendingAuraChoice = null;
   hideAuraRewardOverlay();
 
-  pushNotification("achievement", "Aura applied", `${unit.name} received ${appliedAuraName}. It will keep the aura in future stages.`);
+  pushNotification("achievement", "Aura applied", `${unit.name} received ${appliedAuraName}. The aura remains bound while the tower survives stage attrition.`);
   showPopup(
     cellCenter(unit.c, unit.r).x,
     cellCenter(unit.c, unit.r).y - 18,
@@ -2992,6 +3297,61 @@ function applyPendingAuraToUnit(unit){
   return true;
 }
 
+function grantCampaignStageClear(clearedStage, nextUnlockedStage, options = {}){
+  const clearReward = getStageClearGoldReward(clearedStage);
+  awardLeyCrystals(5 * clearedStage, options.crystalReason || `Stage ${clearedStage} cleared`);
+
+  if(lives < getMaxLives()){
+    const healed = Math.min(leyStageHealAmount(), getMaxLives() - lives);
+    lives += healed;
+    pushNotification("stage","The gate is mended",`+${healed} ${healed === 1 ? "life" : "lives"} restored for the next stage.`);
+  }
+
+  wave += 1;
+  if(clearReward > 0){
+    money += clearReward;
+    bonusScore += Math.round(clearReward * 0.5);
+    pushNotification("gold", options.rewardTitle || "Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
+  }
+
+  submitStoryLeaderboardScore(clearedStage, options.runComplete === true);
+  if(Number.isFinite(nextUnlockedStage)){
+    try{
+      const prev = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
+      localStorage.setItem("sdcFurthestStage", String(Math.max(prev, nextUnlockedStage)));
+    }catch(e){}
+    profileStore.update((profile)=>{
+      profile.progress.furthestStage = Math.max(profile.progress.furthestStage || 1, nextUnlockedStage);
+      return profile;
+    }, "progress:stage-unlock");
+  }
+
+  if(options.unlockEndless){
+    const wasUnlocked = endlessUnlocked;
+    endlessUnlocked = true;
+    try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
+    if(!wasUnlocked){
+      pushNotification("stage","Endless Mode unlocked","Act I is complete. Endless Mode is now available from the World Map.");
+    }
+  }
+
+  saveProgress();
+  return clearReward;
+}
+
+function transitionToCampaignStage(nextStage, message, options = {}){
+  if(options.applyAttrition !== false){
+    moveUnitsToReserve({ degradeLevels:1, notify:true });
+  }
+  applyStage(nextStage, false);
+  startRunFlow("campaign-next-stage");
+  prewarmLeaderboardRun("campaign");
+  const routeNotice = getStageRouteNotice(nextStage);
+  setMessage(`${message || `${STAGES[nextStage]?.name || "Next region"} — redeploy your reserve towers and hold the line.`}${routeNotice}`);
+  saveRunState();
+  updateUI();
+}
+
 function resolveBossWaveCompletion(){
   hideAuraRewardOverlay();
   const resolution = pendingBossResolution;
@@ -3001,42 +3361,78 @@ function resolveBossWaveCompletion(){
 
   if(resolution.type === "campaign-next-stage") {
     const clearedStage = Math.max(1, resolution.nextStage - 1);
-    const clearReward = getStageClearGoldReward(clearedStage);
-    awardLeyCrystals(5 * clearedStage, `Stage ${clearedStage} cleared`);
-    if(lives < getMaxLives()){
-      const healed = Math.min(leyStageHealAmount(), getMaxLives() - lives);
-      lives += healed;
-      pushNotification("stage","The gate is mended",`+${healed} ${healed === 1 ? "life" : "lives"} restored for the next stage.`);
-    }
-    wave += 1;
-    if(clearReward > 0){
-      money += clearReward;
-      bonusScore += Math.round(clearReward * 0.5);
-      pushNotification("gold","Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
-    }
-    // Unlock the next region on the world map (furthest = highest reached).
-    submitStoryLeaderboardScore(clearedStage, false);
-    try{
-      const prev = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
-      localStorage.setItem("sdcFurthestStage", String(Math.max(prev, resolution.nextStage)));
-    }catch(e){}
-    profileStore.update((profile)=>{
-      profile.progress.furthestStage = Math.max(profile.progress.furthestStage || 1, resolution.nextStage);
-      return profile;
-    }, "progress:stage-unlock");
+    const livesBeforeReward = lives;
+    const clearReward = grantCampaignStageClear(clearedStage, resolution.nextStage);
     pushNotification("stage","Region Cleared",`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared — moving on to ${STAGES[resolution.nextStage]?.name || "the next region"}!`);
+    const attrition = moveUnitsToReserve({ degradeLevels:1, notify:true });
+    setMessage(`Stage ${clearedStage} secured. Review the battle report and prepare your reserve.`);
+    beginStageIntermission({
+      destination:STAGE_INTERMISSION_DESTINATIONS.NEXT_STAGE,
+      clearedStage,
+      nextStage:resolution.nextStage,
+      reward:{
+        gold:clearReward,
+        stageCrystals:5 * clearedStage,
+        bossCrystals:8 + 4 * clearedStage,
+        healed:Math.max(0, lives - livesBeforeReward)
+      },
+      attrition
+    });
+    return;
+  } else if(resolution.type === "act2-start") {
+    const nextStage = resolution.nextStage || ACT_ONE_FINAL_STAGE + 1;
+    const livesBeforeReward = lives;
+    const clearReward = grantCampaignStageClear(ACT_ONE_FINAL_STAGE, nextStage, {
+      unlockEndless:true,
+      crystalReason:"Act I complete",
+      rewardTitle:"Act I reward"
+    });
+    pushNotification("stage","Act I Complete",`The Dark Portal has fallen. Stage ${nextStage} and Endless Mode are now unlocked.`);
+    const attrition = moveUnitsToReserve({ degradeLevels:1, notify:true });
+    wave = 1;
+    campaignCompletionRewardText = `Act I clear reward: +${clearReward} gold · Towers suffered stage attrition`;
+    setMessage("Act I complete. Review the battle report before choosing the next road.");
+    beginStageIntermission({
+      destination:STAGE_INTERMISSION_DESTINATIONS.ACT_ONE_COMPLETE,
+      clearedStage:ACT_ONE_FINAL_STAGE,
+      nextStage,
+      reward:{
+        gold:clearReward,
+        stageCrystals:5 * ACT_ONE_FINAL_STAGE,
+        bossCrystals:8 + 4 * ACT_ONE_FINAL_STAGE,
+        healed:Math.max(0, lives - livesBeforeReward)
+      },
+      attrition,
+      completionRewardText:campaignCompletionRewardText
+    });
+    return;
+  } else if(resolution.type === "act2-complete") {
+    const clearedStage = currentStage;
+    const livesBeforeReward = lives;
+    const clearReward = grantCampaignStageClear(clearedStage, clearedStage, {
+      unlockEndless:true,
+      crystalReason:"Act II complete",
+      rewardTitle:"Act II reward",
+      runComplete:true
+    });
+    const attrition = moveUnitsToReserve({ degradeLevels:1, notify:true });
+    try { localStorage.setItem("sdcAct2Complete","1"); } catch(e){}
+    pushNotification("stage","Act II Complete","The Field of Dawn is secure. Every Act II region is now cleared.");
+    campaignCompletionRewardText = `Act II clear reward: +${clearReward} gold · Campaign conquered`;
+    setMessage("Act II complete. Review the final battle report.");
     saveProgress();
-    // Linear campaign: keep the run going and advance straight into the next
-    // region. Towers move to reserve so they can be redeployed for free; money,
-    // lives and score carry over. The world map is only the entry screen now —
-    // reach it any time from the World Map button.
-    moveUnitsToReserve();
-    applyStage(resolution.nextStage, false);
-    startRunFlow("campaign-next-stage");
-    prewarmLeaderboardRun("campaign");
-    setMessage(`${STAGES[resolution.nextStage]?.name || "Next region"} — redeploy your reserve towers and hold the line.`);
-    saveRunState();
-    updateUI();
+    beginStageIntermission({
+      destination:STAGE_INTERMISSION_DESTINATIONS.ACT_TWO_COMPLETE,
+      clearedStage,
+      reward:{
+        gold:clearReward,
+        stageCrystals:5 * clearedStage,
+        bossCrystals:8 + 4 * clearedStage,
+        healed:Math.max(0, lives - livesBeforeReward)
+      },
+      attrition,
+      completionRewardText:campaignCompletionRewardText
+    });
     return;
   } else if(resolution.type === "unlock-endless") {
     const clearedStage = currentStage;
@@ -3050,11 +3446,13 @@ function resolveBossWaveCompletion(){
     }
     endlessUnlocked = true;
     try { localStorage.setItem("sdcEndlessUnlocked","1"); } catch(e){}
-    try { localStorage.setItem("sdcFurthestStage", String(Object.keys(STAGES).length)); } catch(e){}
+    try { localStorage.setItem("sdcFurthestStage", String(CAMPAIGN_FINAL_STAGE)); } catch(e){}
     pushNotification("stage","Endless Mode unlocked",`You finished the campaign. Endless Mode is now unlocked!`);
     saveProgress();
     setMessage(`You finished the main campaign. +${clearReward} gold. Endless Mode has been unlocked.`);
-    showEndlessUnlockOverlay();
+    campaignCompletionRewardText = `Campaign clear reward: +${clearReward} gold`;
+    showCampaignCompletionOverlay("act2", { rewardText:campaignCompletionRewardText });
+    saveRunState();
     updateUI();
     return;
   } else if(resolution.type === "endless-next") {
@@ -3484,7 +3882,13 @@ const STAGE_MUSIC_SOURCES = {
   3: "assets/music/stage_3.ogg",
   4: "assets/music/stage_4.ogg",
   5: "assets/music/stage_5.ogg",
-  6: "assets/music/stage_6.ogg"
+  6: "assets/music/stage_6.ogg",
+  7: "assets2/music/stage_7.mp3",
+  8: "assets2/music/stage_8.mp3",
+  9: "assets2/music/stage_9.mp3",
+  10: "assets2/music/stage_10.mp3",
+  11: "assets2/music/stage_11.mp3",
+  12: "assets2/music/stage_12.mp3"
 };
 const STAGE_MUSIC_BASE_VOLUME = 0.16; // Godot's -16 dB resting level.
 const STAGE_MUSIC_SWELL_VOLUME = 0.285; // +5 dB boss-entry swell.
@@ -3885,7 +4289,7 @@ function syncAmbientAudio(){
   }
   const stage = currentMode === "endless"
     ? (endlessMusicStage || 1)
-    : Math.min(6, Math.max(1, currentStage));
+    : (STAGES[currentStage]?.musicStage || Math.min(6, Math.max(1, currentStage)));
   const src = STAGE_MUSIC_SOURCES[stage];
   if(!src) return;
   if(ambientState.currentStage === stage && ambientState.track){
@@ -3943,7 +4347,7 @@ function playDeathSound(enemyType = "normal"){
     noiseBurst(.09, .03, 2400);
     return;
   }
-  const big = enemyType === "tank" || enemyType === "armored";
+  const big = enemyType === "tank" || enemyType === "armored" || enemyType === "ley_revenant";
   tone("sine", big ? 150 : 190, big ? 46 : 60, big ? .17 : .13, big ? .03 : .022);   // low thud
   tone("square", big ? 300 : 380, 110, .06, .008);                                    // crack
   noiseBurst(big ? .14 : .1, big ? .045 : .03, big ? 900 : 1400);                     // crunch
@@ -3974,22 +4378,42 @@ function isBlockedCell(c, r){
 function getLeyStoneAt(c, r){
   return (STAGES[currentStage].ley || []).find(l => l.c === c && l.r === r) || null;
 }
-function buildPathCells(route){
+function getStageRoutes(stageNumber=currentStage){
+  const stage = STAGES[stageNumber] || STAGES[1];
+  return [stage.route, ...(stage.branches || [])].filter(route => Array.isArray(route) && route.length >= 2);
+}
+function getStageRouteNotice(stageNumber=currentStage){
+  const routeCount = getStageRoutes(stageNumber).length;
+  return routeCount > 1
+    ? ` Enemy forces split across ${routeCount} roads and reunite before the gate.`
+    : "";
+}
+function normalizeRoutes(routeOrRoutes){
+  if(!Array.isArray(routeOrRoutes) || !routeOrRoutes.length) return [];
+  return Array.isArray(routeOrRoutes[0]) ? routeOrRoutes : [routeOrRoutes];
+}
+function buildPathCells(routeOrRoutes){
   const s=new Set();
-  for(let i=0;i<route.length-1;i++){
-    const a=route[i], b=route[i+1];
-    if(a.c===b.c){ for(let r=Math.min(a.r,b.r); r<=Math.max(a.r,b.r); r++) s.add(`${a.c}-${r}`); }
-    else { for(let c=Math.min(a.c,b.c); c<=Math.max(a.c,b.c); c++) s.add(`${c}-${a.r}`); }
+  for(const route of normalizeRoutes(routeOrRoutes)){
+    for(let i=0;i<route.length-1;i++){
+      const a=route[i], b=route[i+1];
+      if(a.c===b.c){ for(let r=Math.min(a.r,b.r); r<=Math.max(a.r,b.r); r++) s.add(`${a.c}-${r}`); }
+      else { for(let c=Math.min(a.c,b.c); c<=Math.max(a.c,b.c); c++) s.add(`${c}-${a.r}`); }
+    }
   }
   return s;
 }
 function cellCenter(c,r){ return {x:c*CELL+CELL/2,y:r*CELL+CELL/2}; }
-function getPathPosition(progress){
-  const points=path.map(p=>cellCenter(p.c,p.r)), segs=[]; let total=0;
+function getPathPosition(progress, pathIndex=0){
+  const route = paths[pathIndex] || path || paths[0];
+  const points=route.map(p=>cellCenter(p.c,p.r)), segs=[]; let total=0;
   for(let i=0;i<points.length-1;i++){ const a=points[i], b=points[i+1], len=Math.hypot(b.x-a.x,b.y-a.y); segs.push({a,b,len}); total+=len; }
   let target=progress*total;
   for(const seg of segs){ if(target<=seg.len){ const t=seg.len===0?0:target/seg.len; return {x:seg.a.x+(seg.b.x-seg.a.x)*t,y:seg.a.y+(seg.b.y-seg.a.y)*t}; } target-=seg.len; }
   return points[points.length-1];
+}
+function getEnemyPosition(enemy){
+  return getPathPosition(enemy.progress, enemy.pathIndex || 0);
 }
 function roundRect(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath(); }
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
@@ -4092,29 +4516,35 @@ function getTargetPriority(unit, enemy, stats, unitPos, enemyPos){
   if(enemy.type === "boss") score += 220;
   if(enemy.behavior?.traitId === "bulwark") score += 85;
   if(enemy.behavior?.traitId === "last_stand" && enemy.behavior.active) score += 110;
+  if(enemy.behavior?.traitId === "tower_hex") score += 125;
+  if(enemy.behavior?.traitId === "cinder_leap" && !enemy.behavior.leaped) score += 70;
+  if(enemy.behavior?.traitId === "ley_ward" && enemy.behavior.active) score += 65;
 
   if(unit.type === "archer"){
     if(enemy.type === "fast") score += 140;
+    if(enemy.type === "cinder_skirmisher") score += 100;
     if(enemy.type === "splitter" && enemy.fragment) score += 95;
     if(enemy.type === "armored") score -= 110;
     score += (1 - rangePct) * 18;
   } else if(unit.type === "hunter"){
     if(enemy.type === "boss") score += 180;
     if(enemy.type === "tank" || enemy.type === "armored") score += 90;
+    if(enemy.type === "ley_revenant") score += 90;
     if(enemy.type === "fast") score += 25;
     score += enemy.maxHp * 0.07;
   } else if(unit.type === "mage"){
     const nearbyCount = enemies.reduce((count, other)=>{
       if(other.id === enemy.id) return count;
-      const otherPos = getPathPosition(other.progress);
+      const otherPos = getEnemyPosition(other);
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 48) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored") score += 90;
+    if(enemy.type === "hollow_binder") score += 80;
     if(enemy.type === "splitter" && !enemy.fragment) score += 70;
     score += nearbyCount * 45;
   } else if(unit.type === "bomb"){
     const clusterScore = enemies.reduce((count, other)=>{
-      const otherPos = getPathPosition(other.progress);
+      const otherPos = getEnemyPosition(other);
       return count + (distance(enemyPos, otherPos) <= (stats.splash || 64) ? 1 : 0);
     }, 0);
     if(enemy.type === "armored" || enemy.type === "tank") score += 110;
@@ -4270,7 +4700,7 @@ function castSlowSpell(x, y){
   const cfg = spellConfig.slow;
   let affected = 0;
   for(const enemy of enemies){
-    const pos = getPathPosition(enemy.progress);
+    const pos = getEnemyPosition(enemy);
     if(distance({x,y}, pos) <= cfg.radius){
       enemy.spellSlowTimer = Math.max(enemy.spellSlowTimer || 0, cfg.duration);
       enemy.spellSlowFactor = Math.min(enemy.spellSlowFactor || 1, cfg.factor);
@@ -4294,7 +4724,7 @@ function castDamageSpell(x, y){
   const cfg = spellConfig.damage;
   let affected = 0;
   for(const enemy of enemies){
-    const pos = getPathPosition(enemy.progress);
+    const pos = getEnemyPosition(enemy);
     if(distance({x,y}, pos) <= cfg.radius){
       const finalDamage = dealDamageToEnemy(enemy, cfg.damage, "spell");
       affected += 1;
@@ -4318,7 +4748,7 @@ function castBombSpell(x, y){
   const cfg = spellConfig.bomb;
   const inRange = enemies
     .map(enemy => {
-      const pos = getPathPosition(enemy.progress);
+      const pos = getEnemyPosition(enemy);
       return { enemy, pos, dist: distance({x,y}, pos) };
     })
     .filter(item => item.dist <= cfg.range)
@@ -4568,7 +4998,9 @@ function getBossPairKey(pair){
 }
 
 function pickRandomEndlessBossPair(){
-  const ids = Object.keys(STAGE_BOSS).map(Number);
+  // Endless remains the echo of Act I's six horrors. Human Act II bosses do
+  // not enter the random pair pool.
+  const ids = [...ENDLESS_BOSS_STAGE_IDS];
   const allPairs = [];
   for(let i = 0; i < ids.length; i++){
     for(let j = i + 1; j < ids.length; j++){
@@ -4582,42 +5014,76 @@ function pickRandomEndlessBossPair(){
   return runRng.shuffle(selected);
 }
 
-function syncEndlessUnlockArtworkBounds(){
-  if(!endlessUnlockArtwork || !endlessUnlockArtworkImage) return;
-  const rect = endlessUnlockArtworkImage.getBoundingClientRect();
-  endlessUnlockArtwork.style.width = `${Math.round(rect.width)}px`;
-  endlessUnlockArtwork.style.height = `${Math.round(rect.height)}px`;
-}
+const CAMPAIGN_COMPLETION_PRESENTATION = Object.freeze({
+  act1: Object.freeze({
+    artwork:"assets/ui/act1-complete-background.webp",
+    artworkAlt:"The shattered Dark Portal after the victory in Act I.",
+    ariaLabel:"Act I complete. Choose Act II, Endless Mode, or the World Map.",
+    eyebrow:"ACT I COMPLETE",
+    title:"THE EASTERN ROAD OPENS",
+    subtitle:"ACT II AND ENDLESS MODE ARE NOW AVAILABLE",
+    quotes:ACT_ONE_COMPLETE_QUOTES
+  }),
+  act2: Object.freeze({
+    artwork:"assets/ui/act2-complete-background.webp",
+    artworkAlt:"The Field of Dawn after Lord Marshal Vael's defeat.",
+    ariaLabel:"Campaign complete. Choose Endless Mode or the World Map.",
+    eyebrow:"CAMPAIGN COMPLETE",
+    title:"THE FIELD OF DAWN HOLDS",
+    subtitle:"ASHEN BASTION ENDURES · ENDLESS MODE AWAITS",
+    quotes:ACT_TWO_COMPLETE_QUOTES
+  })
+});
 
-function showEndlessUnlockOverlay(){
+function showCampaignCompletionOverlay(mode = "act2", options = {}){
+  const presentation = CAMPAIGN_COMPLETION_PRESENTATION[mode] || CAMPAIGN_COMPLETION_PRESENTATION.act2;
+  campaignCompletionMode = mode === "act1" ? "act1" : "act2";
+  campaignCompletionRewardText = options.rewardText || campaignCompletionRewardText || "";
+  if(endlessUnlockOverlay) endlessUnlockOverlay.dataset.completionMode = campaignCompletionMode;
+  if(endlessUnlockArtwork) endlessUnlockArtwork.setAttribute("aria-label", presentation.ariaLabel);
+  if(campaignCompleteArtwork){
+    campaignCompleteArtwork.src = presentation.artwork;
+    campaignCompleteArtwork.alt = presentation.artworkAlt;
+  }
+  if(campaignCompleteEyebrow) campaignCompleteEyebrow.textContent = presentation.eyebrow;
+  if(campaignCompleteTitle) campaignCompleteTitle.textContent = presentation.title;
+  if(campaignCompleteSubtitle) campaignCompleteSubtitle.textContent = presentation.subtitle;
+  if(endlessUnlockReward) endlessUnlockReward.textContent = campaignCompletionRewardText;
+  continueActTwoBtn?.classList.toggle("hidden", campaignCompletionMode !== "act1");
+  enterEndlessBtn?.classList.toggle("campaign-complete-btn-primary", campaignCompletionMode === "act2");
   if(endlessUnlockText){
-    endlessUnlockText.textContent = ENDLESS_UNLOCK_QUOTES[Math.floor(Math.random() * ENDLESS_UNLOCK_QUOTES.length)];
+    const quotes = presentation.quotes;
+    endlessUnlockText.textContent = `“${quotes[Math.floor(Math.random() * quotes.length)]}”`;
     endlessUnlockText.classList.remove("quote-fade-in");
     void endlessUnlockText.offsetWidth;
     endlessUnlockText.classList.add("quote-fade-in");
   }
+  isPaused = true;
   endlessUnlockOverlay?.classList.remove("hidden");
-  requestAnimationFrame(syncEndlessUnlockArtworkBounds);
 }
 
-function hideEndlessUnlockOverlay(){
+function hideCampaignCompletionOverlay(){
   endlessUnlockOverlay?.classList.add("hidden");
+  campaignCompletionMode = null;
+  campaignCompletionRewardText = "";
 }
 
 function enterEndlessModeFromUnlock(){
-  hideEndlessUnlockOverlay();
+  hideCampaignCompletionOverlay();
   exitDailyChallenge();
 
   // Keep the player's army: move placed towers into reserve before wiping the board.
-  moveUnitsToReserve();
+  const carryCampaignArmy = hasStarted;
+  if(carryCampaignArmy) moveUnitsToReserve();
 
   // Full, clean state reset for the Dark Portal (stage 6). This clears leftover
   // enemies, projectiles, boss banners / defeat-intro / stage-quote FX and all
   // wave/spawn timers left over from the campaign finale — the cause of the
   // broken end-of-campaign screen.
-  applyStage(6, false);
+  applyStage(6, !carryCampaignArmy);
 
   // Endless-specific state (applyStage forces campaign-style defaults).
+  hasStarted = true;
   currentMode = "endless";
   stageWave = 1;
   wave = 1;
@@ -4675,8 +5141,9 @@ function startDailyChallenge(){
   // Switch the survival loop to endless on this map.
   currentMode = "endless";
   currentStage = stage;
-  path = STAGES[stage].route;
-  pathCells = buildPathCells(path);
+  paths = getStageRoutes(stage);
+  path = paths[0];
+  pathCells = buildPathCells(paths);
   stageWave = 1;
   wave = 1;
   waveActive = false;
@@ -4697,7 +5164,7 @@ function startDailyChallenge(){
   syncAmbientAudio();
   startOverlay?.classList.add("hidden");
   closeWorldMap();
-  hideEndlessUnlockOverlay();
+  hideCampaignCompletionOverlay();
   showHintChip();
   resetCamera();
 
@@ -4713,14 +5180,304 @@ function exitDailyChallenge(){
   activeDailyChallenge = null;
 }
 
-function moveUnitsToReserve(){
-  for(const unit of units){
-    const copy=structuredClone(unit);
-    copy.id=null; copy.c=null; copy.r=null; copy.cooldown=0; copy.aimAngle=-0.3;
-    reservePool[unit.type].push(copy);
+const towerReserveSystem = window.DarkDefense.createTowerReserveSystem({
+  unitTypes: UNIT_TYPES,
+  specializations: TOWER_SPECIALIZATIONS,
+  applyPermanentUpgrades: (unit) => {
+    if(unit.type === "cryo") applyCryoPermanentUpgrades(unit);
   }
+});
+
+function moveUnitsToReserve(options = {}){
+  const report = towerReserveSystem.returnToReserve(units, reservePool, options);
   units=[];
+  selectedPlacedUnitId=null;
+  hideTowerMenu();
+  if(options.notify && (report.returned > 0 || report.dismissed > 0)){
+    const returnedText = report.returned > 0
+      ? `${report.returned} ${report.returned === 1 ? "tower returns" : "towers return"} to reserve at -1 level`
+      : "No towers return to reserve";
+    const lostText = report.dismissed > 0
+      ? ` ${report.dismissed} level-1 ${report.dismissed === 1 ? "tower was" : "towers were"} lost${report.auraDismissed > 0 ? `, including ${report.auraDismissed} aura-bound` : ""}.`
+      : "";
+    pushNotification("stage", "Army attrition", `${returnedText}.${lostText}`);
+  }
+  return report;
 }
+
+const STAGE_INTERMISSION_DESTINATIONS = Object.freeze({
+  NEXT_STAGE:"next-stage",
+  ACT_ONE_COMPLETE:"act1-complete",
+  ACT_TWO_COMPLETE:"act2-complete"
+});
+
+function getTowerIntermissionMeta(type){
+  const glyphs = { archer:"A", hunter:"H", mage:"M", bomb:"B", cryo:"C" };
+  return {
+    name:UNIT_TYPES[type]?.name || "Tower",
+    glyph:glyphs[type] || "?",
+    color:UNIT_TYPES[type]?.color || "#d7a75c"
+  };
+}
+
+function getReserveUnitDetail(unit){
+  const details = [`Lv.${Math.max(1, unit?.level || 1)}`];
+  const specialization = TOWER_SPECIALIZATIONS[unit?.type]?.[unit?.specialization];
+  if(specialization) details.push(specialization.name);
+  if(unit?.auraType) details.push(`${unit.auraIcon || "◆"} ${unit.auraName || getAuraData(unit.auraType)?.name || "Aura"}`);
+  return details.join(" · ");
+}
+
+function renderStageDebrief(intermission){
+  if(!intermission) return;
+  const reward = intermission.reward || {};
+  const totalCrystals = Math.max(0, reward.stageCrystals || 0) + Math.max(0, reward.bossCrystals || 0);
+  const rewardCards = [
+    {
+      label:"Clear Gold",
+      value:`+${Math.max(0, reward.gold || 0)}`,
+      detail:"Added to the campaign treasury"
+    },
+    {
+      label:"Ley Crystals",
+      value:`+${totalCrystals}`,
+      detail:`Boss ${Math.max(0, reward.bossCrystals || 0)} · Stage ${Math.max(0, reward.stageCrystals || 0)}`
+    },
+    {
+      label:"Gate Repairs",
+      value:reward.healed > 0 ? `+${reward.healed} ${reward.healed === 1 ? "life" : "lives"}` : "At full strength",
+      detail:`Current gate: ${lives} / ${getMaxLives()}`
+    },
+    {
+      label:"Boss Defeated",
+      value:STAGE_BOSS[intermission.clearedStage]?.name || "Boss",
+      detail:`Stage ${intermission.clearedStage} secured`
+    }
+  ];
+  if(stageDebriefRewards){
+    stageDebriefRewards.innerHTML = rewardCards.map(card => `
+      <div class="stage-reward-card">
+        <span>${card.label}</span>
+        <strong>${card.value}</strong>
+        <small>${card.detail}</small>
+      </div>
+    `).join("");
+  }
+
+  const report = intermission.attrition || {};
+  if(stageAttritionSummary){
+    const chips = [
+      `<span class="stage-summary-chip">${Math.max(0, report.returned || 0)} survived</span>`,
+      `<span class="stage-summary-chip">${Math.max(0, report.degraded || 0)} level reductions</span>`
+    ];
+    if(report.dismissed > 0) chips.push(`<span class="stage-summary-chip lost">${report.dismissed} lost</span>`);
+    if(report.auraDismissed > 0) chips.push(`<span class="stage-summary-chip lost">${report.auraDismissed} aura lost</span>`);
+    stageAttritionSummary.innerHTML = chips.join("");
+  }
+
+  const entries = Array.isArray(report.entries) ? report.entries : [];
+  if(stageAttritionList){
+    stageAttritionList.innerHTML = entries.length ? entries.map((entry) => {
+      const meta = getTowerIntermissionMeta(entry.type);
+      const notes = [];
+      if(entry.auraName || entry.auraType) notes.push(`${entry.auraName || "Legendary aura"} ${entry.lost ? "lost" : "retained"}`);
+      if(entry.specializationLost) notes.push("Specialization removed");
+      if(!notes.length) notes.push(entry.lost ? "Level-1 tower removed from the army" : "Returned to reserve");
+      return `
+        <div class="stage-attrition-row${entry.lost ? " lost" : ""}">
+          <span class="stage-tower-sigil" style="--tower-color:${meta.color}">${meta.glyph}</span>
+          <div class="stage-tower-copy">
+            <strong>${meta.name}</strong>
+            <span>${notes.join(" · ")}</span>
+          </div>
+          <span class="stage-level-change">Lv.${entry.fromLevel} <b>→</b> ${entry.lost ? "LOST" : `Lv.${entry.toLevel}`}</span>
+        </div>
+      `;
+    }).join("") : '<div class="stage-empty-message">No towers were deployed at the end of this stage.</div>';
+  }
+}
+
+function getIntermissionNextMission(intermission){
+  if(intermission.destination === STAGE_INTERMISSION_DESTINATIONS.ACT_TWO_COMPLETE){
+    return {
+      number:"✓",
+      kicker:"Campaign conquered",
+      title:"The Field of Dawn Holds",
+      detail:"Organize the surviving army before choosing Endless Mode or the World Map.",
+      route:"Finale"
+    };
+  }
+  const nextStage = Math.max(1, intermission.nextStage || ACT_ONE_FINAL_STAGE + 1);
+  const stage = STAGES[nextStage] || STAGES[1];
+  const routeCount = getStageRoutes(nextStage).length;
+  const objective = stage.objective;
+  return {
+    number:String(nextStage),
+    kicker:intermission.destination === STAGE_INTERMISSION_DESTINATIONS.ACT_ONE_COMPLETE
+      ? "Act II or Endless"
+      : "Next deployment",
+    title:`Stage ${nextStage} · ${stage.name}`,
+    detail:objective ? `${objective.title} — ${objective.detail}` : `Boss: ${STAGE_BOSS[nextStage]?.name || "Unknown"}`,
+    route:routeCount > 1 ? `${routeCount} routes` : "Single route"
+  };
+}
+
+function renderReserveManagement(intermission){
+  if(!intermission) return;
+  const mission = getIntermissionNextMission(intermission);
+  if(stageNextMission){
+    stageNextMission.innerHTML = `
+      <span class="stage-next-number">${mission.number}</span>
+      <div class="stage-next-copy">
+        <span>${mission.kicker}</span>
+        <strong>${mission.title}</strong>
+        <small>${mission.detail}</small>
+      </div>
+      <span class="stage-route-badge">${mission.route}</span>
+    `;
+  }
+
+  const groups = Object.entries(reservePool).filter(([, pool]) => Array.isArray(pool) && pool.length);
+  if(!stageReserveList) return;
+  if(!groups.length){
+    stageReserveList.innerHTML = '<div class="stage-empty-message">The reserve is empty. New towers can still be purchased on the next battlefield.</div>';
+    return;
+  }
+
+  stageReserveList.innerHTML = groups.map(([type, pool]) => {
+    const meta = getTowerIntermissionMeta(type);
+    return `
+      <div class="stage-reserve-group">
+        <div class="stage-reserve-group-title">${meta.name}<span>${pool.length} ${pool.length === 1 ? "tower" : "towers"}</span></div>
+        <div class="stage-reserve-units">
+          ${pool.map((unit, index) => `
+            <div class="stage-reserve-unit${index === 0 ? " is-first" : ""}">
+              <span class="stage-reserve-rank">#${index + 1}</span>
+              <div class="stage-reserve-unit-copy">
+                <strong>${meta.name}</strong>
+                <small>${getReserveUnitDetail(unit)}</small>
+              </div>
+              <div class="stage-reserve-actions">
+                <button type="button" data-reserve-action="first" data-reserve-type="${type}" data-reserve-index="${index}" ${index === 0 ? "disabled" : ""} title="Deploy first">★</button>
+                <button type="button" data-reserve-action="up" data-reserve-type="${type}" data-reserve-index="${index}" ${index === 0 ? "disabled" : ""} title="Move earlier">↑</button>
+                <button type="button" data-reserve-action="down" data-reserve-type="${type}" data-reserve-index="${index}" ${index === pool.length - 1 ? "disabled" : ""} title="Move later">↓</button>
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function updateStageIntermissionView(){
+  const intermission = pendingStageIntermission;
+  if(!intermission || !stageIntermissionOverlay) return;
+  const reservePhase = intermission.phase === "reserve";
+  stageIntermissionOverlay.dataset.phase = reservePhase ? "reserve" : "debrief";
+  if(stageIntermissionKicker) stageIntermissionKicker.textContent = reservePhase ? "RESERVE MANAGEMENT" : `STAGE ${intermission.clearedStage} DEBRIEF`;
+  if(stageIntermissionTitle) stageIntermissionTitle.textContent = reservePhase ? "PREPARE THE COLUMN" : `${STAGES[intermission.clearedStage]?.name || "Region"} SECURED`;
+  if(stageIntermissionSubtitle) stageIntermissionSubtitle.textContent = reservePhase
+    ? "Set the free redeployment order for every tower type before the army marches."
+    : "Rewards are secured. Every deployed tower now suffers one level of campaign attrition.";
+  stageDebriefStep?.classList.toggle("active", !reservePhase);
+  stageReserveStep?.classList.toggle("active", reservePhase);
+  stageDebriefPane?.classList.toggle("hidden", reservePhase);
+  stageReservePane?.classList.toggle("hidden", !reservePhase);
+
+  if(reservePhase){
+    renderReserveManagement(intermission);
+    if(stageIntermissionHint) stageIntermissionHint.textContent = "Priority is saved with the run. Replacing a reserve tower remains free.";
+    if(stageIntermissionContinueBtn){
+      const strong = stageIntermissionContinueBtn.querySelector("strong");
+      const span = stageIntermissionContinueBtn.querySelector("span");
+      if(span) span.textContent = intermission.destination === STAGE_INTERMISSION_DESTINATIONS.NEXT_STAGE ? "March to" : "Continue to";
+      if(strong){
+        strong.textContent = intermission.destination === STAGE_INTERMISSION_DESTINATIONS.NEXT_STAGE
+          ? `Stage ${intermission.nextStage}`
+          : (intermission.destination === STAGE_INTERMISSION_DESTINATIONS.ACT_ONE_COMPLETE ? "Victory Choices" : "Campaign Finale");
+      }
+    }
+  }else{
+    renderStageDebrief(intermission);
+    if(stageIntermissionHint) stageIntermissionHint.textContent = "Level-1 towers are lost completely, even when carrying a legendary aura.";
+    if(stageIntermissionContinueBtn){
+      const strong = stageIntermissionContinueBtn.querySelector("strong");
+      const span = stageIntermissionContinueBtn.querySelector("span");
+      if(span) span.textContent = "Continue to";
+      if(strong) strong.textContent = "Reserve Management";
+    }
+  }
+}
+
+function showStageIntermission(intermission){
+  if(!stageIntermissionOverlay || !intermission) return;
+  pendingStageIntermission = intermission;
+  isPaused = true;
+  updateStageIntermissionView();
+  stageIntermissionOverlay.classList.remove("hidden");
+  stageIntermissionContinueBtn?.focus({ preventScroll:true });
+}
+
+function hideStageIntermission(){
+  stageIntermissionOverlay?.classList.add("hidden");
+}
+
+function beginStageIntermission(options){
+  towerReserveSystem.sortReserveForDeployment(reservePool);
+  const intermission = {
+    destination:options.destination,
+    phase:"debrief",
+    clearedStage:Math.max(1, options.clearedStage || currentStage),
+    nextStage:Number.isFinite(options.nextStage) ? options.nextStage : null,
+    reward:{ ...(options.reward || {}) },
+    attrition:structuredClone(options.attrition || {
+      returned:0,
+      dismissed:0,
+      auraDismissed:0,
+      degraded:0,
+      entries:[]
+    }),
+    completionRewardText:options.completionRewardText || ""
+  };
+  showStageIntermission(intermission);
+  saveRunState();
+  updateUI();
+}
+
+function completeStageIntermission(){
+  const intermission = pendingStageIntermission;
+  if(!intermission) return;
+  if(intermission.phase !== "reserve"){
+    intermission.phase = "reserve";
+    updateStageIntermissionView();
+    saveRunState();
+    return;
+  }
+
+  pendingStageIntermission = null;
+  hideStageIntermission();
+  if(intermission.destination === STAGE_INTERMISSION_DESTINATIONS.NEXT_STAGE){
+    transitionToCampaignStage(
+      intermission.nextStage,
+      `${STAGES[intermission.nextStage]?.name || "The next region"} — deploy your reserve in the chosen order and hold the line.`,
+      { applyAttrition:false }
+    );
+    return;
+  }
+
+  campaignCompletionRewardText = intermission.completionRewardText || "";
+  if(intermission.destination === STAGE_INTERMISSION_DESTINATIONS.ACT_ONE_COMPLETE){
+    setMessage("Act I complete. Choose Act II, Endless Mode, or return to the World Map.");
+    showCampaignCompletionOverlay("act1", { rewardText:campaignCompletionRewardText });
+  }else{
+    setMessage("Act II complete. The Field of Dawn holds.");
+    showCampaignCompletionOverlay("act2", { rewardText:campaignCompletionRewardText });
+  }
+  saveRunState();
+  updateUI();
+}
+
 function createPlacedUnit(c,r,typeKey){
   const base=UNIT_TYPES[typeKey];
   return { id:idCounter++, c,r, type:typeKey, cooldown:0, aimAngle:-0.3, level:1, totalSpent:base.cost, nextUpgradeCost:base.upgradeCost, wealthKills:0, wealthSurgeTimer:0, snareTimer:0, specialization:null, specSlowFactor:1, specSlowDuration:0, specChainTargets:0, specChainDamageFactor:0, specBonusVsFast:1, specStunChance:0, specStunDuration:0, specBrittleStacks:1, cryoTick:0, ...structuredClone(base) };
@@ -4743,13 +5500,6 @@ function applyCryoPermanentUpgrades(unit){
 }
 function takeReservedUnit(typeKey,c,r){
   if(!reservePool[typeKey] || reservePool[typeKey].length===0) return null;
-  reservePool[typeKey].sort((a,b)=>{
-    const levelDiff = (b.level || 1) - (a.level || 1);
-    if(levelDiff !== 0) return levelDiff;
-    const spentDiff = (b.totalSpent || 0) - (a.totalSpent || 0);
-    if(spentDiff !== 0) return spentDiff;
-    return (b.nextUpgradeCost || 0) - (a.nextUpgradeCost || 0);
-  });
   const unit=reservePool[typeKey].shift();
   unit.id=idCounter++; unit.c=c; unit.r=r; unit.cooldown=0; unit.aimAngle=-0.3; unit.snareTimer=0;
   return unit;
@@ -4847,7 +5597,7 @@ function maybeSaveBestEndlessRun(){
    their run. Enemies/projectiles are intentionally NOT saved — a resume
    always lands in the calm build phase before the next wave. */
 const RUN_SAVE_KEY = "sdcSavedRun";
-const RUN_SAVE_VERSION = 5;
+const RUN_SAVE_VERSION = 8;
 
 function serializeRunState(){
   return {
@@ -4864,6 +5614,7 @@ function serializeRunState(){
     runLeyCrystalsEarned,
     runEndlessBossPairsDefeated,
     lastEndlessBossPairKey,
+    stageObjective: { ...stageObjectiveState },
     runFlow: runStateMachine.getSnapshot(),
     rng: runRng.getSnapshot(),
     comboBest,
@@ -4872,6 +5623,12 @@ function serializeRunState(){
     hero: heroSystem.serializeRunState(),
     units: structuredClone(units),
     reservePool: structuredClone(reservePool),
+    campaignCompletion: campaignCompletionMode
+      ? { mode:campaignCompletionMode, rewardText:campaignCompletionRewardText }
+      : null,
+    stageIntermission: pendingStageIntermission
+      ? structuredClone(pendingStageIntermission)
+      : null,
     daily: dailyChallengeActive && activeDailyChallenge
       ? { id: activeDailyChallenge.id, dateKey: activeDailyChallenge.dateKey }
       : null,
@@ -4897,10 +5654,13 @@ function loadSavedRun(){
     const raw = localStorage.getItem(RUN_SAVE_KEY);
     if(!raw) return null;
     const save = JSON.parse(raw);
-    // Versions 2–4 remain valid; missing flow/combat state gets safe defaults.
-    if(!save || ![2, 3, 4, RUN_SAVE_VERSION].includes(save.v)) return null;
+    // Older versions remain valid; missing Act II state gets safe defaults.
+    if(!save || ![2, 3, 4, 5, 6, 7, RUN_SAVE_VERSION].includes(save.v)) return null;
     if(!STAGES[save.stage]) return null;
     if(typeof save.lives !== "number" || save.lives <= 0) return null;
+    // Old v0.11.1 saves could start directly in Act II. Do not let such a
+    // snapshot bypass the restored Stage 6 completion gate.
+    if(save.mode !== "endless" && save.stage > ACT_ONE_FINAL_STAGE && !hasCompletedActOne()) return null;
     // A saved daily run is only valid on the day it was played.
     if(save.daily && save.daily.dateKey !== getTodayKey()) return null;
     return save;
@@ -4914,6 +5674,9 @@ function isResumeOverlayOpen(){
 // Restore the saved run into live game state. The run stays idle so the
 // restored battlefield renders behind the resume overlay.
 function restoreRunState(save){
+  if(save?.mode !== "endless" && save?.stage > ACT_ONE_FINAL_STAGE && !hasCompletedActOne()){
+    throw new Error("Act II requires Act I completion.");
+  }
   if(save.daily){
     activeDailyChallenge = getDailyChallenge(save.daily.dateKey);
     dailyChallengeActive = true;
@@ -4936,6 +5699,15 @@ function restoreRunState(save){
   runLeyCrystalsEarned = Math.max(0, save.runLeyCrystalsEarned|0);
   runEndlessBossPairsDefeated = Math.max(0, save.runEndlessBossPairsDefeated|0);
   lastEndlessBossPairKey = typeof save.lastEndlessBossPairKey === "string" ? save.lastEndlessBossPairKey : "";
+  stageObjectiveState = save.stageObjective && save.stageObjective.stage === currentStage
+    ? {
+        stage:currentStage,
+        progress:Math.max(0, Math.min(
+          STAGES[currentStage]?.objective?.groups || 0,
+          (save.stageObjective.progress ?? save.stageObjective.evacuated)|0
+        ))
+      }
+    : { stage:currentStage, progress:0 };
   runRng = window.DarkDefense.createRunRng(save.rng || window.DarkDefense.createRunSeed("legacy"));
   comboBest = Math.max(0, save.comboBest|0);
   if(typeof endlessMusicStage !== "undefined") endlessMusicStage = save.endlessMusicStage || 1;
@@ -4951,7 +5723,33 @@ function restoreRunState(save){
   reservePool = save.reservePool && typeof save.reservePool === "object"
     ? { archer:[], hunter:[], mage:[], bomb:[], cryo:[], ...save.reservePool }
     : { archer:[], hunter:[], mage:[], bomb:[], cryo:[] };
+  campaignCompletionMode = ["act1", "act2"].includes(save.campaignCompletion?.mode)
+    ? save.campaignCompletion.mode
+    : null;
+  campaignCompletionRewardText = campaignCompletionMode
+    ? String(save.campaignCompletion?.rewardText || "")
+    : "";
+  pendingStageIntermission = save.stageIntermission
+    && ["debrief", "reserve"].includes(save.stageIntermission.phase)
+    && Object.values(STAGE_INTERMISSION_DESTINATIONS).includes(save.stageIntermission.destination)
+      ? {
+          ...structuredClone(save.stageIntermission),
+          phase:save.stageIntermission.phase,
+          clearedStage:Math.max(1, save.stageIntermission.clearedStage|0),
+          nextStage:Number.isFinite(save.stageIntermission.nextStage) ? save.stageIntermission.nextStage : null,
+          reward:{ ...(save.stageIntermission.reward || {}) },
+          attrition:{
+            returned:0,
+            dismissed:0,
+            auraDismissed:0,
+            degraded:0,
+            entries:[],
+            ...(save.stageIntermission.attrition || {})
+          }
+        }
+      : null;
   heroSystem.restoreRunState(save.hero);
+  updateCampaignObjectiveUI();
   runStateMachine.send("RESTORE", {
     ...(save.runFlow || {}),
     phase: "ready",
@@ -4995,13 +5793,39 @@ function maybeShowResumeOverlay(){
 function finishResumeRun(){
   resumeOverlay?.classList.add("hidden");
   hasStarted = true;
+  if(pendingStageIntermission){
+    isPaused = true;
+    ensureAudio();
+    syncAmbientAudio();
+    loadProgressNotice();
+    loadBonusLeaderboard();
+    showStageIntermission(pendingStageIntermission);
+    setMessage(`Stage ${pendingStageIntermission.clearedStage} secured. Complete the debrief before marching on.`);
+    updateUI();
+    return;
+  }
+  if(campaignCompletionMode){
+    isPaused = true;
+    ensureAudio();
+    syncAmbientAudio();
+    loadProgressNotice();
+    loadBonusLeaderboard();
+    showCampaignCompletionOverlay(campaignCompletionMode, {
+      rewardText:campaignCompletionRewardText
+    });
+    setMessage(campaignCompletionMode === "act1"
+      ? "Act I complete. Choose Act II, Endless Mode, or the World Map."
+      : "Campaign complete. Choose Endless Mode or the World Map.");
+    updateUI();
+    return;
+  }
   isPaused = false;
   runStateMachine.send("READY", { reason:"resume-confirmed" });
   ensureAudio();
   syncAmbientAudio();
   loadProgressNotice();
   loadBonusLeaderboard();
-  hideEndlessUnlockOverlay();
+  hideCampaignCompletionOverlay();
   resetCamera();
   if(dailyChallengeActive && activeDailyChallenge){
     setMessage(`Run resumed — ${activeDailyChallenge.emoji} ${activeDailyChallenge.name}, Wave ${stageWave}. Your towers are on the field.`);
@@ -5074,8 +5898,16 @@ function saveProgress(){
 function loadProgressNotice(){
   try{
     const best=Number(localStorage.getItem("sdcBestScore")||0);
-    const furthest=Number(localStorage.getItem("sdcFurthestStage")||1);
+    let furthest=Number(localStorage.getItem("sdcFurthestStage")||1);
     endlessUnlocked = localStorage.getItem("sdcEndlessUnlocked")==="1";
+    if(endlessUnlocked && furthest < ACT_ONE_FINAL_STAGE + 1){
+      furthest = ACT_ONE_FINAL_STAGE + 1;
+      localStorage.setItem("sdcFurthestStage", String(furthest));
+      profileStore.update((profile)=>{
+        profile.progress.furthestStage = Math.max(profile.progress.furthestStage || 1, furthest);
+        return profile;
+      }, "progress:act2-migration");
+    }
     syncBestEndlessStats();
     if(best>0 || furthest>1 || endlessUnlocked || bestEndlessWave>0){
       pushNotification("stage","Progress loaded",`Best score: ${best} · Furthest stage: ${furthest}${endlessUnlocked ? " · Endless unlocked" : ""}${bestEndlessWave>0 ? ` · Best endless wave: ${bestEndlessWave}` : ""}`);
@@ -5163,7 +5995,7 @@ function updateBattlefieldHeader(){
   const worldMapOpen = !!(worldMapOverlay && !worldMapOverlay.classList.contains("hidden"));
   const modeLabel = dailyChallengeActive
     ? "Daily"
-    : (currentMode === "endless" ? "Endless" : "Campaign");
+    : (currentMode === "endless" ? "Endless" : (currentStage > ACT_ONE_FINAL_STAGE ? "Act II" : "Campaign"));
 
   let stateLabel = "Ready";
   let stateClass = "is-ready";
@@ -5178,12 +6010,12 @@ function updateBattlefieldHeader(){
   }else if(lives <= 0){
     stateLabel = "Game Over";
     stateClass = "is-danger";
+  }else if(pendingAuraChoice || pendingBossResolution || pendingLootReward || pendingStageIntermission){
+    stateLabel = "Reward";
+    stateClass = "is-reward";
   }else if(isPaused){
     stateLabel = "Paused";
     stateClass = "is-paused";
-  }else if(pendingAuraChoice || pendingBossResolution || pendingLootReward){
-    stateLabel = "Reward";
-    stateClass = "is-reward";
   }else if(waveActive){
     stateLabel = "Battle";
     stateClass = "is-battle";
@@ -5224,7 +6056,7 @@ function updateUI(){
   bonusScoreStat.textContent=String(bonusScore);
   stageNumberStat.textContent=String(currentStage);
   stageWaveStat.textContent=String(stageWave);
-  modeStat.textContent=currentMode==="campaign" ? "Story" : "Endless Run";
+  modeStat.textContent=currentMode==="campaign" ? (currentStage > ACT_ONE_FINAL_STAGE ? "Act II" : "Story") : "Endless Run";
   bestScoreStat.textContent=String(Number(localStorage.getItem("sdcBestScore")||0));
   furthestStageStat.textContent=String(Number(localStorage.getItem("sdcFurthestStage")||1));
   endlessUnlockedStat.textContent=endlessUnlocked ? "Yes" : "No";
@@ -5253,6 +6085,8 @@ function updateUI(){
   updateSpellButtons();
   updateHintChip();
   heroSystem.syncUi();
+  updateCampaignObjectiveUI();
+  refreshHeaderEndlessUI();
   updateBattlefieldHeader();
 }
 
@@ -5260,15 +6094,17 @@ function resetAchievementsUI(){}
 function applyStage(stageNumber, resetRun=false){
   gameOverTriggered = false;
   currentStage=stageNumber;
-  path=STAGES[currentStage].route;
-  pathCells=buildPathCells(path);
+  paths=getStageRoutes(currentStage);
+  path=paths[0];
+  pathCells=buildPathCells(paths);
+  resetStageObjectiveState(currentStage);
 
   units=[]; enemies=[]; projectiles=[]; particles=[]; popups=[]; placementEffects=[]; upgradeEffects=[]; impactBursts=[]; screenFlashes=[];
   heroSystem.resetForStage();
   comboCount = 0; comboTimer = 0; comboPop = 0; comboBest = 0;
   selectedPlacedUnitId=null; hoveredCell=null; hideTowerMenu();
   waveActive=false; spawnLeft=0; spawnTimer=0; bossBannerTimer=0; bossFxTimer=0; bossFxType=""; bossTelegraphTimer=0; bossTelegraphType=""; bossTelegraphStage=null; bossTelegraphEnemyId=null; bossTelegraphColor=""; bossCastTimer=0; bossCastText=""; bossCastColor="#f8fafc"; waveIntroTimer=0; waveIntroText=""; waveIntroSubtext=""; bossDefeatIntroTimer=0; bossDefeatRewardDelayTimer=0; bossDefeatIntroText=""; bossDefeatIntroSubtext=""; stageQuoteTimer=0; stageQuoteText=""; stageQuoteSubtext=""; stageQuoteResolveTimer=0; auraBindFxTimer=0; auraBindFxUnitId=null; isPaused=false; stageWave=1; waveCallBonus=0; waveCallBonusMax=0;
-  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingLootReward = null; pendingEndlessBossPair = []; lastEndlessBossPairKey = ""; hideAuraRewardOverlay(); hideEndlessUnlockOverlay(); renderBossLootReward();
+  pendingAuraDraft = null; pendingAuraChoice = null; pendingBossResolution = null; pendingLootReward = null; campaignCompletionMode = null; campaignCompletionRewardText = ""; pendingStageIntermission = null; pendingEndlessBossPair = []; lastEndlessBossPairKey = ""; hideAuraRewardOverlay(); hideCampaignCompletionOverlay(); hideStageIntermission(); renderBossLootReward();
   stopBossLoop();
   syncAmbientAudio();
   cancelSpellSelection();
@@ -5311,7 +6147,7 @@ function applyStage(stageNumber, resetRun=false){
 
   stageStartLives=lives;
   resetCamera();
-  setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.`);
+  setMessage(`Stage ${currentStage} — ${STAGES[currentStage].name} started. Re-place reserve towers for free.${getStageRouteNotice(currentStage)}`);
   prepareBannerTimer = PREPARE_BANNER_DURATION;
   // New stage → always cancel Auto Play so the player can build calmly.
   autoPlay = false;
@@ -5365,13 +6201,13 @@ function startWave(autoTriggered=false){
     waveIntroTimer = 1.8;
     waveIntroText = `Wave ${stageWave}`;
     waveIntroSubtext = `${threatProfile.label} — Stage ${currentStage} · ${stage.name}`;
-    pushNotification("stage", threatProfile.label, threatProfile.detail);
-    setMessage(`Wave ${stageWave} started. ${threatProfile.detail}`);
+      pushNotification("stage", threatProfile.label, threatProfile.detail);
+      setMessage(`Wave ${stageWave} started. ${threatProfile.detail}`);
+    }
+    updateUI();
   }
-  updateUI();
-}
 function togglePause(){
-  if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution) return;
+  if(!hasStarted || lives<=0 || pendingAuraChoice || pendingBossResolution || pendingStageIntermission || campaignCompletionMode) return;
   const changed = isPaused
     ? resumeRunFlow("player")
     : pauseRunFlow("player");
@@ -5404,6 +6240,9 @@ function getBossHpBonus(stageNumber){
   if(stageNumber >= 1 && stageNumber <= 2) return 1.10;
   if(stageNumber >= 3 && stageNumber <= 4) return 1.20;
   if(stageNumber >= 5 && stageNumber <= 6) return 1.30;
+  if(stageNumber >= 7 && stageNumber <= 8) return 1.35;
+  if(stageNumber >= 9 && stageNumber <= 10) return 1.45;
+  if(stageNumber >= 11 && stageNumber <= 12) return 1.60;
   return 1.0;
 }
 
@@ -5424,6 +6263,60 @@ function enemyTemplateForSpawn(indexFromEnd){
     }
   }
   const roll=runRng.next();
+  const actTwoWeights = currentMode === "campaign" ? stage.enemyWeights : null;
+  if(actTwoWeights){
+    const difficultyWave = getDifficultyWaveNumber();
+    const specialWeights = stage.specialEnemyWeights || {};
+    let cursor = Math.max(0, specialWeights.cinder_skirmisher || 0);
+    if(roll < cursor){
+      return {
+        type:"cinder_skirmisher",
+        hpMult:.88 * stage.difficulty,
+        speed:Math.min(.18, .112 + difficultyWave * .0018),
+        reward:26
+      };
+    }
+    cursor += Math.max(0, specialWeights.hollow_binder || 0);
+    if(roll < cursor){
+      return {
+        type:"hollow_binder",
+        hpMult:1.22 * stage.difficulty,
+        speed:.084 + currentStage * .0012,
+        reward:30
+      };
+    }
+    cursor += Math.max(0, specialWeights.ley_revenant || 0);
+    if(roll < cursor){
+      return {
+        type:"ley_revenant",
+        hpMult:1.68 * stage.difficulty,
+        speed:.077 + currentStage * .0011,
+        reward:34
+      };
+    }
+    cursor += Math.max(0, actTwoWeights.fast || 0);
+    if(roll < cursor){
+      return {
+        type:"fast",
+        hpMult:.56 * stage.difficulty,
+        speed:Math.min(.205, .125 + difficultyWave * .0022),
+        reward:20
+      };
+    }
+    cursor += Math.max(0, actTwoWeights.tank || 0);
+    if(roll < cursor){
+      return { type:"tank", hpMult:2.05*stage.difficulty, speed:.076+currentStage*.0015, reward:32 };
+    }
+    cursor += Math.max(0, actTwoWeights.splitter || 0);
+    if(roll < cursor){
+      return { type:"splitter", hpMult:1.38*stage.difficulty, speed:.082+currentStage*.0014, reward:22 };
+    }
+    cursor += Math.max(0, actTwoWeights.armored || 0);
+    if(roll < cursor){
+      return { type:"armored", hpMult:1.62*stage.difficulty, speed:.086+currentStage*.0015, reward:30 };
+    }
+    return { type:"normal", hpMult:1.05*stage.difficulty, speed:.096+difficultyWave*.0025, reward:24 };
+  }
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
     const difficultyWave = getDifficultyWaveNumber();
@@ -5449,7 +6342,10 @@ function spawnEnemy(){
   // Endless mobs are twice as tough (bosses already scale via the endless cycle).
   const endlessHpMult = (currentMode === "endless" && t.type !== "boss") ? 2 : 1;
   const scaledHp = hpBase*t.hpMult*dcHp*endlessHpMult;
-  const enemy = { id:idCounter++, hp:scaledHp, maxHp:scaledHp, speed:t.speed*dcSpd, progress:0, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
+  const pathIndex = t.type === "boss" || paths.length <= 1
+    ? 0
+    : (idCounter + stageWave) % paths.length;
+  const enemy = { id:idCounter++, hp:scaledHp, maxHp:scaledHp, speed:t.speed*dcSpd, progress:0, pathIndex, wobble:Math.random()*Math.PI*2, type:t.type, reward:t.reward, abilityUsed:false, bossTelegraphShown:false, bossStage: t.bossStage || null, bossColor: t.bossColor || null, bossName: t.type==="boss" ? (t.bossName || STAGE_BOSS[currentStage].name) : null };
   enemyBehaviorSystem.initialize(enemy);
   if(enemy.type==="boss") bossPhaseSystem.initialize(enemy);
   enemies.push(enemy);
@@ -5635,8 +6531,13 @@ function getShakeOffset(){
 /* --- enemy death burst: palette-matched gibs with gravity + shock ring --- */
 function addDeathBurst(enemy, pos){
   const pal = enemyPalette(enemy.type, enemy);
-  const isBig = enemy.type === "boss" || enemy.type === "tank";
-  const gibCount = enemy.type === "boss" ? 26 : enemy.type === "tank" ? 16 : enemy.type === "armored" ? 13 : 10;
+  const isBig = enemy.type === "boss" || enemy.type === "tank" || enemy.type === "ley_revenant";
+  const gibCount = enemy.type === "boss" ? 26
+    : enemy.type === "tank" ? 16
+    : enemy.type === "ley_revenant" ? 15
+    : enemy.type === "armored" ? 13
+    : enemy.type === "hollow_binder" ? 12
+    : 10;
   addHitParticles(pos.x, pos.y, gibCount, pal.skin, {
     speed: isBig ? 230 : 170,
     speedY: isBig ? 210 : 160,
@@ -5817,7 +6718,7 @@ function addUpgradeEffect(x,y,color){
 }
 function applySplashDamage(center,radius,damage,projectileType){
   for(const enemy of enemies){
-    const pos=getPathPosition(enemy.progress);
+    const pos=getEnemyPosition(enemy);
     if(distance(center,pos)<=radius){
       const finalDamage = dealDamageToEnemy(enemy, damage, projectileType);
       addHitParticles(pos.x,pos.y,projectileType==="bomb"?6:4,projectileType==="bomb"?"#fb923c":"#c4b5fd");
@@ -5841,7 +6742,14 @@ function rewardKill(enemy,pos){
   let reward = scaledBase;
   let scoreGain = 0;
   money += reward; kills += 1;
-  const baseScore=enemy.type==="boss"?300:enemy.type==="tank"?90:enemy.type==="armored"?85:enemy.type==="splitter"?(enemy.fragment?25:60):enemy.type==="fast"?70:50;
+  const baseScore=enemy.type==="boss"?300
+    :enemy.type==="ley_revenant"?100
+    :enemy.type==="tank"?90
+    :enemy.type==="armored"?85
+    :enemy.type==="hollow_binder"?82
+    :enemy.type==="cinder_skirmisher"?78
+    :enemy.type==="splitter"?(enemy.fragment?25:60)
+    :enemy.type==="fast"?70:50;
   const scoreBonus=isCurrentWaveBoss()?40:0;
   registerComboKill(pos);
   addScore(Math.round(baseScore * getComboMultiplier()), scoreBonus);
@@ -5886,11 +6794,14 @@ function triggerBossPhase(enemy, phase){
   const intensity = Math.max(1, Math.floor(phase?.intensity || 1));
   const meta = getBossAbilityMeta(bossStage);
   if(ability==="summon"){
-    const minionHp = bossStage === 3 ? 48 * STAGES[bossStage].difficulty : 40 * STAGES[bossStage].difficulty;
-    const minionSpeed = bossStage === 3 ? .125 : .13;
-    const summonCount = (bossStage === 3 ? 3 : 2) + (intensity - 1) * 2;
+    const actTwoBoss = bossStage > ACT_ONE_FINAL_STAGE;
+    const minionHp = actTwoBoss
+      ? (56 + stageWave * 12) * STAGES[bossStage].difficulty
+      : (bossStage === 3 ? 48 : 40) * STAGES[bossStage].difficulty;
+    const minionSpeed = actTwoBoss ? .142 : (bossStage === 3 ? .125 : .13);
+    const summonCount = (bossStage === 3 ? 3 : 2) + (actTwoBoss ? 1 : 0) + (intensity - 1) * 2;
     for(let i=0;i<summonCount;i++){
-      const minion = { id:idCounter++, hp:minionHp, maxHp:minionHp, speed:minionSpeed, progress:Math.max(0,enemy.progress-.03*(i+1)), wobble:Math.random()*Math.PI*2, type:"fast", reward:8 };
+      const minion = { id:idCounter++, hp:minionHp, maxHp:minionHp, speed:minionSpeed, progress:Math.max(0,enemy.progress-.03*(i+1)), pathIndex:enemy.pathIndex || 0, wobble:Math.random()*Math.PI*2, type:"fast", reward:8 };
       enemyBehaviorSystem.initialize(minion);
       enemies.push(minion);
     }
@@ -5911,7 +6822,7 @@ function triggerBossPhase(enemy, phase){
     showPopup(canvas.width/2,70,`${enemy.bossName || "Boss"} entered ${intensity > 1 ? "frenzy" : "rage"}!`,"#fca5a5");
   }
   if(ability==="shield"){
-    const shieldRatio = (bossStage === 6 ? .22 : .18) + intensity * .06;
+    const shieldRatio = (bossStage > ACT_ONE_FINAL_STAGE ? .20 : (bossStage === 6 ? .22 : .18)) + intensity * .06;
     enemy.shieldHp = Math.min(enemy.maxHp * .65, (enemy.shieldHp || 0) + enemy.maxHp * shieldRatio);
     enemy.shieldMax = Math.max(enemy.shieldMax || 0, enemy.shieldHp);
     enemy.shieldFxTimer = 2.8;
@@ -5923,7 +6834,7 @@ function triggerBossPhase(enemy, phase){
   if(ability==="roots"){
     const activeUnits = units.filter(unit => (unit.snareTimer || 0) <= 0);
     if(activeUnits.length){
-      const bossPos = getPathPosition(enemy.progress);
+      const bossPos = getEnemyPosition(enemy);
       const rootedUnits = activeUnits
         .map(unit => ({ unit, distance:distance(cellCenter(unit.c, unit.r), bossPos) }))
         .sort((a,b)=>a.distance-b.distance)
@@ -5931,6 +6842,8 @@ function triggerBossPhase(enemy, phase){
         .map(item => item.unit);
       for(const rootedUnit of rootedUnits){
         rootedUnit.snareTimer = 3.5;
+        rootedUnit.snareColor = "#4ade80";
+        rootedUnit.snareLabel = "ROOTED";
         rootedUnit.cooldown = Math.max(rootedUnit.cooldown || 0, 0.35);
         const rootedPos = cellCenter(rootedUnit.c, rootedUnit.r);
         showPopup(rootedPos.x, rootedPos.y - 26, "Rooted!", "#86efac");
@@ -6007,7 +6920,7 @@ function update(dt){
     if(spawnTimer>=spawnIntervalForWave()){ spawnTimer=0; spawnEnemy(); spawnLeft--; updateUI(); }
   }
 
-  enemyBehaviorSystem.updateAll(enemies);
+  enemyBehaviorSystem.updateAll(enemies, dt);
 
   for(let i=enemies.length-1;i>=0;i--){
     const enemy=enemies[i];
@@ -6088,7 +7001,13 @@ function update(dt){
   for(const unit of units){
     unit.cooldown=Math.max(0,unit.cooldown-dt);
     if(unit.wealthSurgeTimer) unit.wealthSurgeTimer = Math.max(0, unit.wealthSurgeTimer - dt);
-    if(unit.snareTimer) unit.snareTimer = Math.max(0, unit.snareTimer - dt);
+    if(unit.snareTimer){
+      unit.snareTimer = Math.max(0, unit.snareTimer - dt);
+      if(unit.snareTimer === 0){
+        delete unit.snareColor;
+        delete unit.snareLabel;
+      }
+    }
     if((unit.snareTimer || 0) > 0) continue;
     const stats = getAuraAdjustedStats(unit);
     const unitPos=cellCenter(unit.c,unit.r);
@@ -6100,7 +7019,7 @@ function update(dt){
           ? Math.min(0.55, unit.cryoChillFactor || 0.70)
           : (unit.cryoChillFactor || 0.70);
         for(const enemy of enemies){
-          const enemyPos = getPathPosition(enemy.progress);
+          const enemyPos = getEnemyPosition(enemy);
           if(distance(unitPos, enemyPos) <= stats.range){
             enemy.cryoSlowTimer = Math.max(enemy.cryoSlowTimer || 0, unit.cryoSlowDuration || 0.35);
             enemy.cryoSlowFactor = Math.min(enemy.cryoSlowFactor || 1, chillFactor);
@@ -6110,7 +7029,7 @@ function update(dt){
     }
     let bestTarget=null,bestPriority=-Infinity;
     for(const enemy of enemies){
-      const enemyPos=getPathPosition(enemy.progress);
+      const enemyPos=getEnemyPosition(enemy);
       if(distance(unitPos,enemyPos)>stats.range) continue;
       const priority = getTargetPriority(unit, enemy, stats, unitPos, enemyPos);
       if(priority>bestPriority){
@@ -6132,7 +7051,7 @@ function update(dt){
     const projectile=projectiles[i], target=enemies.find(e=>e.id===projectile.targetId);
     const owner = getUnitById(projectile.ownerUnitId);
     if(!target){ projectiles.splice(i,1); continue; }
-    const targetPos=getPathPosition(target.progress);
+    const targetPos=getEnemyPosition(target);
     projectile.px=projectile.x; projectile.py=projectile.y;
     const dx=targetPos.x-projectile.x, dy=targetPos.y-projectile.y, d=Math.hypot(dx,dy), step=projectile.speed*dt;
     projectile.angle=Math.atan2(dy,dx);
@@ -6141,7 +7060,7 @@ function update(dt){
         addMageImpactEffect(targetPos.x, targetPos.y, projectile.splash);
         applySplashDamage(targetPos,projectile.splash,projectile.damage,"mage");
         for(const enemy of enemies){
-          const pos=getPathPosition(enemy.progress);
+          const pos=getEnemyPosition(enemy);
           if(distance(targetPos,pos)<=projectile.splash){
             if(owner) markEnemyHit(enemy, owner, projectile.damage);
             applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
@@ -6153,7 +7072,7 @@ function update(dt){
         addBombImpactEffect(targetPos.x, targetPos.y, projectile.splash);
         applySplashDamage(targetPos,projectile.splash,projectile.damage,"bomb");
         for(const enemy of enemies){
-          const pos=getPathPosition(enemy.progress);
+          const pos=getEnemyPosition(enemy);
           if(distance(targetPos,pos)<=projectile.splash){
             if(owner) markEnemyHit(enemy, owner, projectile.damage);
             applyAuraStatusOnEnemy(enemy, owner, pos, projectile.damage);
@@ -6191,7 +7110,7 @@ function update(dt){
   for(let i=enemies.length-1;i>=0;i--){
     if(enemies[i].hp<=0){
       const defeatedEnemy = enemies[i];
-      const pos=getPathPosition(defeatedEnemy.progress);
+      const pos=getEnemyPosition(defeatedEnemy);
       rewardKill(defeatedEnemy,pos);
       if(defeatedEnemy.type==="splitter" && !defeatedEnemy.fragment){
         const fragHp = Math.max(12, defeatedEnemy.maxHp * 0.34);
@@ -6200,6 +7119,7 @@ function update(dt){
             id:idCounter++, hp:fragHp, maxHp:fragHp,
             speed:defeatedEnemy.speed * 1.4,
             progress:Math.max(0, defeatedEnemy.progress - 0.006 - f * 0.012),
+            pathIndex:defeatedEnemy.pathIndex || 0,
             wobble:Math.random()*Math.PI*2,
             type:"splitter", fragment:true, reward:6,
             abilityUsed:true, bossTelegraphShown:true
@@ -6257,11 +7177,15 @@ function update(dt){
       if(lives===stageStartLives){ unlockAchievement("survivor"); bonusScore += 250; }
 
       if(!pendingBossResolution){
-        if(currentMode==="campaign" && currentStage < Object.keys(STAGES).length){
-          pendingBossResolution = { type:"campaign-next-stage", nextStage: currentStage + 1 };
-        } else if(currentMode==="campaign" && currentStage >= Object.keys(STAGES).length){
+        if(currentMode==="campaign" && currentStage === 7) unlockAchievement("stage7_clear");
+        if(currentMode==="campaign" && currentStage === ACT_ONE_FINAL_STAGE){
           unlockAchievement("stage6_clear");
-          pendingBossResolution = { type:"unlock-endless" };
+          pendingBossResolution = { type:"act2-start", nextStage: ACT_ONE_FINAL_STAGE + 1 };
+        } else if(currentMode==="campaign" && currentStage < CAMPAIGN_FINAL_STAGE){
+          pendingBossResolution = { type:"campaign-next-stage", nextStage: currentStage + 1 };
+        } else if(currentMode==="campaign" && currentStage >= CAMPAIGN_FINAL_STAGE){
+          unlockAchievement("act2_clear");
+          pendingBossResolution = { type:"act2-complete" };
         } else {
           if(!dailyChallengeActive) unlockAchievement("first_endless_boss_pair");
           pendingBossResolution = { type:"endless-next" };
@@ -6273,6 +7197,7 @@ function update(dt){
     }
 
     runStateMachine.send("WAVE_CLEARED", { reason:"wave-cleared" });
+    advanceStageObjectiveOnWaveClear(stageWave);
     stageWave += 1;
     if(currentMode === "campaign") wave += 1;
     money += 35 + Math.min(currentStage,6) * 10;
@@ -6314,7 +7239,31 @@ function getStagePalette(stage=currentStage){
     6:{ bgTop:"#100d17", bgMid:"#090710", bgBot:"#05040a", grid:"rgba(118,88,160,.050)",
         tile:"rgba(16,12,26,.36)", pathTile:"rgba(72,48,104,.20)",
         pathBase:"rgba(78,52,118,.95)", pathMid:"rgba(130,90,180,.50)", pathHi:"rgba(214,188,255,.09)",
-        glow:"rgba(168,85,247,.10)", ambient:"rgba(139,92,246,.050)", lantern:"#c084fc", fog:true, embers:true }
+        glow:"rgba(168,85,247,.10)", ambient:"rgba(139,92,246,.050)", lantern:"#c084fc", fog:true, embers:true },
+    7:{ bgTop:"#17110d", bgMid:"#0e0b09", bgBot:"#070605", grid:"rgba(154,108,72,.050)",
+        tile:"rgba(26,19,14,.36)", pathTile:"rgba(96,61,38,.20)",
+        pathBase:"rgba(79,54,38,.95)", pathMid:"rgba(151,99,57,.52)", pathHi:"rgba(255,214,158,.08)",
+        glow:"rgba(251,146,60,.10)", ambient:"rgba(180,83,9,.052)", lantern:"#fb923c", fog:true, embers:true },
+    8:{ bgTop:"#17120b", bgMid:"#100c08", bgBot:"#080604", grid:"rgba(160,112,62,.048)",
+        tile:"rgba(28,20,12,.36)", pathTile:"rgba(102,67,32,.20)",
+        pathBase:"rgba(84,57,31,.95)", pathMid:"rgba(157,106,50,.50)", pathHi:"rgba(253,224,171,.08)",
+        glow:"rgba(245,158,11,.09)", ambient:"rgba(146,64,14,.050)", lantern:"#f59e0b", fog:true, embers:true },
+    9:{ bgTop:"#15101a", bgMid:"#0e0a12", bgBot:"#070509", grid:"rgba(142,103,156,.046)",
+        tile:"rgba(22,15,25,.36)", pathTile:"rgba(78,55,88,.20)",
+        pathBase:"rgba(72,52,78,.95)", pathMid:"rgba(135,94,148,.48)", pathHi:"rgba(233,213,255,.08)",
+        glow:"rgba(216,180,254,.08)", ambient:"rgba(126,34,206,.044)", lantern:"#d8b4fe", fog:true, embers:false },
+    10:{ bgTop:"#0e151b", bgMid:"#091015", bgBot:"#05090d", grid:"rgba(100,150,172,.048)",
+        tile:"rgba(13,23,29,.36)", pathTile:"rgba(48,82,98,.20)",
+        pathBase:"rgba(50,73,84,.95)", pathMid:"rgba(90,139,160,.50)", pathHi:"rgba(207,250,254,.08)",
+        glow:"rgba(125,211,252,.08)", ambient:"rgba(14,116,144,.046)", lantern:"#7dd3fc", fog:true, embers:false },
+    11:{ bgTop:"#140b19", bgMid:"#0d0711", bgBot:"#060408", grid:"rgba(159,92,177,.052)",
+        tile:"rgba(23,11,28,.38)", pathTile:"rgba(92,42,110,.22)",
+        pathBase:"rgba(75,40,88,.96)", pathMid:"rgba(148,72,169,.52)", pathHi:"rgba(250,232,255,.09)",
+        glow:"rgba(232,121,249,.11)", ambient:"rgba(168,85,247,.055)", lantern:"#e879f9", fog:true, embers:true },
+    12:{ bgTop:"#18160d", bgMid:"#100f09", bgBot:"#080704", grid:"rgba(177,152,76,.050)",
+        tile:"rgba(27,25,14,.36)", pathTile:"rgba(105,88,38,.20)",
+        pathBase:"rgba(82,68,35,.95)", pathMid:"rgba(162,137,66,.52)", pathHi:"rgba(255,248,196,.10)",
+        glow:"rgba(253,230,138,.11)", ambient:"rgba(202,138,4,.050)", lantern:"#fde68a", fog:true, embers:true }
   }[stage];
 }
 
@@ -6325,7 +7274,13 @@ function getStageScatterSeed(stage=currentStage){
     3:[[104,100],[162,152],[520,112],[604,332],[422,382],[262,94],[866,406]],
     4:[[90,60],[188,238],[580,72],[792,288],[922,188],[840,442]],
     5:[[92,92],[182,116],[402,318],[522,208],[610,372],[244,382],[846,156]],
-    6:[[74,90],[184,144],[492,340],[856,214],[952,430],[620,112],[290,468]]
+    6:[[74,90],[184,144],[492,340],[856,214],[952,430],[620,112],[290,468]],
+    7:[[74,82],[182,212],[356,104],[514,424],[648,334],[812,116],[914,398]],
+    8:[[90,104],[238,430],[402,86],[574,350],[732,128],[866,424],[950,238]],
+    9:[[84,92],[212,286],[378,118],[542,404],[688,184],[842,376],[942,142]],
+    10:[[76,398],[222,112],[384,336],[548,92],[704,392],[844,164],[946,356]],
+    11:[[92,88],[244,218],[396,438],[566,116],[716,346],[856,92],[942,414]],
+    12:[[82,112],[226,430],[388,104],[552,382],[704,136],[850,408],[950,186]]
   };
   return seeds[stage] || [];
 }
@@ -6393,34 +7348,46 @@ function drawAnimatedVegetation(){
 }
 
 function getPathCanvasPoints(){
-  return path.map(p => cellCenter(p.c, p.r));
+  return getPathCanvasRoutes()[0] || [];
+}
+
+function getPathCanvasRoutes(){
+  return paths.map(route => route.map(p => cellCenter(p.c, p.r)));
 }
 
 function getStageLanterns(){
   const lanterns = [];
-  const pts = path.map(p => ({ ...p, pos: cellCenter(p.c, p.r) }));
-  if(!pts.length) return lanterns;
+  const used = new Set();
+  const pushLantern = (x, y, size=1) => {
+    const key = `${Math.round(x / 8)}-${Math.round(y / 8)}`;
+    if(used.has(key)) return;
+    used.add(key);
+    lanterns.push({ x, y, size });
+  };
 
-  const pushLantern = (x, y, size=1) => lanterns.push({ x, y, size });
+  for(const route of paths){
+    const pts = route.map(p => ({ ...p, pos: cellCenter(p.c, p.r) }));
+    if(!pts.length) continue;
 
-  const start = pts[0].pos;
-  const end = pts[pts.length - 1].pos;
-  pushLantern(start.x + 20, start.y - 22, 1.05);
-  pushLantern(end.x - 18, end.y - 20, 1.05);
+    const start = pts[0].pos;
+    const end = pts[pts.length - 1].pos;
+    pushLantern(start.x + 20, start.y - 22, 1.05);
+    pushLantern(end.x - 18, end.y - 20, 1.05);
 
-  for(let i = 1; i < pts.length - 1; i++) {
-    const prev = pts[i - 1];
-    const cur = pts[i];
-    const next = pts[i + 1];
-    const dirIn = { x: Math.sign(cur.c - prev.c), y: Math.sign(cur.r - prev.r) };
-    const dirOut = { x: Math.sign(next.c - cur.c), y: Math.sign(next.r - cur.r) };
-    const isTurn = dirIn.x !== dirOut.x || dirIn.y !== dirOut.y;
-    if(!isTurn) continue;
-    const outer = { x: -(dirIn.x + dirOut.x), y: -(dirIn.y + dirOut.y) };
-    const len = Math.hypot(outer.x, outer.y) || 1;
-    const ox = (outer.x / len) * 24;
-    const oy = (outer.y / len) * 24;
-    pushLantern(cur.pos.x + ox, cur.pos.y + oy, 1.0);
+    for(let i = 1; i < pts.length - 1; i++) {
+      const prev = pts[i - 1];
+      const cur = pts[i];
+      const next = pts[i + 1];
+      const dirIn = { x: Math.sign(cur.c - prev.c), y: Math.sign(cur.r - prev.r) };
+      const dirOut = { x: Math.sign(next.c - cur.c), y: Math.sign(next.r - cur.r) };
+      const isTurn = dirIn.x !== dirOut.x || dirIn.y !== dirOut.y;
+      if(!isTurn) continue;
+      const outer = { x: -(dirIn.x + dirOut.x), y: -(dirIn.y + dirOut.y) };
+      const len = Math.hypot(outer.x, outer.y) || 1;
+      const ox = (outer.x / len) * 24;
+      const oy = (outer.y / len) * 24;
+      pushLantern(cur.pos.x + ox, cur.pos.y + oy, 1.0);
+    }
   }
 
   return lanterns;
@@ -6665,8 +7632,8 @@ function drawStageBirds(){
 }
 
 function drawPathAtmosphere(){
-  const points = getPathCanvasPoints();
-  if(points.length < 2) return;
+  const routePoints = getPathCanvasRoutes();
+  if(!routePoints.some(points => points.length >= 2)) return;
   const pulse = 0.09 + Math.sin(performance.now() * 0.0022) * 0.018;
   const pal = getStagePalette();
 
@@ -6674,7 +7641,9 @@ function drawPathAtmosphere(){
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.beginPath();
-  points.forEach((pos, i) => { if(i === 0) ctx.moveTo(pos.x, pos.y); else ctx.lineTo(pos.x, pos.y); });
+  routePoints.forEach(points => {
+    points.forEach((pos, i) => { if(i === 0) ctx.moveTo(pos.x, pos.y); else ctx.lineTo(pos.x, pos.y); });
+  });
   ctx.strokeStyle = pal.glow.replace('0.10', pulse.toFixed(3)).replace('0.065', pulse.toFixed(3)).replace('0.055', pulse.toFixed(3));
   ctx.lineWidth = 24;
   ctx.stroke();
@@ -6698,14 +7667,23 @@ function drawBackground(){
   bg.addColorStop(1,pal.bgBot);
   ctx.fillStyle=bg; ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  const groundTexture = stageGroundTextures[currentStage];
+  const terrainStage = stage.terrainStage || currentStage;
+  const groundTexture = stageGroundTextures[terrainStage];
   const hasPaintedGround = Boolean(groundTexture?.complete && groundTexture.naturalWidth);
   if(hasPaintedGround){
     ctx.save();
-    ctx.globalAlpha = 0.86;
+    ctx.globalAlpha = currentStage >= 7 ? 0.94 : 0.86;
     ctx.drawImage(groundTexture, 0, 0, canvas.width, canvas.height);
     ctx.globalAlpha = 1;
-    ctx.fillStyle = currentStage === 6 ? "rgba(18,8,30,.12)" : "rgba(3,6,8,.10)";
+    const actTwoTint = {
+      7:"rgba(38,16,5,.045)",
+      8:"rgba(52,29,6,.035)",
+      9:"rgba(32,10,40,.040)",
+      10:"rgba(5,27,39,.035)",
+      11:"rgba(40,5,48,.040)",
+      12:"rgba(48,38,5,.030)"
+    }[currentStage];
+    ctx.fillStyle = actTwoTint || (currentStage === 6 ? "rgba(18,8,30,.12)" : "rgba(3,6,8,.10)");
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
   }
@@ -6739,7 +7717,7 @@ function drawBackground(){
   }
 
   for(const patch of (stage.grassPatches||[])){
-    ctx.fillStyle=currentStage===1?"rgba(28,108,58,.08)":currentStage===2?"rgba(88,96,104,.06)":currentStage===3?"rgba(92,54,98,.08)":currentStage===4?"rgba(48,70,90,.07)":currentStage===5?"rgba(90,44,34,.07)":"rgba(82,54,122,.08)";
+    ctx.fillStyle=pal.ambient;
     roundRect(patch.x,patch.y,patch.w,patch.h,16); ctx.fill();
   }
   drawAnimatedVegetation();
@@ -6843,10 +7821,12 @@ function drawPath(){
   ctx.lineJoin="round";
 
   ctx.beginPath();
-  path.forEach((p,i)=>{
-    const pos=cellCenter(p.c,p.r);
-    if(i===0) ctx.moveTo(pos.x,pos.y);
-    else ctx.lineTo(pos.x,pos.y);
+  paths.forEach(route => {
+    route.forEach((p,i)=>{
+      const pos=cellCenter(p.c,p.r);
+      if(i===0) ctx.moveTo(pos.x,pos.y);
+      else ctx.lineTo(pos.x,pos.y);
+    });
   });
 
   if(paintedPathPattern){
@@ -6883,17 +7863,31 @@ function drawPath(){
     ctx.stroke();
   }
 
-  for(let i=0;i<18;i++){
-    const pt = getPathPosition((i+0.35)/18);
-    ctx.fillStyle=currentStage===1 ? "rgba(22,16,10,.25)"
-      : currentStage===2 ? "rgba(210,216,224,.07)"
-      : currentStage===3 ? "rgba(220,188,244,.06)"
-      : currentStage===4 ? "rgba(224,230,236,.06)"
-      : currentStage===5 ? "rgba(255,186,116,.06)"
-      : "rgba(224,196,255,.10)";
-    ctx.beginPath();
-    ctx.arc(pt.x, pt.y, 1.8, 0, Math.PI*2);
-    ctx.fill();
+  const detailCount = paths.length > 1 ? 12 : 18;
+  paths.forEach((route, pathIndex)=>{
+    for(let i=0;i<detailCount;i++){
+      const pt = getPathPosition((i+0.35)/detailCount, pathIndex);
+      ctx.fillStyle=currentStage===1 ? "rgba(22,16,10,.25)"
+        : currentStage===2 ? "rgba(210,216,224,.07)"
+        : currentStage===3 ? "rgba(220,188,244,.06)"
+        : currentStage===4 ? "rgba(224,230,236,.06)"
+        : currentStage===5 ? "rgba(255,186,116,.06)"
+        : "rgba(224,196,255,.10)";
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 1.8, 0, Math.PI*2);
+      ctx.fill();
+    }
+  });
+  for(const junction of (STAGES[currentStage].junctions || [])){
+    const pos = cellCenter(junction.c, junction.r);
+    const color = junction.kind === "merge" ? "rgba(94,234,212,.72)" : "rgba(251,191,36,.76)";
+    ctx.fillStyle = "rgba(7,10,14,.74)";
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, 10, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, 7, 0, Math.PI*2); ctx.stroke();
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(pos.x, pos.y, 2.2, 0, Math.PI*2); ctx.fill();
   }
   ctx.restore();
 }
@@ -7467,8 +8461,9 @@ function drawPlacedUnit(unit){
 
   const isSnared = (unit.snareTimer || 0) > 0;
   if(isSnared){
+    const snareColor = unit.snareColor || "#4ade80";
     ctx.save();
-    ctx.strokeStyle = "rgba(74,222,128,.95)";
+    ctx.strokeStyle = snareColor;
     ctx.lineWidth = 3;
     for(let i=0;i<3;i++){
       ctx.beginPath();
@@ -7478,10 +8473,10 @@ function drawPlacedUnit(unit){
     ctx.fillStyle = "rgba(8,17,31,.82)";
     roundRect(pos.x - 20, pos.y - 56, 40, 16, 8);
     ctx.fill();
-    ctx.fillStyle = "#86efac";
+    ctx.fillStyle = snareColor;
     ctx.font = `bold 11px ${FONT_UI}`;
     ctx.textAlign = "center";
-    ctx.fillText("ROOTED", pos.x, pos.y - 44);
+    ctx.fillText(unit.snareLabel || "ROOTED", pos.x, pos.y - 44);
     ctx.textAlign = "start";
     ctx.restore();
   }
@@ -7552,7 +8547,10 @@ const MOB_ART_DISPLAY_SIZE = {
   fast: 49,
   armored: 56,
   tank: 67,
-  splitter: 52
+  splitter: 52,
+  cinder_skirmisher: 50,
+  hollow_binder: 55,
+  ley_revenant: 62
 };
 // Bosses render through the Godot cutout rig sheets; the boss transform already
 // applies scale 1.55, so this is the pre-scale content size for the walk frames.
@@ -7563,6 +8561,15 @@ function enemyPalette(type, enemy){
   if(type === "boss"){
     const accent = enemy?.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b");
     return { key:`boss-${accent}`, skin:"#2b2437", skinD:"#191423", cloth:"#3f3454", metal:"#6b5f85", accent, eye:accent };
+  }
+  if(type === "cinder_skirmisher"){
+    return { key:"cinder-skirmisher", skin:"#252025", skinD:"#140f14", cloth:"#7c2d12", metal:"#4b5563", accent:"#fb923c", eye:"#fdba74" };
+  }
+  if(type === "hollow_binder"){
+    return { key:"hollow-binder", skin:"#6b6576", skinD:"#35303f", cloth:"#51405f", metal:"#8b8294", accent:"#c084fc", eye:"#e9d5ff" };
+  }
+  if(type === "ley_revenant"){
+    return { key:"ley-revenant", skin:"#282735", skinD:"#11111b", cloth:"#3f3650", metal:"#766b72", accent:"#e879f9", eye:"#f5d0fe" };
   }
   if(type === "splitter" || type === "splitterling"){
     return (currentStage === 6)
@@ -7927,11 +8934,11 @@ function getEnemySpriteSheet(type, enemy){
 }
 
 function drawEnemy(enemy){
-  const pos = getPathPosition(enemy.progress);
+  const pos = getEnemyPosition(enemy);
   const now = performance.now();
 
   // --- facing: sample the path slightly ahead, keep last horizontal facing on vertical segments
-  const ahead = getPathPosition(Math.min(1, enemy.progress + 0.004));
+  const ahead = getPathPosition(Math.min(1, enemy.progress + 0.004), enemy.pathIndex || 0);
   const dirX = ahead.x - pos.x, dirY = ahead.y - pos.y;
   if(enemy.facing === undefined) enemy.facing = 1;
   if(enemy.artView === undefined) enemy.artView = "front";
@@ -7948,10 +8955,26 @@ function drawEnemy(enemy){
   if(enemy.animT === undefined){ enemy.animT = enemy.wobble; enemy.animLast = now; }
   const adt = Math.min(0.05, (now - enemy.animLast) / 1000);
   enemy.animLast = now;
-  const stepRate = enemy.type === "fast" ? 3.0 : enemy.type === "tank" ? 1.35 : enemy.type === "armored" ? 1.8 : enemy.type === "boss" ? 1.15 : enemy.type === "splitter" ? (enemy.fragment ? 2.5 : 1.7) : 2.1;
+  const stepRate = enemy.type === "fast" ? 3.0
+    : enemy.type === "cinder_skirmisher" ? 2.75
+    : enemy.type === "hollow_binder" ? 1.55
+    : enemy.type === "ley_revenant" ? 1.4
+    : enemy.type === "tank" ? 1.35
+    : enemy.type === "armored" ? 1.8
+    : enemy.type === "boss" ? 1.15
+    : enemy.type === "splitter" ? (enemy.fragment ? 2.5 : 1.7)
+    : 2.1;
   if(!frozen && !isPaused) enemy.animT += adt * stepRate * (slowed ? 0.55 : 1);
 
-  const scale = enemy.type === "boss" ? 1.55 : enemy.type === "tank" ? 1.18 : enemy.type === "armored" ? 1.08 : enemy.type === "splitter" ? (enemy.fragment ? .58 : 1.05) : enemy.type === "fast" ? .88 : 1;
+  const scale = enemy.type === "boss" ? 1.55
+    : enemy.type === "tank" ? 1.18
+    : enemy.type === "ley_revenant" ? 1.12
+    : enemy.type === "armored" ? 1.08
+    : enemy.type === "hollow_binder" ? 1.02
+    : enemy.type === "splitter" ? (enemy.fragment ? .58 : 1.05)
+    : enemy.type === "cinder_skirmisher" ? .94
+    : enemy.type === "fast" ? .88
+    : 1;
   const bob = frozen ? 0 : Math.sin(now * .004 + enemy.wobble) * (enemy.type === "boss" ? 1.2 : 0.7);
   const x = pos.x, y = pos.y + bob;
   const hpPct = Math.max(0, enemy.hp / enemy.maxHp);
@@ -7999,10 +9022,10 @@ function drawEnemy(enemy){
     ctx.stroke();
     ctx.restore();
   }
-  if(enemy.type === "boss" && (enemy.shieldFxTimer > 0 || enemy.shieldHp > 0)){
+  if((enemy.type === "boss" || enemy.type === "ley_revenant") && (enemy.shieldFxTimer > 0 || enemy.shieldHp > 0)){
     ctx.save();
     ctx.globalAlpha = enemy.shieldHp > 0 ? 0.58 : Math.min(0.7, enemy.shieldFxTimer / 2.8 * 0.7);
-    ctx.strokeStyle = "#93c5fd";
+    ctx.strokeStyle = enemy.type === "ley_revenant" ? "#e879f9" : "#93c5fd";
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(0, 1, 18 + Math.sin(pulseT * 1.2) * 2.5, 0, Math.PI * 2);
@@ -8021,8 +9044,11 @@ function drawEnemy(enemy){
   }
 
   // --- Godot Bone2D walk sheets; static art and procedural sprites are fallbacks.
+  const bossArtStage = enemy.type === "boss"
+    ? (STAGES[enemy.bossStage]?.bossArtStage || enemy.bossStage)
+    : null;
   const rigSheet = enemy.type === "boss"
-    ? bossRigSheets[enemy.bossStage]?.[enemy.artView || "front"]
+    ? bossRigSheets[bossArtStage]?.[enemy.artView || "front"]
     : enemyRigSheets[importedArtType]?.[enemy.artView || "front"];
   const art = enemy.type === "boss" ? null : enemyArt[importedArtType]?.[enemy.artView || "front"];
   if(rigSheet?.complete && rigSheet.naturalWidth){
@@ -8087,10 +9113,25 @@ function drawEnemy(enemy){
   }
   ctx.restore();
 
-  const mobHpOffset = enemy.type === "tank" ? 40 : enemy.type === "armored" ? 34 : enemy.type === "fast" ? 32 : enemy.type === "normal" ? 31 : 28;
+  const mobHpOffset = enemy.type === "tank" ? 40
+    : enemy.type === "ley_revenant" ? 39
+    : enemy.type === "hollow_binder" ? 37
+    : enemy.type === "armored" ? 34
+    : enemy.type === "cinder_skirmisher" ? 33
+    : enemy.type === "fast" ? 32
+    : enemy.type === "normal" ? 31
+    : 28;
   const hpWidth = enemy.type === "boss" ? 46 : 36, hpX = x - hpWidth / 2, hpY = y - (enemy.type === "boss" ? 44 : mobHpOffset);
   ctx.fillStyle = "rgba(15,23,42,.95)"; roundRect(hpX, hpY, hpWidth, 6, 4); ctx.fill();
-  ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b")) : enemy.type === "tank" ? "#fb7185" : enemy.type === "armored" ? "#94a3b8" : enemy.type === "splitter" ? "#2dd4bf" : enemy.type === "fast" ? "#38bdf8" : "#22c55e";
+  ctx.fillStyle = enemy.type === "boss" ? (enemy.bossColor || (currentStage === 6 ? "#c084fc" : "#f59e0b"))
+    : enemy.type === "ley_revenant" ? "#e879f9"
+    : enemy.type === "hollow_binder" ? "#c084fc"
+    : enemy.type === "cinder_skirmisher" ? "#fb923c"
+    : enemy.type === "tank" ? "#fb7185"
+    : enemy.type === "armored" ? "#94a3b8"
+    : enemy.type === "splitter" ? "#2dd4bf"
+    : enemy.type === "fast" ? "#38bdf8"
+    : "#22c55e";
   roundRect(hpX, hpY, hpWidth * hpPct, 6, 4); ctx.fill();
   enemyBehaviorSystem.drawIndicator(ctx, enemy, { x, y });
 }
@@ -8849,7 +9890,7 @@ function drawBossAbilityFx(){
     ctx.fillStyle = telegraphColor;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if(boss){
-      const pos = getPathPosition(boss.progress);
+      const pos = getEnemyPosition(boss);
       ctx.globalAlpha = 0.72 * alpha;
       ctx.strokeStyle = telegraphColor;
       ctx.lineWidth = 2.2;
@@ -8891,7 +9932,7 @@ function drawBossAbilityFx(){
   if(bossFxType === "shield"){
     const boss = enemies.find(e => e.type === "boss");
     if(!boss) return;
-    const pos = getPathPosition(boss.progress);
+    const pos = getEnemyPosition(boss);
     ctx.save();
     ctx.globalAlpha = 0.35 * alpha;
     ctx.strokeStyle = "#93c5fd";
@@ -9232,54 +10273,112 @@ heroSkillBranches?.addEventListener("click",(event)=>{
 heroSkillRespecBtn?.addEventListener("click",handleHeroSkillRespec);
 
 /* ---- World Map -----------------------------------------
-   Six campaign regions unlocked progressively. Region N is
-   unlocked once you've cleared N-1 (tracked by furthestStage).
-   Selecting a region plays only that stage; clearing it
-   unlocks the next and returns you to the map. */
+   Each six-region campaign act has its own illustrated war map.
+   Progress remains one continuous furthest-stage value. */
+let worldMapAct = 1;
+const WORLD_MAP_ART = Object.freeze({
+  1: "assets/ui/world-map.webp",
+  2: "assets/ui/world-map-act2.webp"
+});
+
+function hasCompletedActOne(){
+  try{
+    // Endless and Stage 7 are awarded together when Stage 6 is cleared. The
+    // stored Endless flag also preserves legitimate completion from older
+    // versions without making Stage 7 a free entry point for new profiles.
+    return endlessUnlocked || localStorage.getItem("sdcEndlessUnlocked") === "1";
+  }catch(e){
+    return endlessUnlocked;
+  }
+}
+
 function highestUnlockedStage(){
-  const total = Object.keys(STAGES).length;
   const furthest = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
+  const actOneComplete = hasCompletedActOne();
+  // Before the first Act I clear, even a legacy/corrupt furthest-stage value
+  // cannot cross the Stage 6 boundary. Once cleared, the persisted Endless
+  // unlock is proof of completion and permanently opens Stage 7.
+  const migratedFurthest = actOneComplete
+    ? Math.max(furthest, ACT_ONE_FINAL_STAGE + 1)
+    : Math.min(furthest, ACT_ONE_FINAL_STAGE);
   // furthest = the highest stage reached; that stage and all before it are
   // unlocked. Clearing stage k bumps furthest to k+1, unlocking the next.
-  return Math.min(total, furthest);
+  return Math.min(CAMPAIGN_FINAL_STAGE, migratedFurthest);
 }
 
 function isStageUnlocked(stage){
+  if(stage === 1) return true;
+  if(stage > ACT_ONE_FINAL_STAGE && !hasCompletedActOne()) return false;
   return stage <= highestUnlockedStage();
 }
 
 function isStageCleared(stage){
-  // A stage counts as cleared once you've unlocked something beyond it.
-  return stage < highestUnlockedStage() || (stage === Object.keys(STAGES).length && endlessUnlocked);
+  const furthest = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
+  const actOneComplete = hasCompletedActOne();
+  if(stage > ACT_ONE_FINAL_STAGE && !actOneComplete) return false;
+  const migratedFurthest = actOneComplete
+    ? Math.max(furthest, ACT_ONE_FINAL_STAGE + 1)
+    : Math.min(furthest, ACT_ONE_FINAL_STAGE);
+  const actTwoComplete = localStorage.getItem("sdcAct2Complete") === "1";
+  return stage < migratedFurthest || (stage === CAMPAIGN_FINAL_STAGE && actTwoComplete);
 }
 
-// Banner positions on the world map image, as percentages of its box.
-// Tuned to sit over each region's banner/number in assets/ui/world-map.webp.
+// Hotspot positions on each world-map image, as percentages of its box.
 const WORLDMAP_HOTSPOTS = {
   1: { x: 14,   y: 20 },
   2: { x: 48,   y: 16.5 },
   3: { x: 40,   y: 51 },
   4: { x: 78,   y: 50.5 },
   5: { x: 27,   y: 80 },
-  6: { x: 70,   y: 81 }
+  6: { x: 70,   y: 81 },
+  7: { x: 14,   y: 20 },
+  8: { x: 48,   y: 16.5 },
+  9: { x: 34,   y: 49 },
+  10:{ x: 73,   y: 48 },
+  11:{ x: 27,   y: 80 },
+  12:{ x: 72,   y: 79 }
 };
 
 function renderWorldMap(){
   if(!worldMapBoard) return;
-  const total = Object.keys(STAGES).length;
   const highest = highestUnlockedStage();
+  const firstStage = worldMapAct === 2 ? 7 : 1;
+  const lastStage = worldMapAct === 2 ? CAMPAIGN_FINAL_STAGE : ACT_ONE_FINAL_STAGE;
+  const currentActStage = worldMapAct === 2
+    ? Math.max(ACT_ONE_FINAL_STAGE + 1, highest)
+    : Math.min(ACT_ONE_FINAL_STAGE, highest);
   worldMapBoard.innerHTML = "";
+  worldMapOverlay?.classList.toggle("showing-act-two", worldMapAct === 2);
+  worldMapActOneBtn?.classList.toggle("active", worldMapAct === 1);
+  worldMapActTwoBtn?.classList.toggle("active", worldMapAct === 2);
+  worldMapActOneBtn?.setAttribute("aria-pressed", String(worldMapAct === 1));
+  worldMapActTwoBtn?.setAttribute("aria-pressed", String(worldMapAct === 2));
+  if(worldMapActTwoBtn){
+    worldMapActTwoBtn.disabled = false;
+    worldMapActTwoBtn.title = hasCompletedActOne()
+      ? "Show Act II regions"
+      : "Preview Act II — complete Stage 6 to unlock Stage 7";
+  }
+  if(worldMapImage){
+    const nextMapSrc = WORLD_MAP_ART[worldMapAct] || WORLD_MAP_ART[1];
+    if(worldMapImage.getAttribute("src") !== nextMapSrc){
+      worldMapImage.setAttribute("src", nextMapSrc);
+    }
+    worldMapImage.alt = worldMapAct === 2
+      ? "Act II route across the lands east of Ashen Bastion"
+      : "World map of Ashen Bastion";
+  }
 
-  for(let stage=1; stage<=total; stage++){
+  for(let stage=firstStage; stage<=lastStage; stage++){
     const meta = WORLDMAP_META[stage] || {};
     const info = STAGES[stage] || {};
     const unlocked = isStageUnlocked(stage);
     const cleared = isStageCleared(stage);
-    const isNext = unlocked && !cleared && stage === highest;
-    const pos = WORLDMAP_HOTSPOTS[stage] || { x:50, y:(stage/total)*100 };
+    const isNext = unlocked && !cleared && stage === currentActStage;
+    const pos = WORLDMAP_HOTSPOTS[stage] || { x:50, y:50 };
     const node = document.createElement("button");
     node.type = "button";
-    node.className = `worldmap-hotspot${unlocked ? "" : " locked"}${cleared ? " cleared" : ""}${isNext ? " current" : ""}`;
+    node.className = `worldmap-hotspot${worldMapAct === 2 ? " act-two" : ""}${unlocked ? "" : " locked"}${cleared ? " cleared" : ""}${isNext ? " current" : ""}`;
     node.style.left = `${pos.x}%`;
     node.style.top = `${pos.y}%`;
     node.disabled = !unlocked;
@@ -9288,6 +10387,7 @@ function renderWorldMap(){
     node.innerHTML = `
       <span class="worldmap-hotspot-ring"></span>
       <span class="worldmap-hotspot-label">
+        ${worldMapAct === 2 ? `<span class="worldmap-hotspot-name">Stage ${stage} · ${info.name}</span>` : ""}
         <span class="worldmap-hotspot-status">${cleared ? "✓ Cleared" : unlocked ? "Play ▸" : "🔒 Locked"}</span>
       </span>`;
     worldMapBoard.appendChild(node);
@@ -9307,6 +10407,8 @@ function openWorldMap(){
     const hasSave = !!loadSavedRun();
     worldMapResumeBtn.classList.toggle("hidden", !hasSave);
   }
+  if(currentStage > ACT_ONE_FINAL_STAGE) worldMapAct = 2;
+  worldMapEndlessBtn?.classList.toggle("hidden", !endlessUnlocked);
   renderWorldMap();
   worldMapOverlay?.classList.remove("hidden");
   canvasWrap?.classList.add("worldmap-active");
@@ -9334,7 +10436,34 @@ worldMapResumeBtn?.addEventListener("click",(event)=>{
   finishResumeRun();
 });
 
+worldMapActOneBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  worldMapAct = 1;
+  renderWorldMap();
+});
+
+worldMapActTwoBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  worldMapAct = 2;
+  renderWorldMap();
+});
+
+worldMapEndlessBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!endlessUnlocked) return;
+  closeWorldMap();
+  enterEndlessModeFromUnlock();
+});
+
 function playStageFromMap(stage){
+  if(!isStageUnlocked(stage)){
+    worldMapAct = stage > ACT_ONE_FINAL_STAGE ? 2 : 1;
+    renderWorldMap();
+    setMessage(stage > ACT_ONE_FINAL_STAGE
+      ? "Complete Act I in order through Stage 6 to unlock The Broken Gate."
+      : "Clear the previous stage to unlock this region.");
+    return false;
+  }
   closeWorldMap();
   clearSavedRun();
   if(dailyChallengeActive || currentMode !== "campaign"){
@@ -9347,7 +10476,7 @@ function playStageFromMap(stage){
   ensureAudio(); syncAmbientAudio();
   loadProgressNotice();
   loadBonusLeaderboard();
-  setMessage(`${STAGES[stage]?.name || `Stage ${stage}`} — place towers, start the wave, and hold the line.`);
+  setMessage(`${STAGES[stage]?.name || `Stage ${stage}`} — place towers, start the wave, and hold the line.${getStageRouteNotice(stage)}`);
   updateUI();
 }
 
@@ -9415,6 +10544,17 @@ returnToMenuBtn?.addEventListener("click",()=>{
   openWorldMap();
 });
 
+continueActTwoBtn?.addEventListener("click", ()=>{
+  if(campaignCompletionMode !== "act1") return;
+  hideCampaignCompletionOverlay();
+  wave = 1;
+  transitionToCampaignStage(
+    ACT_ONE_FINAL_STAGE + 1,
+    `Act II begins at The Broken Gate. +${getStageClearGoldReward(ACT_ONE_FINAL_STAGE)} gold — protect all three caravans.`,
+    { applyAttrition:false }
+  );
+});
+
 enterEndlessBtn?.addEventListener("click", ()=>{
   enterEndlessModeFromUnlock();
 });
@@ -9431,21 +10571,49 @@ dailyChallengeBtn?.addEventListener("click", ()=>{
   startDailyChallenge();
 });
 
+headerEndlessBtn?.addEventListener("click", ()=>{
+  if(!endlessUnlocked){
+    setMessage("Endless Mode unlocks after you complete Act I.");
+    return;
+  }
+  if(currentMode === "endless" && !dailyChallengeActive) return;
+  closeWorldMap();
+  enterEndlessModeFromUnlock();
+});
+
 backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
-  hideEndlessUnlockOverlay();
+  hideCampaignCompletionOverlay();
   resetGame();
   hasStarted = false;
   runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"main-menu" });
   openWorldMap();
 });
 
-window.addEventListener("resize", syncEndlessUnlockArtworkBounds);
-endlessUnlockArtworkImage?.addEventListener("load", syncEndlessUnlockArtworkBounds);
+stageIntermissionContinueBtn?.addEventListener("click", ()=>{
+  completeStageIntermission();
+});
+
+stageReserveList?.addEventListener("click", (event)=>{
+  const button = event.target.closest("[data-reserve-action]");
+  if(!button || !pendingStageIntermission || pendingStageIntermission.phase !== "reserve") return;
+  const type = button.dataset.reserveType;
+  const fromIndex = Number(button.dataset.reserveIndex);
+  const action = button.dataset.reserveAction;
+  if(!Number.isInteger(fromIndex) || !reservePool[type]) return;
+  const toIndex = action === "first"
+    ? 0
+    : (action === "up" ? fromIndex - 1 : fromIndex + 1);
+  if(towerReserveSystem.moveReserveUnit(reservePool, type, fromIndex, toIndex)){
+    renderReserveManagement(pendingStageIntermission);
+    saveRunState();
+  }
+});
 
 updateAudioSettingsUI();
 updateAutoPlayUI();
 updateSpeedUI();
 applyHudVisibility();
+loadProgressNotice();
 applyStage(1,true);
 if(!maybeShowResumeOverlay()){
   openWorldMap();
@@ -9720,6 +10888,7 @@ const FULLSCREEN_OVERLAY_IDS = [
   "leaderboardNameOverlay",
   "auraRewardOverlay",
   "leyOverlay",
+  "stageIntermissionOverlay",
   "endlessUnlockOverlay"
 ];
 let relocatedOverlays = [];

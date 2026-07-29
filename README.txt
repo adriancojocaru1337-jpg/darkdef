@@ -1,3 +1,356 @@
+Ashen Bastion v0.11.21 - Sequential Act II unlock
+
+No schema change. No SQL to run.
+
+- Stage 7 is locked on a fresh profile until Stage 6 / Act I is completed
+- the Act II map can still be previewed before completion, but The Broken Gate
+  is disabled and clearly marked Locked
+- completing Stage 6 permanently opens Stage 7 through the existing persisted
+  Act I / Endless completion flag; future sessions keep it unlocked
+- Stages 8-12 continue to unlock sequentially from the player's furthest stage
+- old direct-entry Act II run saves can no longer bypass the restored gate
+- direct map-start calls now revalidate the stage instead of trusting the UI
+- added regression tests for fresh, Stage 6, completed and legacy-save states
+
+Ashen Bastion v0.11.20 - Smaller Varyn with sword attack animation
+
+No schema change. No SQL to run.
+
+- reduced Varyn's battlefield render from 52px to 46px while keeping his sword
+  and shield readable against the path
+- expanded the walk sheet from 12 to 20 frames for every one of the five source
+  angles, still mirrored at runtime for eight-direction travel
+- generated and preserved a dedicated five-view sword-strike turnaround, then
+  added 20 attack frames per angle with wind-up, contact and recovery motion
+- Varyn now turns toward his current target during a basic attack, moves the
+  sword out of its idle position, lunges into the strike and draws a short
+  gold-purple slash trail
+- the combined lossless runtime sheet now contains 200 frames in one WebP, so
+  the richer animation does not increase the runtime asset item count
+- removed the rejected overlapping attack-source draft after replacing it with
+  the clean, separated five-view source
+- updated automated artwork checks for the new sources, 2560x1280 sheet,
+  20-frame walk/attack sequences and 46px runtime size
+
+Ashen Bastion v0.11.19 - Stronger Varyn movement
+
+No schema change. No SQL to run.
+
+- made Varyn's 12-frame walk cycle visibly stronger without increasing his
+  52px battlefield size
+- increased the baked step height, torso sway, stretch and directional drift
+  across all five source angles
+- added runtime footfall lift, side-to-side body motion and a clearer lean that
+  follows every active walk frame
+- added a short directional lunge on each basic attack, including correct
+  forward motion for side, front, back and diagonal facings
+- idle remains restrained and stable so movement is obvious when it starts
+- kept the same single lossless runtime WebP and the same 97/99 asset counts
+- expanded automated integration checks to protect walking and attack motion
+
+Ashen Bastion v0.11.18 - Smaller eight-direction Varyn movement
+
+No schema change. No SQL to run.
+
+- reduced Varyn's battlefield render from 64px to 52px so he fits the scale of
+  towers and regular enemies more naturally
+- expanded the source turnaround from three to five approved views: front,
+  front diagonal, side, back diagonal and back
+- left/right mirroring now turns those five source rows into eight distinct
+  movement directions
+- regenerated the walk sheet as 60 lossless frames: 12 per source angle
+- strengthened stride bob, sway and directional travel while keeping the hero
+  still on a clean idle frame whenever he reaches his guard point
+- tightened the ground shadow, aura and health-bar position around the smaller
+  battlefield model
+- kept the runtime asset count unchanged: assets has 97 recursive items and
+  assets2 remains at 99
+- updated automated checks for the five-row sheet, 52px render size and all
+  eight direction-selection results
+
+Ashen Bastion v0.11.17 - Varyn battlefield sprite
+
+No schema change. No SQL to run.
+
+- replaced Varyn's small procedural battlefield figure with original generated
+  full-body character artwork matching his HUD portrait
+- added dedicated front, side and back views with 12 lightweight walk frames
+  per direction in one lossless WebP sprite sheet
+- Varyn now turns with the actual direction of travel, including correct
+  left/right mirroring and persistent facing when he stops
+- retained the old procedural warden as a safe fallback while the sprite loads
+- preserved the generated chroma-key turnaround and transparent master under
+  source-art/hero and added tools/build-hero-sprite.py for reproducible output
+- kept Rift Pulse, projectile effects, command ring, shadow and health feedback
+  layered around the new character artwork
+- assets contains 97 recursive items and assets2 remains at 99
+- added automated checks for the source masters, lossless sprite format,
+  runtime wiring and directional view selection
+
+Ashen Bastion v0.11.16 - Varyn hero portrait
+
+No schema change. No SQL to run.
+
+- replaced the temporary sword glyph in Varyn's HUD with original generated
+  dark-fantasy portrait artwork
+- added the same portrait to a new heraldic identity block in the Hero Skill
+  Tree, with responsive desktop and mobile framing
+- the Skill Tree identity now follows the player's custom hero name instead of
+  remaining hard-coded to Varyn
+- preserved the generated PNG master under source-art/hero and added
+  tools/build-hero-art.py for reproducible 512px lossless WebP output
+- moved completion-screen source masters from assets/source to source-art so
+  the new runtime portrait fits without breaking the 99-item asset limit
+- assets now contains 96 recursive items and assets2 remains at 99
+- added automated artwork, integration, responsive-layout and lossless-format
+  checks for the hero portrait
+
+Ashen Bastion v0.11.15 - Act II boss portraits in Guide
+
+No schema change. No SQL to run.
+
+- replaced all six reused Act I boss images in the Guide with the dedicated
+  Commander Oren, Ash Shepherd, Hollow Saint, Iron Procession, Leybound Titan
+  and Lord Marshal Vael artwork
+- Act II boss cards now use a taller 2:3 presentation so their full illustrated
+  title portraits remain readable
+- added distinct Act II card and stage-badge treatments plus descriptive alt
+  text for every portrait
+- added automated checks that prevent the Guide from returning to reused Act I
+  boss artwork
+
+Ashen Bastion v0.11.14 - Illustrated act selectors
+
+No schema change. No SQL to run.
+
+- replaced the plain Act I / Act II pills with two large heraldic campaign
+  selectors built around original generated artwork
+- Act I now uses a bronze bastion-and-forest seal while Act II uses a
+  black-steel eastern gate and road-to-dawn seal
+- kept all labels as crisp responsive HTML instead of baking text into images
+- added distinct active colors, selection marks, hover/focus feedback and
+  compact mobile/short-screen layouts
+- active act state now updates aria-pressed for keyboard and screen-reader use
+- preserved the two generated PNG masters under source-art/act-switches and
+  added tools/build-act-switch-art.py for reproducible lossless WebP outputs
+- assets and assets2 now each contain exactly 99 recursive items
+
+Ashen Bastion v0.11.13 - Dedicated Act II music
+
+No schema change. No SQL to run.
+
+- added the six supplied original tracks for Stages 7-12
+- every Act II stage now selects its matching soundtrack instead of reusing an
+  Act I fallback theme
+- the new tracks use the existing music volume, mute, looping and boss-entry
+  swell systems
+- stored the tracks under assets2/music so assets remains at 97 recursive
+  items and assets2 reaches exactly 99 without exceeding the packaging limit
+- added automated checks for every MP3 file, runtime mapping and asset count
+
+Ashen Bastion v0.11.12 - Split asset packages
+
+No schema change. No SQL to run.
+
+- split the runtime artwork between assets and assets2 so neither directory
+  exceeds the 99-item packaging limit, including nested folders
+- assets now contains 97 recursive items and assets2 contains 92
+- moved all enemy rigs and animation sheets to assets2/enemies
+- moved the bestiary thumbnails to assets2/guide
+- updated the game, guide, art rebuild tools and automated asset audits to use
+  the new paths
+- added a permanent test that fails if either asset directory ever grows past
+  99 recursive items
+
+Ashen Bastion v0.11.11 - Stage Debrief and Reserve Management
+
+No schema change. No SQL to run.
+
+- every campaign stage now ends with a dedicated battle report before the
+  next map or act-completion choices appear
+- the debrief shows clear gold, boss and stage Ley Crystals, gate repairs,
+  the defeated boss and the exact condition of every deployed tower
+- attrition rows show each real level change, lost level-1 towers, destroyed
+  aura-bound towers and specializations removed by falling below level 3
+- a second Reserve Management step lists every surviving tower with its
+  level, specialization and legendary aura
+- reserve towers can be moved to the front, earlier or later in the free
+  redeployment order for their tower type
+- the chosen order is now honored when a reserve tower is placed and persists
+  in the saved run
+- Act I and Act II completion cinematics now open only after the debrief and
+  reserve steps, without applying attrition a second time
+- an unfinished debrief or reserve-management screen survives save and resume
+- the complete intermission interface is responsive and supported in native
+  and simulated fullscreen
+
+Ashen Bastion v0.11.10 - Act completion choice screens
+
+No schema change. No SQL to run.
+
+- Act I now ends on a dedicated Dark Portal intermission instead of moving
+  directly into Act II
+- the player can choose Continue to Act II, Enter Endless or return to the
+  World Map after completing Act I
+- Act II now has its own Field of Dawn campaign-finale screen with separate
+  artwork and choices for Endless or the World Map
+- replaced the old image-baked titles and invisible click zones with sharp,
+  accessible and responsive HTML/CSS titles and real buttons
+- added two original text-free lossless WebP cinematic backgrounds; their PNG
+  masters are preserved under source-art/completion-screens
+- an unfinished completion choice is saved and restored with the run
+- between-stage tower attrition is still applied exactly once before the
+  completion choice appears
+- tools/build-completion-art.py rebuilds both runtime backgrounds
+
+Ashen Bastion v0.11.9 - Between-stage tower attrition
+
+No schema change. No SQL to run.
+
+- every tower deployed when a campaign stage ends now loses exactly one level
+  before returning to the reserve
+- level-1 towers are removed completely instead of returning to the reserve
+- aura-bound level-1 towers are also removed; an aura survives only while its
+  bound tower survives the between-stage attrition
+- surviving towers are rebuilt at their real lower stats, upgrade price and
+  invested-gold value instead of changing only the displayed level
+- dropping from level 3 to level 2 removes the tower specialization correctly
+- switching modes without completing a stage still preserves tower levels
+
+Ashen Bastion v0.11.8 - Three dedicated Act II enemy types
+
+No schema change. No SQL to run.
+
+- added the Cinder Skirmisher, a fast raider that leaps forward below 55% HP
+  and keeps a permanent movement-speed boost afterward
+- added the Hollow Binder, a support caster that periodically hexes a nearby
+  tower and prevents it from attacking for a short time
+- added the Ley Revenant, a heavy enemy that enters with a Ley shield and
+  restores the ward once when badly wounded
+- distributed the new enemies across Stages 7-12 with stage-specific weights
+  and dedicated targeting priorities, rewards, effects and death feedback
+- added original front, side and back artwork plus 12-frame lossless WebP
+  battlefield animation sheets for all three enemies
+- source turnarounds and transparent masters are preserved under
+  assets/source/act2-mobs
+- tools/build-act2-mob-art.py rebuilds all runtime assets
+
+Ashen Bastion v0.11.7 - Iron Procession redesign
+
+No schema change. No SQL to run.
+
+- replaced the Stage 10 four-legged funeral construct with a completely new
+  upright drowned bell-knight design
+- the Iron Procession is now a towering two-legged armored boss with a pointed
+  cathedral helm, cyan visor, chained funeral bell and anchor-bladed halberd
+- regenerated its front, side and back 12-frame battlefield animation sheets
+- regenerated the Sunken Crossing cinematic introduction card to match
+- all other Act II boss artwork remains unchanged
+
+Ashen Bastion v0.11.6 - Dedicated Act II boss artwork
+
+No schema change. No SQL to run.
+
+- all six Act II bosses now have original visual identities instead of reusing
+  recolored Act I boss art
+- added cinematic 1000x1500 WebP introduction cards for Commander Oren, the
+  Ash Shepherd, the Hollow Saint, the Iron Procession, the Leybound Titan and
+  Lord Marshal Vael
+- added dedicated front, side and back 12-frame walk sheets for every Act II boss
+- each battlefield model matches its cinematic introduction card
+- Act II stages now reference their own boss-art stage IDs from 7 through 12
+- generated turnarounds, transparent sources and untitled splash masters are
+  preserved under assets/source/act2-bosses
+- tools/build-act2-boss-art.py rebuilds the runtime sprite sheets and title cards
+
+Ashen Bastion v0.11.5 - Header Endless Mode access
+
+No schema change. No SQL to run.
+
+- added a permanent Endless Mode button beside Daily Challenge
+- the button remains visible but locked until Act I / Stage 6 is cleared
+- unlock state updates immediately after Act I completion and persists between sessions
+- the unlocked button shows the best Endless wave and enters Endless directly
+- while an Endless run is active, the button shows the current wave and prevents
+  an accidental restart
+- responsive War Council layouts keep the new control aligned on larger screens
+  and stack it cleanly on narrow phones
+
+Ashen Bastion v0.11.4 - Dedicated Act II battlefield artwork
+
+No schema change. No SQL to run.
+
+- all six Act II stages now load unique generated ground artwork:
+  * Stage 7  — scorched Broken Gate fortress stone
+  * Stage 8  — wind-scoured Ashen Road wasteland
+  * Stage 9  — damp cobbles and rotten timber of the Hollow Village
+  * Stage 10 — flooded masonry of the Sunken Crossing
+  * Stage 11 — obsidian and Ley-fire fissures around the First Flame
+  * Stage 12 — trampled dawn-lit soil of the Field of Dawn
+- the new textures are 1254x1254 lossless WebP assets
+- Act II's old reused terrain tint was reduced so the new materials remain clear
+- dynamic single and branching roads still render above the artwork, preserving
+  exact gameplay alignment and no-build validation
+- Act I terrain artwork remains unchanged
+
+Ashen Bastion v0.11.3 - Branched Act II battlefields
+
+No schema change. No SQL to run.
+
+- all six Act II battlefield routes were redesigned as distinct tactical maps
+- Stage 8 (The Ashen Road) and Stage 10 (The Sunken Crossing) now split into
+  two enemy roads and reunite before the bastion
+- Stage 12 (The Field of Dawn) contains two separate split-and-merge sections
+- enemies alternate between active branches while bosses use the primary road
+- towers, spells, splash damage, enemy traits and the hero now resolve each
+  enemy's actual branch position
+- every branch is painted, decorated and included in no-build validation
+- split and merge points receive visible battlefield markers
+- run saves remain compatible because snapshots occur between waves
+
+Ashen Bastion v0.11.2 - Dedicated Act II world map
+
+No schema change. No SQL to run.
+
+- Act II now uses a newly generated 1536x1024 campaign map instead of a
+  filtered copy of the Act I artwork
+- the six painted regions match The Broken Gate, The Ashen Road, The Hollow
+  Village, The Sunken Crossing, The First Flame and The Field of Dawn
+- Act II hotspot positions were retuned for the new landmarks
+- the optimized runtime asset is assets/ui/world-map-act2.webp
+
+Ashen Bastion v0.11.1 - Direct Act II access
+
+No schema change. No SQL to run.
+
+- the Act II selector on the index World Map is now always interactive
+- Stage 7 (The Broken Gate) is the direct entry point for Act II
+- Stages 8 through 12 remain locked until their preceding stage is cleared
+- Act I keeps Stage 1 as its own direct entry point
+
+Ashen Bastion v0.11.0 - Act II gameplay campaign
+
+No schema change. No SQL to run.
+
+- Campaign expanded from 6 to 12 stages across two selectable World Map acts:
+  * Stage 7  — The Broken Gate / Commander Oren
+  * Stage 8  — The Ashen Road / Ash Shepherd
+  * Stage 9  — The Hollow Village / Hollow Saint
+  * Stage 10 — The Sunken Crossing / Iron Procession
+  * Stage 11 — The First Flame / Leybound Titan
+  * Stage 12 — The Field of Dawn / Lord Marshal Vael
+- every Act II stage has a new route, blocked terrain, Ley nodes, difficulty
+  curve, enemy composition and a three-milestone battlefield objective
+- milestones grant stage-specific rewards: gold, lives or spell cooldown
+- six Act II bosses have two telegraphed phase transitions and temporarily
+  reuse compatible animated Act I rigs until dedicated artwork is produced
+- Stage 6 opens Act II while preserving the existing Endless unlock
+- existing players with Endless already unlocked migrate directly to Stage 7
+- World Map switches between Act I and Act II; Endless can be entered from it
+- Save/Resume persists objective progress and accepts save versions 2 through 5
+- guide, About and Command Table copy now describe the twelve-stage campaign
+- validation covers Act II routes, objectives, enemy mixes and boss phases
+
 Ashen Bastion v0.10.2 - Hero names on the Hero Power board
 
 No schema change. No SQL to run.

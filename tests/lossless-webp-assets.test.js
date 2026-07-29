@@ -21,26 +21,36 @@ function assertWebP(relativePath) {
   assert.equal(buffer.subarray(12, 16).toString("ascii"), "VP8L", `${relativePath} must use lossless encoding`);
 }
 
-test("all 58 audited runtime images have lossless WebP replacements", () => {
+test("all 107 audited runtime images have lossless WebP replacements", () => {
   const assets = [
     "assets/ui/world-map.webp",
-    ...listFiles("assets/enemies", ".webp").map((name) => `assets/enemies/${name}`),
-    ...listFiles("assets/enemies/animated", ".webp").map((name) => `assets/enemies/animated/${name}`),
+    "assets/ui/world-map-act2.webp",
+    "assets/ui/act1-complete-background.webp",
+    "assets/ui/act2-complete-background.webp",
+    "assets/ui/act1-emblem.webp",
+    "assets/ui/act2-emblem.webp",
+    "assets/ui/varyn-portrait.webp",
+    "assets/ui/varyn-battlefield-walk.webp",
+    ...Array.from({ length: 6 }, (_, index) => `assets/terrain/ground_${index + 7}.webp`),
+    ...listFiles("assets2/enemies", ".webp").map((name) => `assets2/enemies/${name}`),
+    ...listFiles("assets2/enemies/animated", ".webp").map((name) => `assets2/enemies/animated/${name}`),
     ...listFiles("assets/towers", ".webp").map((name) => `assets/towers/${name}`),
-    ...listFiles("assets/guide", ".webp").map((name) => `assets/guide/${name}`)
+    ...listFiles("assets2/guide", ".webp").map((name) => `assets2/guide/${name}`)
   ];
 
-  assert.equal(assets.length, 58);
+  assert.equal(assets.length, 107);
   for (const asset of assets) assertWebP(asset);
 });
 
 test("the game and public pages load the optimized WebP runtime artwork", () => {
-  assert.match(game, /assets\/enemies\/animated\/\$\{type\}_\$\{view\}_walk\.webp/);
-  assert.match(game, /assets\/enemies\/animated\/boss\$\{stage\}_\$\{view\}_walk\.webp/);
+  assert.match(game, /assets2\/enemies\/animated\/\$\{type\}_\$\{view\}_walk\.webp/);
+  assert.match(game, /assets2\/enemies\/animated\/boss\$\{stage\}_\$\{view\}_walk\.webp/);
   assert.match(game, /assets\/towers\/archer\.webp/);
-  assert.doesNotMatch(game, /assets\/(?:enemies|towers)\/[^"'`]+\.png/);
+  assert.match(game, /assets\/terrain\/ground_\$\{stage\}\.webp/);
+  assert.doesNotMatch(game, /assets2?\/(?:enemies|towers)\/[^"'`]+\.png/);
   assert.match(index, /assets\/ui\/world-map\.webp/);
   assert.doesNotMatch(index, /assets\/(?:ui\/world-map|towers\/[^"]+)\.png/);
-  assert.match(guide, /assets\/guide\/mob_normal\.webp/);
-  assert.doesNotMatch(guide, /assets\/(?:guide|towers)\/[^"]+\.png/);
+  assert.match(game, /assets\/ui\/world-map-act2\.webp/);
+  assert.match(guide, /assets2\/guide\/mob_normal\.webp/);
+  assert.doesNotMatch(guide, /assets2?\/(?:guide|towers)\/[^"]+\.png/);
 });
