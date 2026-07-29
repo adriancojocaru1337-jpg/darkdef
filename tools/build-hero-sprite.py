@@ -15,8 +15,8 @@ from PIL import Image, ImageChops, ImageDraw
 
 
 ROOT = Path(__file__).resolve().parents[1]
-IDLE_SOURCE = ROOT / "source-art" / "hero" / "varyn-battlefield-5view-alpha.png"
-ATTACK_SOURCE = ROOT / "source-art" / "hero" / "varyn-battlefield-5view-attack-v2-alpha.png"
+IDLE_SOURCE = ROOT / "source-art" / "hero" / "varyn-battlefield-5view-alpha.webp"
+ATTACK_SOURCE = ROOT / "source-art" / "hero" / "varyn-battlefield-5view-attack-v2-alpha.webp"
 OUTPUT = ROOT / "assets" / "ui" / "varyn-battlefield-walk.webp"
 
 FRAME_SIZE = 128

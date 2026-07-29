@@ -11,7 +11,7 @@ const portraitPath = path.join(ROOT, "assets", "ui", "varyn-portrait.webp");
 
 test("Varyn has a generated lossless runtime portrait and preserved source master", () => {
   assert.ok(fs.existsSync(portraitPath), "runtime hero portrait is missing");
-  assert.ok(fs.existsSync(path.join(ROOT, "source-art", "hero", "varyn-portrait-source.png")));
+  assert.ok(fs.existsSync(path.join(ROOT, "source-art", "hero", "varyn-portrait-source.webp")));
   assert.ok(fs.existsSync(path.join(ROOT, "tools", "build-hero-art.py")));
 
   const portrait = fs.readFileSync(portraitPath);

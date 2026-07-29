@@ -1,3 +1,53 @@
+Ashen Bastion v0.11.23 - Complete WebP asset migration
+
+No schema change. No SQL to run.
+
+- the new Stage 1-12 battlefield backgrounds are fully connected to the game
+  through the existing terrainStage runtime loader
+- converted 57 remaining PNG/JPG artwork files to WebP and removed their old
+  formats only after validating each replacement
+- removed four unused legacy preview/end-screen files instead of carrying
+  obsolete artwork into future packages
+- kept only favicon.png and og-image.png for favicon and social-preview
+  compatibility; the full audit finds no other PNG, JPG, JPEG, BMP, GIF or TIFF
+- preserved editable transparent and generated master artwork as lossless WebP
+- encoded photographic UI artwork and battlefield paintings as high-quality
+  compact WebP; the twelve grounds fell from 23.45 MB to 5.42 MB
+- reduced total raster artwork from 168.67 MB to 113.25 MB, saving 55.43 MB
+  before ZIP compression
+- updated every HTML, JavaScript, build-script, documentation and test
+  reference to the new filenames
+- added tools/convert-raster-assets-to-webp.py for a repeatable, verified
+  migration and tests/raster-format-audit.test.js to prevent regressions
+- added tools/audit-raster-assets.py to decode-check every WebP and enforce
+  the two-file compatibility exception list
+- assets now contains 96 recursive items and assets2 remains at the 99-item
+  packaging limit
+
+Ashen Bastion v0.11.22 - Premium Stage 1-12 battlefield backgrounds
+
+No schema change. No SQL to run.
+
+- replaced the battlefield artwork for all twelve campaign stages with original,
+  high-detail top-down environments rather than repeating flat ground textures
+- each stage now has a distinct visual identity: Forest, Ruins, Graveyard,
+  Castle, Catacombs, Dark Portal, Broken Gate, Ashen Road, Hollow Village,
+  Sunken Crossing, First Flame and Field of Dawn
+- compositions keep the central battlefield readable and leave roads to the
+  procedural route renderer, including Act II's split and rejoining paths
+- runtime backgrounds are 1536x864 lossless WebP files, matching the 16:9
+  battlefield and preserving detail on larger displays
+- preserved all twelve full-resolution generated PNG masters under
+  source-art/stage-backgrounds-v2
+- added tools/build-stage-backgrounds.py so the runtime set can be rebuilt
+  consistently from the approved source artwork
+- added tools/preview-stage-backgrounds.py for a labeled twelve-stage visual
+  review sheet
+- kept the runtime directory limits unchanged by replacing the existing files:
+  assets remains at 97 items and assets2 remains at 99
+- expanded automated artwork checks to cover every stage, master source,
+  runtime dimension and lossless WebP file
+
 Ashen Bastion v0.11.21 - Sequential Act II unlock
 
 No schema change. No SQL to run.

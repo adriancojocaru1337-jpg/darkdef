@@ -8,8 +8,8 @@ SOURCE = ROOT / "source-art" / "completion-screens"
 OUTPUT = ROOT / "assets" / "ui"
 
 ASSETS = {
-    "act1-complete-background.png": "act1-complete-background.webp",
-    "act2-complete-background.png": "act2-complete-background.webp",
+    "act1-complete-background.webp": "act1-complete-background.webp",
+    "act2-complete-background.webp": "act2-complete-background.webp",
 }
 
 

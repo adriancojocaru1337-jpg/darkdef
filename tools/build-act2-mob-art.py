@@ -49,7 +49,7 @@ def trim_transparent(image: Image.Image) -> Image.Image:
 
 
 def split_turnaround(name: str, cuts: tuple[int, int]) -> dict[str, Image.Image]:
-    source = Image.open(SOURCE_DIR / f"{name}_alpha.png").convert("RGBA")
+    source = Image.open(SOURCE_DIR / f"{name}_alpha.webp").convert("RGBA")
     cut_one, cut_two = cuts
     return {
         "front": source.crop((0, 0, cut_one, source.height)),

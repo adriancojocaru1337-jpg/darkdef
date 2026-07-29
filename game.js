@@ -516,12 +516,12 @@ function loadBossRigSheets(){
 loadBossRigSheets();
 
 const bossSplashSources = {
-  1: "assets/ui/boss-stage1.jpg",
-  2: "assets/ui/boss-stage2.jpg",
-  3: "assets/ui/boss-stage3.jpg",
-  4: "assets/ui/boss-stage4.jpg",
-  5: "assets/ui/boss-stage5.jpg",
-  6: "assets/ui/boss-stage6.jpg",
+  1: "assets/ui/boss-stage1.webp",
+  2: "assets/ui/boss-stage2.webp",
+  3: "assets/ui/boss-stage3.webp",
+  4: "assets/ui/boss-stage4.webp",
+  5: "assets/ui/boss-stage5.webp",
+  6: "assets/ui/boss-stage6.webp",
   7: "assets/ui/boss-stage7.webp",
   8: "assets/ui/boss-stage8.webp",
   9: "assets/ui/boss-stage9.webp",
@@ -540,8 +540,8 @@ function loadBossSplashImages(){
 loadBossSplashImages();
 
 const bossDefeatLogoSources = {
-  campaign: "assets/ui/boss-defeat-campaign.jpg",
-  endless: "assets/ui/boss-defeat-endless.jpg"
+  campaign: "assets/ui/boss-defeat-campaign.webp",
+  endless: "assets/ui/boss-defeat-endless.webp"
 };
 const bossDefeatLogoImages = {};
 function loadBossDefeatLogos(){

@@ -6,7 +6,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SOURCE = ROOT / "source-art" / "hero" / "varyn-portrait-source.png"
+SOURCE = ROOT / "source-art" / "hero" / "varyn-portrait-source.webp"
 OUTPUT = ROOT / "assets" / "ui" / "varyn-portrait.webp"
 OUTPUT_SIZE = 512
 

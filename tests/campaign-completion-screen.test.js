@@ -24,7 +24,7 @@ test("Act I and Act II use dedicated text-free completion backgrounds", () => {
     assertLosslessWebP(asset);
     assert.match(game, new RegExp(asset.replaceAll("/", "\\/")));
   }
-  assert.doesNotMatch(index, /assets\/ui\/endless-unlocked\.jpg/);
+  assert.doesNotMatch(index, /assets\/ui\/endless-unlocked\.(?:jpg|webp)/);
 });
 
 test("the completion choices are real responsive controls, not image hitboxes", () => {

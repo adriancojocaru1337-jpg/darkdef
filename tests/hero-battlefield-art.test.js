@@ -17,10 +17,10 @@ require("../js/systems/hero-system.js");
 
 test("Varyn ships generated eight-direction walk and sword-attack art", () => {
   for(const relativePath of [
-    "source-art/hero/varyn-battlefield-5view-turnaround.png",
-    "source-art/hero/varyn-battlefield-5view-alpha.png",
-    "source-art/hero/varyn-battlefield-5view-attack-v2-chroma.png",
-    "source-art/hero/varyn-battlefield-5view-attack-v2-alpha.png",
+    "source-art/hero/varyn-battlefield-5view-turnaround.webp",
+    "source-art/hero/varyn-battlefield-5view-alpha.webp",
+    "source-art/hero/varyn-battlefield-5view-attack-v2-chroma.webp",
+    "source-art/hero/varyn-battlefield-5view-attack-v2-alpha.webp",
     "tools/build-hero-sprite.py"
   ]) {
     assert.ok(fs.existsSync(path.join(ROOT, relativePath)), `${relativePath} is missing`);

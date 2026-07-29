@@ -14,14 +14,18 @@ function listFiles(directory, extension) {
     .sort();
 }
 
-function assertWebP(relativePath) {
+function assertWebP(relativePath, requireLossless = true) {
   const buffer = fs.readFileSync(path.join(root, relativePath));
   assert.equal(buffer.subarray(0, 4).toString("ascii"), "RIFF", relativePath);
   assert.equal(buffer.subarray(8, 12).toString("ascii"), "WEBP", relativePath);
-  assert.equal(buffer.subarray(12, 16).toString("ascii"), "VP8L", `${relativePath} must use lossless encoding`);
+  const chunk = buffer.subarray(12, 16).toString("ascii");
+  assert.ok(["VP8 ", "VP8L", "VP8X"].includes(chunk), `${relativePath} has an invalid WebP payload`);
+  if (requireLossless) {
+    assert.equal(chunk, "VP8L", `${relativePath} must use lossless encoding`);
+  }
 }
 
-test("all 107 audited runtime images have lossless WebP replacements", () => {
+test("all 101 transparency-sensitive runtime images use lossless WebP", () => {
   const assets = [
     "assets/ui/world-map.webp",
     "assets/ui/world-map-act2.webp",
@@ -31,15 +35,26 @@ test("all 107 audited runtime images have lossless WebP replacements", () => {
     "assets/ui/act2-emblem.webp",
     "assets/ui/varyn-portrait.webp",
     "assets/ui/varyn-battlefield-walk.webp",
-    ...Array.from({ length: 6 }, (_, index) => `assets/terrain/ground_${index + 7}.webp`),
     ...listFiles("assets2/enemies", ".webp").map((name) => `assets2/enemies/${name}`),
     ...listFiles("assets2/enemies/animated", ".webp").map((name) => `assets2/enemies/animated/${name}`),
     ...listFiles("assets/towers", ".webp").map((name) => `assets/towers/${name}`),
     ...listFiles("assets2/guide", ".webp").map((name) => `assets2/guide/${name}`)
   ];
 
-  assert.equal(assets.length, 107);
+  assert.equal(assets.length, 101);
   for (const asset of assets) assertWebP(asset);
+});
+
+test("all 21 painted runtime backgrounds and portraits use compact WebP", () => {
+  const assets = [
+    ...Array.from({ length: 12 }, (_, index) => `assets/terrain/ground_${index + 1}.webp`),
+    "assets/ui/dark-defense-defeat.webp",
+    ...Array.from({ length: 6 }, (_, index) => `assets/ui/boss-stage${index + 1}.webp`),
+    "assets/ui/boss-defeat-campaign.webp",
+    "assets/ui/boss-defeat-endless.webp"
+  ];
+  assert.equal(assets.length, 21);
+  for (const asset of assets) assertWebP(asset, false);
 });
 
 test("the game and public pages load the optimized WebP runtime artwork", () => {
@@ -51,6 +66,8 @@ test("the game and public pages load the optimized WebP runtime artwork", () => 
   assert.match(index, /assets\/ui\/world-map\.webp/);
   assert.doesNotMatch(index, /assets\/(?:ui\/world-map|towers\/[^"]+)\.png/);
   assert.match(game, /assets\/ui\/world-map-act2\.webp/);
+  assert.doesNotMatch(game, /assets\/ui\/[^"'`]+\.jpe?g/);
+  assert.doesNotMatch(index, /assets\/ui\/[^"'`]+\.jpe?g/);
   assert.match(guide, /assets2\/guide\/mob_normal\.webp/);
-  assert.doesNotMatch(guide, /assets2?\/(?:guide|towers)\/[^"]+\.png/);
+  assert.doesNotMatch(guide, /assets2?\/(?:guide|towers)\/[^"]+\.(?:png|jpe?g)/);
 });

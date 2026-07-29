@@ -1,9 +1,9 @@
 """Build runtime Act II boss sprites and title cards from generated source art.
 
 The source directory contains:
-  - bossN_turnaround.png: original three-view chroma-key generation
-  - bossN_alpha.png: the same image after remove_chroma_key.py
-  - bossN_splash.png: cinematic portrait without title text
+  - bossN_turnaround.webp: original three-view chroma-key generation
+  - bossN_alpha.webp: the same image after remove_chroma_key.py
+  - bossN_splash.webp: cinematic portrait without title text
 
 Runtime output:
   - assets2/enemies/animated/bossN_{front,side,back}_walk.webp
@@ -142,7 +142,7 @@ def build_walk_sheet(stage: int, view: str, source: Image.Image) -> Path:
 
 
 def split_turnaround(stage: int) -> dict[str, Image.Image]:
-    source = Image.open(SOURCE_DIR / f"boss{stage}_alpha.png").convert("RGBA")
+    source = Image.open(SOURCE_DIR / f"boss{stage}_alpha.webp").convert("RGBA")
     cut_one, cut_two = VIEW_CUTS[stage]
     return {
         "front": source.crop((0, 0, cut_one, source.height)),
@@ -207,7 +207,7 @@ def make_title_gradient(
 
 
 def add_title_card(stage: int) -> Path:
-    source = Image.open(SOURCE_DIR / f"boss{stage}_splash.png").convert("RGB")
+    source = Image.open(SOURCE_DIR / f"boss{stage}_splash.webp").convert("RGB")
     poster = ImageOps.fit(
         source,
         (1000, 1500),

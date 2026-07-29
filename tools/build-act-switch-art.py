@@ -11,8 +11,8 @@ OUTPUT_DIR = ROOT / "assets" / "ui"
 OUTPUT_SIZE = 320
 
 EMBLEMS = {
-    "act1-bastion-emblem-source.png": "act1-emblem.webp",
-    "act2-eastern-road-emblem-source.png": "act2-emblem.webp",
+    "act1-bastion-emblem-source.webp": "act1-emblem.webp",
+    "act2-eastern-road-emblem-source.webp": "act2-emblem.webp",
 }
 
 
