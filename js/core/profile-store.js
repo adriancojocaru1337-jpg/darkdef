@@ -319,6 +319,19 @@
       return persist(proposed || draft, reason);
     }
 
+    function replace(candidate, reason = "profile:replace") {
+      const next = sanitizeProfile(candidate);
+      if (!writeStorage(storageKey, JSON.stringify(next))) return false;
+      const previous = profile;
+      profile = next;
+      events?.emit("profile:changed", {
+        reason,
+        previous: clone(previous),
+        current: clone(profile)
+      });
+      return true;
+    }
+
     function reset() {
       const next = createDefaultProfile();
       return persist(next, "profile:reset");
@@ -331,6 +344,7 @@
       getHero,
       updateHero,
       update,
+      replace,
       reset
     });
   }
