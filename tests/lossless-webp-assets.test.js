@@ -25,12 +25,13 @@ function assertWebP(relativePath, requireLossless = true) {
   }
 }
 
-test("all 101 transparency-sensitive runtime images use lossless WebP", () => {
+test("all 102 transparency-sensitive runtime images use lossless WebP", () => {
   const assets = [
     "assets/ui/world-map.webp",
     "assets/ui/world-map-act2.webp",
     "assets/ui/act1-complete-background.webp",
     "assets/ui/act2-complete-background.webp",
+    "assets/ui/act3-teaser.webp",
     "assets/ui/act1-emblem.webp",
     "assets/ui/act2-emblem.webp",
     "assets/ui/varyn-portrait.webp",
@@ -41,7 +42,7 @@ test("all 101 transparency-sensitive runtime images use lossless WebP", () => {
     ...listFiles("assets2/guide", ".webp").map((name) => `assets2/guide/${name}`)
   ];
 
-  assert.equal(assets.length, 101);
+  assert.equal(assets.length, 102);
   for (const asset of assets) assertWebP(asset);
 });
 

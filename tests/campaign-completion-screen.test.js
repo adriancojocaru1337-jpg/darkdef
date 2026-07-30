@@ -15,10 +15,10 @@ function assertLosslessWebP(relativePath) {
   assert.equal(buffer.subarray(12, 16).toString("ascii"), "VP8L");
 }
 
-test("Act I and Act II use dedicated text-free completion backgrounds", () => {
+test("Act I completion and the Act III reveal use dedicated text-free backgrounds", () => {
   for(const asset of [
     "assets/ui/act1-complete-background.webp",
-    "assets/ui/act2-complete-background.webp"
+    "assets/ui/act3-teaser.webp"
   ]) {
     assert.ok(fs.existsSync(path.join(ROOT, asset)), `${asset} is missing`);
     assertLosslessWebP(asset);
@@ -28,7 +28,7 @@ test("Act I and Act II use dedicated text-free completion backgrounds", () => {
 });
 
 test("the completion choices are real responsive controls, not image hitboxes", () => {
-  for(const id of ["continueActTwoBtn", "enterEndlessBtn", "backToMenuFromEndlessBtn"]) {
+  for(const id of ["continueActTwoBtn", "previewActThreeBtn", "enterEndlessBtn", "backToMenuFromEndlessBtn"]) {
     assert.match(index, new RegExp(`<button[^>]+id="${id}"`));
   }
   assert.match(index, /id="campaignCompleteTitle"/);
@@ -53,8 +53,10 @@ test("Act I pauses for debrief and reserve management before its choices", () =>
 test("Act II displays its own final state and hides the Act II continuation", () => {
   assert.match(game, /showCampaignCompletionOverlay\("act2"/);
   assert.match(game, /continueActTwoBtn\?\.classList\.toggle\("hidden", campaignCompletionMode !== "act1"\)/);
-  assert.match(game, /THE FIELD OF DAWN HOLDS/);
-  assert.match(game, /CAMPAIGN COMPLETE/);
+  assert.match(game, /previewActThreeBtn\?\.classList\.toggle\("hidden", campaignCompletionMode !== "act2"\)/);
+  assert.match(game, /THE CROWN OF NIGHT/);
+  assert.match(game, /ACT II COMPLETE/);
+  assert.match(game, /COMING SOON/);
 });
 
 test("an unfinished completion choice survives save and resume", () => {

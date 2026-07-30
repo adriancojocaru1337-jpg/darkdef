@@ -116,3 +116,25 @@ test("upgrades legacy profiles and sanitizes reward collections", () => {
   assert.deepEqual(profile.skillTrees.towers, {});
   assert.equal(JSON.parse(storage.getItem("darkDefense.profile")).schemaVersion, 4);
 });
+
+test("replaces the local cache with an exact sanitized Cloud Save revision", () => {
+  const storage = new MemoryStorage();
+  const events = DarkDefense.createEventBus();
+  const changes = [];
+  events.on("profile:changed", (payload) => changes.push(payload));
+  const store = DarkDefense.createProfileStore({ storage, events });
+  const cloudProfile = DarkDefense.createDefaultProfile(1000);
+  cloudProfile.revision = 27;
+  cloudProfile.updatedAt = 2000;
+  cloudProfile.inventory.items = [{
+    instanceId: "itm_cloud",
+    definitionId: "warden_blade",
+    slot: "weapon"
+  }];
+
+  assert.equal(store.replace(cloudProfile, "cloud:adopted"), true);
+  assert.equal(store.getSnapshot().revision, 27);
+  assert.equal(store.getSnapshot().inventory.items[0].instanceId, "itm_cloud");
+  assert.equal(JSON.parse(storage.getItem("darkDefense.profile")).revision, 27);
+  assert.equal(changes.at(-1).reason, "cloud:adopted");
+});

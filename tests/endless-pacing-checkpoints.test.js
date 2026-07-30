@@ -5,6 +5,8 @@ const path = require("node:path");
 
 const read = (f) => fs.readFileSync(path.join(__dirname, "..", f), "utf8");
 const game = read("game.js");
+const index = read("index.html");
+const styles = read("style.css");
 const submitScore = read("netlify/functions/submit-score.js");
 const bonusBoard = read("netlify/functions/get-bonus-leaderboard.js");
 
@@ -53,11 +55,20 @@ test("checkpoints are rate limited so a run can't spam the endpoint", () => {
   assert.match(submitScore, /sinceLastMs < 45_000/);
 });
 
-test("the endless board returns and renders more than one entry", () => {
+test("the Endless endpoint keeps its full board while the homepage renders only its champion", () => {
   assert.doesNotMatch(bonusBoard, /limit 5\b/);
   assert.match(bonusBoard, /limit 10/);
-  // The client used to render rows.slice(0,1) — only the record holder.
-  assert.doesNotMatch(game, /bonusLeaderboardList\.innerHTML = rows\.slice\(0,1\)/);
+  const homepageBanner = game.match(
+    /async function loadBonusLeaderboard\(\)[\s\S]*?async function submitStoryLeaderboardScore/
+  )?.[0] || "";
+  assert.match(homepageBanner, /const champion = rows\[0\]/);
+  assert.match(homepageBanner, /<div class="leaderboard-rank">👑<\/div>/);
+  assert.doesNotMatch(homepageBanner, /rows\.map\(/);
+  assert.doesNotMatch(homepageBanner, /leaderboard-row-you/);
+  assert.match(index, /<h3>Endless Champion<\/h3>/);
+  assert.doesNotMatch(index, /Endless<br\s*\/?>Champion/);
+  assert.match(styles, /\.hero-actions-leaderboard\{[\s\S]*?width:min\(100%, 332px\);[\s\S]*?align-self:center/);
+  assert.match(styles, /\.hero-champion-card\{[\s\S]*?height:auto;[\s\S]*?padding:11px 15px 13px/);
 });
 
 /* Endless added two enemies per wave forever at a fixed 0.68s spawn interval,
@@ -123,12 +134,6 @@ test("the board reports the caller's own placement", () => {
 test("the client survives both the old array and the new object shape", () => {
   const client = read("game.js");
   assert.match(client, /Array\.isArray\(payload\) \? payload : \(payload\?\.rows \|\| \[\]\)/);
-});
-
-test("the client shows its own row only when outside the visible top", () => {
-  const client = read("game.js");
-  assert.match(client, /if\(you && you\.place > rows\.length\)/);
-  assert.match(read("style.css"), /\.leaderboard-row-you\{/);
 });
 
 test("no run token is minted at page load", () => {

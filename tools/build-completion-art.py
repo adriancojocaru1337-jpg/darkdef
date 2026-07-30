@@ -10,6 +10,7 @@ OUTPUT = ROOT / "assets" / "ui"
 ASSETS = {
     "act1-complete-background.webp": "act1-complete-background.webp",
     "act2-complete-background.webp": "act2-complete-background.webp",
+    "act3-teaser.webp": "act3-teaser.webp",
 }
 
 

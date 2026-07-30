@@ -28,13 +28,17 @@ test("act selectors use illustrated accessible button content", () => {
   assert.match(index, /id="worldMapActTwoBtn"[\s\S]*?act-switch-emblem[\s\S]*?act2-emblem\.webp/);
   assert.match(index, /<strong>Act I<\/strong>/);
   assert.match(index, /<strong>Act II<\/strong>/);
+  assert.match(index, /id="worldMapActThreeBtn"[\s\S]*?<strong>Act III<\/strong>[\s\S]*?<small>Coming Soon<\/small>/);
   assert.match(game, /worldMapActOneBtn\?\.setAttribute\("aria-pressed"/);
   assert.match(game, /worldMapActTwoBtn\?\.setAttribute\("aria-pressed"/);
+  assert.match(game, /worldMapActThreeBtn\?\.setAttribute\("aria-pressed"/);
 });
 
 test("act selectors have distinct active, hover and mobile treatments", () => {
   assert.match(css, /\.worldmap-act-switch button\.active/);
   assert.match(css, /#worldMapActTwoBtn\{--act-color:/);
+  assert.match(css, /#worldMapActThreeBtn\{--act-color:/);
+  assert.match(css, /\.worldmap-act-switch\.act-three-visible/);
   assert.match(css, /\.worldmap-act-switch button:hover/);
   assert.match(css, /@media \(max-width:620px\)/);
 });
