@@ -1,3 +1,93 @@
+Ashen Bastion v0.11.28 - Act III teaser
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- added original generated 16:9 artwork for the next realm: a broken causeway
+  across the abyss toward the Crown of Night
+- the Act II completion screen now reveals "Act III lies beyond the veil" with
+  its own violet visual identity, teaser quotes and a dedicated Preview action
+- after Stage 12 is completed, a persistent Act III selector appears on the
+  World Map and opens the Crown of Night teaser
+- the teaser is deliberately non-playable: it creates no Stage 13 shortcut and
+  is clearly marked Coming Soon
+- players who restore Act II completion through Neon Cloud Save also regain the
+  Act III selector automatically
+- preserved a lossless WebP source master and added it to the reproducible
+  completion-art build script
+- added responsive desktop/mobile presentation and regression coverage for the
+  reveal gate, artwork, completion action and non-playable map state
+
+Ashen Bastion v0.11.27 - Neon Cloud Save
+
+DATABASE SETUP REQUIRED:
+Run setup_game_state.sql once in the same Neon database used by the account
+system before deploying this version.
+
+- added authenticated Cloud Save for the complete RPG profile: inventory item
+  instances and affixes, equipped item IDs, hero level/XP, hero skill ranks,
+  reward cache/pity, essence/prestige and campaign profile data
+- mirrors the remaining permanent campaign keys (stage unlocks, Act I/II
+  completion, Endless records, combo record and claimed achievement rewards)
+  while the older UI still reads those localStorage keys
+- restores the Neon snapshot after login on a fresh/incognito browser, while
+  keeping localStorage as an offline cache
+- retains the existing player_ley_meta sync for Ascension Crystals, permanent
+  Ascension talents and Crystal-bought tower upgrades; these were already
+  server-backed and remain monotonic
+- uses an independent server revision with HTTP 409 conflict responses, merges
+  concurrent progression conservatively, and retries without silently replacing
+  another device's newer snapshot
+- prevents a browser cache owned by one account from being imported into a
+  different account; an unowned guest profile can still migrate into its first
+  signed-in account
+- debounces normal autosaves, performs a best-effort page-exit save and flushes
+  both Cloud Save stores before logout
+- limits and sanitizes JSONB payloads before storage
+- intentionally keeps an unfinished run, audio/UI preferences and other
+  device-specific settings local
+- added endpoint, sanitizer, conflict, schema, cache-adoption and client wiring
+  regression tests
+
+Ashen Bastion v0.11.26 - Compact homepage Endless champion
+
+No schema change. No SQL to run.
+
+- keeps the homepage Endless panel limited to the rank-one champion only
+- made the panel physically compact instead of stretching to the full height
+  of the hero banner
+- reduced its desktop width, padding, title block, avatar and score scale while
+  preserving the larger full leaderboard on the Rankings page
+- changed the heading to a clean single-line "Endless Champion"
+- retained responsive sizing so the compact card still fits narrow screens
+- expanded the regression test to protect both the single-row data contract
+  and the compact layout rules
+
+Ashen Bastion v0.11.25 - Homepage Endless champion only
+
+No schema change. No SQL to run.
+
+- the homepage Endless Champion banner now renders only the all-time rank-one
+  player instead of a condensed Top 3 / Top 10 list
+- removed the extra personal-placement row and rank summary from this banner
+  so its single purpose is presenting the current Endless champion
+- the dedicated Rankings page and its complete Endless leaderboard remain
+  unchanged
+- removed the now-unused homepage personal-row styling
+- updated the regression test to guarantee rows[0] is the banner's only entry
+
+Ashen Bastion v0.11.24 - Act I objective banner visibility fix
+
+No schema change. No SQL to run.
+
+- fixed the Act II "Protect the Exodus" objective banner appearing over
+  Stage 1 and other Act I battlefields
+- the cause was a CSS cascade tie: the later campaign-objective display:grid
+  rule overrode the earlier global hidden class
+- added a component-specific hidden rule so the banner is shown only when the
+  active campaign stage really defines an Act II objective
+- added a regression test covering initial markup, CSS ordering and the
+  JavaScript show/hide contract
+
 Ashen Bastion v0.11.23 - Complete WebP asset migration
 
 No schema change. No SQL to run.

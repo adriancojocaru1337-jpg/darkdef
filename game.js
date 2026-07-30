@@ -144,8 +144,11 @@ const worldMapBoard = document.getElementById("worldMapHotspots");
 const worldMapResumeBtn = document.getElementById("worldMapResumeBtn");
 const worldMapEndlessBtn = document.getElementById("worldMapEndlessBtn");
 const worldMapImage = document.getElementById("worldMapImage");
+const worldMapActSwitch = document.getElementById("worldMapActSwitch");
 const worldMapActOneBtn = document.getElementById("worldMapActOneBtn");
 const worldMapActTwoBtn = document.getElementById("worldMapActTwoBtn");
+const worldMapActThreeBtn = document.getElementById("worldMapActThreeBtn");
+const worldMapActThreeDivider = document.getElementById("worldMapActThreeDivider");
 const campaignObjective = document.getElementById("campaignObjective");
 const campaignObjectiveIcon = document.getElementById("campaignObjectiveIcon");
 const campaignObjectiveTitle = document.getElementById("campaignObjectiveTitle");
@@ -200,6 +203,7 @@ const campaignCompleteEyebrow = document.getElementById("campaignCompleteEyebrow
 const campaignCompleteTitle = document.getElementById("campaignCompleteTitle");
 const campaignCompleteSubtitle = document.getElementById("campaignCompleteSubtitle");
 const continueActTwoBtn = document.getElementById("continueActTwoBtn");
+const previewActThreeBtn = document.getElementById("previewActThreeBtn");
 const enterEndlessBtn = document.getElementById("enterEndlessBtn");
 const backToMenuFromEndlessBtn = document.getElementById("backToMenuFromEndlessBtn");
 const endlessUnlockArtwork = document.querySelector(".endless-unlocked-artwork");
@@ -282,9 +286,16 @@ async function loadPanelUserSession(){
     panelHeaderUserLink?.setAttribute("href", "/command-table.html");
     panelHeaderLogoutBtn?.classList.remove("hidden");
     leyAccountAuthed = true;
-    syncLeyMetaWithAccount();
+    cloudGameAccountAuthed = true;
+    cloudGameAccountId = String(data.user.id || "");
+    await Promise.allSettled([
+      syncLeyMetaWithAccount(),
+      syncGameStateWithAccount()
+    ]);
     submitHeroPower();
   }catch(_){
+    cloudGameAccountAuthed = false;
+    cloudGameAccountId = "";
     setPanelUserLabel("Guest");
   }
 }
@@ -1285,6 +1296,7 @@ function registerComboKill(pos){
   if(comboCount >= 25) unlockAchievement("combo_25");
   if(comboCount > getBestComboRecord()){
     try { localStorage.setItem("sdcBestCombo", String(comboCount)); } catch(e){}
+    scheduleCloudGameStatePush();
     if(comboCount >= 10) showPopup(pos.x, pos.y - 58, "New combo record!", "#f472b6");
   }
 }
@@ -1333,10 +1345,10 @@ const ACT_ONE_COMPLETE_QUOTES = [
 ];
 
 const ACT_TWO_COMPLETE_QUOTES = [
-  "Dawn came because the line refused to break.",
-  "The field is silent. The Bastion remembers every tower.",
-  "Vael has fallen. The road belongs to the living again.",
-  "This war is won. Endless darkness still remembers your name."
+  "Dawn came because the line refused to break. Beyond it, a crown wakes.",
+  "Vael has fallen. Something older now watches from beyond the veil.",
+  "The road belongs to the living again, but the last bridge leads into night.",
+  "This war is won. The Crown of Night is only beginning to stir."
 ];
 
 const STAGE_QUOTES = [
@@ -1677,6 +1689,7 @@ function isAchievementRewardClaimed(key){
 
 function markAchievementRewardClaimed(key){
   try{ localStorage.setItem(getAchievementRewardClaimKey(key), "1"); }catch(e){}
+  scheduleCloudGameStatePush();
 }
 
 /* ============================================================
@@ -1855,6 +1868,8 @@ function awardLeyCrystals(base, label, opts={}){
 let leyAccountAuthed = false;
 let leySyncPushTimer = null;
 let leySyncPromise = null;
+let cloudGameAccountAuthed = false;
+let cloudGameAccountId = "";
 
 function mergeLeyMeta(a, b){
   const talents = {};
@@ -1948,6 +1963,481 @@ window.addEventListener("pagehide", ()=>{
   if(!leyAccountAuthed) return;
   try{
     apiClient.sendBeacon("save-ley-meta", getLocalLeyMeta());
+  }catch(_){}
+});
+
+/* --- full account Cloud Save (Neon DB) -------------------------
+   The profile store remains the offline cache. The server owns a separate
+   optimistic revision so two tabs/devices cannot silently overwrite each
+   other. Legacy campaign keys are included until all older UI code has moved
+   behind ProfileStore. */
+const CLOUD_SAVE_META_KEY = "darkDefense.cloudSave.meta";
+const CLOUD_SAVE_OWNER_KEY = "darkDefense.profileOwner";
+let cloudGameRevision = 0;
+let cloudGamePushTimer = null;
+let cloudGameSyncPromise = null;
+let cloudGamePushQueued = false;
+let cloudGameApplying = false;
+
+function cloudSafeInteger(value, fallback=0, min=0, max=Number.MAX_SAFE_INTEGER){
+  const number = Number(value);
+  if(!Number.isFinite(number)) return fallback;
+  return Math.min(max, Math.max(min, Math.floor(number)));
+}
+
+function readCloudSaveMeta(){
+  try{
+    const parsed = JSON.parse(localStorage.getItem(CLOUD_SAVE_META_KEY) || "null");
+    return parsed && typeof parsed === "object" ? parsed : null;
+  }catch(_){
+    return null;
+  }
+}
+
+function writeCloudSaveMeta(state, serverRevision){
+  try{
+    localStorage.setItem(CLOUD_SAVE_OWNER_KEY, cloudGameAccountId);
+    localStorage.setItem(CLOUD_SAVE_META_KEY, JSON.stringify({
+      accountId:cloudGameAccountId,
+      serverRevision:cloudSafeInteger(serverRevision),
+      profileRevision:cloudSafeInteger(state?.profile?.revision),
+      savedAt:Date.now()
+    }));
+  }catch(_){}
+}
+
+function readCloudProfileOwner(){
+  try{ return String(localStorage.getItem(CLOUD_SAVE_OWNER_KEY) || ""); }catch(_){ return ""; }
+}
+
+function getLegacyCloudProgress(){
+  const achievementClaims = Object.keys(ACHIEVEMENT_CONFIG).filter(isAchievementRewardClaimed);
+  try{
+    return {
+      bestScore:cloudSafeInteger(localStorage.getItem("sdcBestScore"), 0, 0),
+      furthestStage:cloudSafeInteger(localStorage.getItem("sdcFurthestStage"), 1, 1, CAMPAIGN_FINAL_STAGE),
+      endlessUnlocked:localStorage.getItem("sdcEndlessUnlocked") === "1",
+      act2Complete:localStorage.getItem("sdcAct2Complete") === "1",
+      bestEndlessWave:cloudSafeInteger(localStorage.getItem("sdcBestEndlessWave"), 0, 0),
+      bestEndlessBossPairs:cloudSafeInteger(localStorage.getItem("sdcBestEndlessBossPairs"), 0, 0),
+      bestCombo:cloudSafeInteger(localStorage.getItem("sdcBestCombo"), 0, 0),
+      achievementClaims
+    };
+  }catch(_){
+    return {
+      bestScore:0,
+      furthestStage:1,
+      endlessUnlocked:false,
+      act2Complete:false,
+      bestEndlessWave:0,
+      bestEndlessBossPairs:0,
+      bestCombo:0,
+      achievementClaims
+    };
+  }
+}
+
+function buildCloudGameState(){
+  const profile = profileStore.getSnapshot();
+  const legacy = getLegacyCloudProgress();
+  profile.progress = profile.progress || {};
+  profile.progress.bestScore = Math.max(cloudSafeInteger(profile.progress.bestScore), legacy.bestScore);
+  profile.progress.furthestStage = Math.max(
+    cloudSafeInteger(profile.progress.furthestStage, 1, 1, CAMPAIGN_FINAL_STAGE),
+    legacy.furthestStage
+  );
+  profile.progress.endlessUnlocked = profile.progress.endlessUnlocked === true || legacy.endlessUnlocked;
+  profile.progress.bestEndlessWave = Math.max(
+    cloudSafeInteger(profile.progress.bestEndlessWave),
+    legacy.bestEndlessWave
+  );
+  profile.progress.bestEndlessBossPairs = Math.max(
+    cloudSafeInteger(profile.progress.bestEndlessBossPairs),
+    legacy.bestEndlessBossPairs
+  );
+  profile.progress.bestCombo = Math.max(cloudSafeInteger(profile.progress.bestCombo), legacy.bestCombo);
+  profile.story = profile.story && typeof profile.story === "object" ? profile.story : { chapter:1, flags:{} };
+  profile.story.flags = profile.story.flags && typeof profile.story.flags === "object"
+    ? profile.story.flags
+    : {};
+  profile.story.flags.act2Complete = profile.story.flags.act2Complete === true || legacy.act2Complete;
+  return { schemaVersion:1, profile, legacy };
+}
+
+function cloudProfileIsMeaningful(state){
+  const profile = state?.profile || {};
+  const legacy = state?.legacy || {};
+  const hero = profile.heroes?.roster?.varyn || {};
+  const skillRanks = profile.skillTrees?.heroes?.varyn?.ranks || {};
+  return (Array.isArray(profile.inventory?.items) && profile.inventory.items.length > 0)
+    || cloudSafeInteger(hero.totalXp) > 0
+    || cloudSafeInteger(hero.level, 1) > 1
+    || Object.values(skillRanks).some((rank)=>cloudSafeInteger(rank) > 0)
+    || cloudSafeInteger(profile.prestige?.rank) > 0
+    || cloudSafeInteger(profile.prestige?.currency) > 0
+    || cloudSafeInteger(legacy.bestScore) > 0
+    || cloudSafeInteger(legacy.furthestStage, 1) > 1
+    || legacy.endlessUnlocked === true
+    || legacy.act2Complete === true;
+}
+
+function mergeNumberMap(serverValue, localValue){
+  const merged = { ...(serverValue && typeof serverValue === "object" ? serverValue : {}) };
+  Object.entries(localValue && typeof localValue === "object" ? localValue : {}).forEach(([key,value])=>{
+    if(typeof value === "number" || typeof merged[key] === "number"){
+      merged[key] = Math.max(cloudSafeInteger(merged[key]), cloudSafeInteger(value));
+    }else if(value && typeof value === "object" && !Array.isArray(value)){
+      merged[key] = mergeNumberMap(merged[key], value);
+    }else if(value === true || merged[key] === true){
+      merged[key] = true;
+    }else if(merged[key] === undefined){
+      merged[key] = value;
+    }
+  });
+  return merged;
+}
+
+function mergeCloudGameStates(serverState, localState){
+  const server = serverState && typeof serverState === "object" ? serverState : {};
+  const local = localState && typeof localState === "object" ? localState : {};
+  const serverProfile = server.profile && typeof server.profile === "object" ? server.profile : {};
+  const localProfile = local.profile && typeof local.profile === "object" ? local.profile : {};
+  const base = cloudSafeInteger(localProfile.updatedAt) > cloudSafeInteger(serverProfile.updatedAt)
+    ? localProfile
+    : serverProfile;
+  const profile = JSON.parse(JSON.stringify(base));
+
+  profile.progress = mergeNumberMap(serverProfile.progress, localProfile.progress);
+  profile.progress.endlessUnlocked = serverProfile.progress?.endlessUnlocked === true
+    || localProfile.progress?.endlessUnlocked === true;
+  profile.revision = Math.max(
+    cloudSafeInteger(serverProfile.revision),
+    cloudSafeInteger(localProfile.revision)
+  );
+  profile.createdAt = Math.min(
+    cloudSafeInteger(serverProfile.createdAt, Date.now(), 1),
+    cloudSafeInteger(localProfile.createdAt, Date.now(), 1)
+  );
+  profile.updatedAt = Math.max(
+    cloudSafeInteger(serverProfile.updatedAt, 1, 1),
+    cloudSafeInteger(localProfile.updatedAt, 1, 1)
+  );
+
+  const serverItems = Array.isArray(serverProfile.inventory?.items) ? serverProfile.inventory.items : [];
+  const localItems = Array.isArray(localProfile.inventory?.items) ? localProfile.inventory.items : [];
+  const itemMap = new Map();
+  [...serverItems, ...localItems].forEach((item)=>{
+    if(item && typeof item.instanceId === "string" && item.instanceId) itemMap.set(item.instanceId, item);
+  });
+  profile.inventory = {
+    ...(serverProfile.inventory || {}),
+    ...(localProfile.inventory || {}),
+    capacity:Math.max(
+      cloudSafeInteger(serverProfile.inventory?.capacity, 40, 1, 500),
+      cloudSafeInteger(localProfile.inventory?.capacity, 40, 1, 500)
+    ),
+    items:[...itemMap.values()].slice(0, 500)
+  };
+
+  const serverRoster = serverProfile.heroes?.roster || {};
+  const localRoster = localProfile.heroes?.roster || {};
+  const roster = {};
+  new Set([...Object.keys(serverRoster), ...Object.keys(localRoster)]).forEach((heroId)=>{
+    const a = serverRoster[heroId] || {};
+    const b = localRoster[heroId] || {};
+    roster[heroId] = {
+      ...a,
+      ...b,
+      unlocked:a.unlocked !== false || b.unlocked !== false,
+      level:Math.max(cloudSafeInteger(a.level, 1), cloudSafeInteger(b.level, 1)),
+      xp:Math.max(cloudSafeInteger(a.xp), cloudSafeInteger(b.xp)),
+      totalXp:Math.max(cloudSafeInteger(a.totalXp), cloudSafeInteger(b.totalXp))
+    };
+  });
+  profile.heroes = { ...(serverProfile.heroes || {}), ...(localProfile.heroes || {}), roster };
+
+  const serverSkillHeroes = serverProfile.skillTrees?.heroes || {};
+  const localSkillHeroes = localProfile.skillTrees?.heroes || {};
+  const skillHeroes = {};
+  new Set([...Object.keys(serverSkillHeroes), ...Object.keys(localSkillHeroes)]).forEach((heroId)=>{
+    skillHeroes[heroId] = {
+      ranks:mergeNumberMap(serverSkillHeroes[heroId]?.ranks, localSkillHeroes[heroId]?.ranks)
+    };
+  });
+  profile.skillTrees = {
+    ...(serverProfile.skillTrees || {}),
+    ...(localProfile.skillTrees || {}),
+    heroes:skillHeroes,
+    towers:mergeNumberMap(serverProfile.skillTrees?.towers, localProfile.skillTrees?.towers)
+  };
+
+  profile.prestige = {
+    ...(serverProfile.prestige || {}),
+    ...(localProfile.prestige || {}),
+    rank:Math.max(cloudSafeInteger(serverProfile.prestige?.rank), cloudSafeInteger(localProfile.prestige?.rank)),
+    currency:Math.max(
+      cloudSafeInteger(serverProfile.prestige?.currency),
+      cloudSafeInteger(localProfile.prestige?.currency)
+    ),
+    upgrades:mergeNumberMap(serverProfile.prestige?.upgrades, localProfile.prestige?.upgrades)
+  };
+  profile.world = {
+    ...(serverProfile.world || {}),
+    ...(localProfile.world || {}),
+    unlockedNodes:[...new Set([
+      ...(Array.isArray(serverProfile.world?.unlockedNodes) ? serverProfile.world.unlockedNodes : []),
+      ...(Array.isArray(localProfile.world?.unlockedNodes) ? localProfile.world.unlockedNodes : [])
+    ])],
+    completedNodes:[...new Set([
+      ...(Array.isArray(serverProfile.world?.completedNodes) ? serverProfile.world.completedNodes : []),
+      ...(Array.isArray(localProfile.world?.completedNodes) ? localProfile.world.completedNodes : [])
+    ])]
+  };
+  profile.story = {
+    ...(serverProfile.story || {}),
+    ...(localProfile.story || {}),
+    chapter:Math.max(
+      cloudSafeInteger(serverProfile.story?.chapter, 1),
+      cloudSafeInteger(localProfile.story?.chapter, 1)
+    ),
+    flags:mergeNumberMap(serverProfile.story?.flags, localProfile.story?.flags)
+  };
+
+  const serverBundles = Array.isArray(serverProfile.rewards?.unclaimed)
+    ? serverProfile.rewards.unclaimed
+    : [];
+  const localBundles = Array.isArray(localProfile.rewards?.unclaimed)
+    ? localProfile.rewards.unclaimed
+    : [];
+  const bundleMap = new Map();
+  [...serverBundles, ...localBundles].forEach((bundle,index)=>{
+    if(!bundle || typeof bundle !== "object") return;
+    bundleMap.set(String(bundle.bundleId || `bundle:${index}`), bundle);
+  });
+  profile.rewards = {
+    ...(serverProfile.rewards || {}),
+    ...(localProfile.rewards || {}),
+    pityCounters:mergeNumberMap(
+      serverProfile.rewards?.pityCounters,
+      localProfile.rewards?.pityCounters
+    ),
+    unclaimed:[...bundleMap.values()].slice(0, 200)
+  };
+
+  const serverLegacy = server.legacy || {};
+  const localLegacy = local.legacy || {};
+  const legacy = {
+    bestScore:Math.max(cloudSafeInteger(serverLegacy.bestScore), cloudSafeInteger(localLegacy.bestScore)),
+    furthestStage:Math.max(
+      cloudSafeInteger(serverLegacy.furthestStage, 1),
+      cloudSafeInteger(localLegacy.furthestStage, 1)
+    ),
+    endlessUnlocked:serverLegacy.endlessUnlocked === true || localLegacy.endlessUnlocked === true,
+    act2Complete:serverLegacy.act2Complete === true || localLegacy.act2Complete === true,
+    bestEndlessWave:Math.max(
+      cloudSafeInteger(serverLegacy.bestEndlessWave),
+      cloudSafeInteger(localLegacy.bestEndlessWave)
+    ),
+    bestEndlessBossPairs:Math.max(
+      cloudSafeInteger(serverLegacy.bestEndlessBossPairs),
+      cloudSafeInteger(localLegacy.bestEndlessBossPairs)
+    ),
+    bestCombo:Math.max(cloudSafeInteger(serverLegacy.bestCombo), cloudSafeInteger(localLegacy.bestCombo)),
+    achievementClaims:[...new Set([
+      ...(Array.isArray(serverLegacy.achievementClaims) ? serverLegacy.achievementClaims : []),
+      ...(Array.isArray(localLegacy.achievementClaims) ? localLegacy.achievementClaims : [])
+    ])]
+  };
+  return { schemaVersion:1, profile, legacy };
+}
+
+function applyCloudGameState(state, options={}){
+  if(!state?.profile) return false;
+  cloudGameApplying = true;
+  try{
+    const next = mergeCloudGameStates(
+      { profile:state.profile, legacy:state.legacy || {} },
+      { profile:state.profile, legacy:state.legacy || {} }
+    );
+    const profile = next.profile;
+    const legacy = next.legacy;
+    profileStore.replace(profile, "cloud:adopted");
+    localStorage.setItem("sdcBestScore", String(legacy.bestScore));
+    localStorage.setItem("sdcFurthestStage", String(legacy.furthestStage));
+    localStorage.setItem("sdcEndlessUnlocked", legacy.endlessUnlocked ? "1" : "0");
+    localStorage.setItem("sdcBestEndlessWave", String(legacy.bestEndlessWave));
+    localStorage.setItem("sdcBestEndlessBossPairs", String(legacy.bestEndlessBossPairs));
+    localStorage.setItem("sdcBestCombo", String(legacy.bestCombo));
+    if(legacy.act2Complete) localStorage.setItem("sdcAct2Complete", "1");
+    else localStorage.removeItem("sdcAct2Complete");
+    const claims = new Set(legacy.achievementClaims || []);
+    Object.keys(ACHIEVEMENT_CONFIG).forEach((key)=>{
+      if(claims.has(key)) localStorage.setItem(getAchievementRewardClaimKey(key), "1");
+      else localStorage.removeItem(getAchievementRewardClaimKey(key));
+    });
+    endlessUnlocked = legacy.endlessUnlocked;
+    bestEndlessWave = legacy.bestEndlessWave;
+    bestEndlessBossPairs = legacy.bestEndlessBossPairs;
+  }catch(_){
+    return false;
+  }finally{
+    cloudGameApplying = false;
+  }
+
+  try{ heroSystem.syncUi(); }catch(_){}
+  try{ updateInventoryBadges(); }catch(_){}
+  try{ updateHeroSkillBadges(); }catch(_){}
+  try{ if(isInventoryOverlayOpen()) renderInventoryOverlay(); }catch(_){}
+  try{ if(isHeroSkillsOverlayOpen()) renderHeroSkillTree(); }catch(_){}
+  try{ renderWorldMap(); }catch(_){}
+  try{ updateUI(); }catch(_){}
+  if(options.notify !== false){
+    pushNotification("stage", "Cloud Save loaded", "Your account progression was restored from Neon.");
+  }
+  return true;
+}
+
+async function saveCloudGameSnapshot(initialState, expectedRevision){
+  let state = initialState;
+  let expected = cloudSafeInteger(expectedRevision);
+  for(let attempt=0; attempt<2; attempt++){
+    try{
+      const data = await apiClient.post("save-game-state", {
+        state,
+        expectedRevision:expected
+      }, { credentials:"include" });
+      if(!data?.ok) return null;
+      cloudGameRevision = cloudSafeInteger(data.revision);
+      writeCloudSaveMeta(state, cloudGameRevision);
+      return { ...data, savedProfileRevision:cloudSafeInteger(state.profile?.revision) };
+    }catch(error){
+      if(error?.status !== 409 || !error?.details){
+        return null;
+      }
+      const serverState = error.details.state;
+      expected = cloudSafeInteger(error.details.revision);
+      cloudGameRevision = expected;
+      if(!serverState) continue;
+      state = mergeCloudGameStates(serverState, buildCloudGameState());
+      state.profile.revision = Math.max(
+        cloudSafeInteger(state.profile.revision),
+        cloudSafeInteger(profileStore.getSnapshot().revision)
+      ) + 1;
+      state.profile.updatedAt = Date.now();
+      applyCloudGameState(state, { notify:false });
+    }
+  }
+  return null;
+}
+
+async function pushCloudGameState(){
+  if(!cloudGameAccountAuthed || !cloudGameAccountId) return null;
+  if(cloudGameSyncPromise){
+    cloudGamePushQueued = true;
+    return cloudGameSyncPromise;
+  }
+
+  const snapshot = buildCloudGameState();
+  cloudGameSyncPromise = saveCloudGameSnapshot(snapshot, cloudGameRevision);
+  try{
+    const result = await cloudGameSyncPromise;
+    const currentRevision = cloudSafeInteger(profileStore.getSnapshot().revision);
+    if(result && currentRevision > result.savedProfileRevision) cloudGamePushQueued = true;
+    return result;
+  }finally{
+    cloudGameSyncPromise = null;
+    if(cloudGamePushQueued){
+      cloudGamePushQueued = false;
+      scheduleCloudGameStatePush(150);
+    }
+  }
+}
+
+function scheduleCloudGameStatePush(delayMs=1800){
+  if(!cloudGameAccountAuthed || cloudGameApplying) return;
+  if(cloudGamePushTimer) clearTimeout(cloudGamePushTimer);
+  cloudGamePushTimer = setTimeout(()=>{
+    cloudGamePushTimer = null;
+    pushCloudGameState();
+  }, delayMs);
+}
+
+async function syncGameStateWithAccount(){
+  if(!cloudGameAccountAuthed || !cloudGameAccountId) return;
+  let data;
+  try{
+    data = await apiClient.get("get-game-state", {
+      credentials:"include",
+      cache:"no-store"
+    });
+  }catch(_){
+    return;
+  }
+  if(!data?.ok) return;
+
+  cloudGameRevision = cloudSafeInteger(data.revision);
+  const serverState = data.state;
+  const localState = buildCloudGameState();
+  const owner = readCloudProfileOwner();
+  const meta = readCloudSaveMeta();
+  const belongsToAnotherAccount = !!owner && owner !== cloudGameAccountId;
+  const knownMeta = meta && String(meta.accountId || "") === cloudGameAccountId;
+  const hasPendingLocal = !!knownMeta
+    && cloudSafeInteger(localState.profile?.revision) > cloudSafeInteger(meta.profileRevision);
+
+  if(!serverState){
+    const initialState = belongsToAnotherAccount
+      ? { schemaVersion:1, profile:window.DarkDefense.createDefaultProfile(), legacy:{} }
+      : localState;
+    if(belongsToAnotherAccount) applyCloudGameState(initialState, { notify:false });
+    await saveCloudGameSnapshot(buildCloudGameState(), 0);
+    return;
+  }
+
+  if(belongsToAnotherAccount){
+    applyCloudGameState(serverState);
+    writeCloudSaveMeta(serverState, cloudGameRevision);
+    return;
+  }
+
+  if(knownMeta && !hasPendingLocal){
+    applyCloudGameState(serverState, { notify:false });
+    writeCloudSaveMeta(serverState, cloudGameRevision);
+    return;
+  }
+
+  if(knownMeta && hasPendingLocal && cloudSafeInteger(meta.serverRevision) === cloudGameRevision){
+    await saveCloudGameSnapshot(localState, cloudGameRevision);
+    return;
+  }
+
+  if(!cloudProfileIsMeaningful(localState)){
+    applyCloudGameState(serverState);
+    writeCloudSaveMeta(serverState, cloudGameRevision);
+    return;
+  }
+
+  const merged = mergeCloudGameStates(serverState, localState);
+  merged.profile.revision = Math.max(
+    cloudSafeInteger(serverState.profile?.revision),
+    cloudSafeInteger(localState.profile?.revision)
+  ) + 1;
+  merged.profile.updatedAt = Date.now();
+  applyCloudGameState(merged, { notify:false });
+  await saveCloudGameSnapshot(merged, cloudGameRevision);
+}
+
+window.DarkDefense.events.on("profile:changed", ()=>{
+  if(!cloudGameApplying) scheduleCloudGameStatePush();
+});
+
+window.addEventListener("pagehide", ()=>{
+  if(!cloudGameAccountAuthed || !cloudGameAccountId) return;
+  try{
+    apiClient.sendBeacon("save-game-state", {
+      state:buildCloudGameState(),
+      expectedRevision:cloudGameRevision
+    });
   }catch(_){}
 });
 
@@ -3564,60 +4054,35 @@ async function loadBonusLeaderboard(){
   if(!bonusLeaderboardList) return;
   bonusLeaderboardSubtitle.textContent = "Loading the global Endless bonus scoreboard...";
   try{
-    let storedName = "";
-    try{ storedName = localStorage.getItem("sdcPlayerName") || ""; }catch(e){}
     const payload = await apiClient.get("get-bonus-leaderboard", {
-      query: storedName ? { player: storedName } : {},
       cache: "no-store"
     });
     // The endpoint used to return a bare array; tolerate both shapes so a cached
     // client doesn't render an empty board after a deploy.
     const rows = Array.isArray(payload) ? payload : (payload?.rows || []);
-    const you = Array.isArray(payload) ? null : payload?.you;
-    const totalPlayers = Array.isArray(payload) ? rows.length : (payload?.total || rows.length);
     if(rows.length === 0){
       bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">No Endless runs submitted yet.</div>';
       bonusLeaderboardSubtitle.textContent = "Be the first to post a bonus score.";
       return;
     }
-    // Was rows.slice(0,1): the endpoint returned five rows and the board showed
-    // only the all-time record holder, so every other entry was invisible.
-    bonusLeaderboardList.innerHTML = rows.map((row, index) => {
-      const safeName = String(row.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-      const crest = window.DarkDefenseCrest?.markup(row.player_name || "Anonim", "dd-crest-sm", row.profile_crest_id || null, Boolean(row.profile_username)) || "";
-      const bonus = Number(row.bonus_score || 0);
-      const waveReached = Number(row.wave_reached || 0);
-      return `
-        <div class="leaderboard-row">
-          <div class="leaderboard-rank">${index === 0 ? "👑" : index + 1}</div>
-          <div class="leaderboard-main">
-            <span class="leaderboard-name">${crest}${safeName}</span>
-            <span class="leaderboard-meta">Wave ${waveReached}</span>
-          </div>
-          <div class="leaderboard-score">+${bonus}</div>
+    // The homepage card is a champion banner, not a condensed leaderboard.
+    // Rankings keeps the complete top list; this surface renders rank one only.
+    const champion = rows[0];
+    const safeName = String(champion.player_name || "Anonim").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    const crest = window.DarkDefenseCrest?.markup(champion.player_name || "Anonim", "dd-crest-sm", champion.profile_crest_id || null, Boolean(champion.profile_username)) || "";
+    const bonus = Number(champion.bonus_score || 0);
+    const waveReached = Number(champion.wave_reached || 0);
+    bonusLeaderboardList.innerHTML = `
+      <div class="leaderboard-row">
+        <div class="leaderboard-rank">👑</div>
+        <div class="leaderboard-main">
+          <span class="leaderboard-name">${crest}${safeName}</span>
+          <span class="leaderboard-meta">Wave ${waveReached}</span>
         </div>
-      `;
-    }).join("");
-    /* Show the player's own placement when they're outside the visible top 10.
-       Otherwise a run that submitted perfectly is indistinguishable from one
-       that was lost, which is how a working board ends up reported as broken. */
-    if(you && you.place > rows.length){
-      const safeYou = String(you.playerName || "").replace(/[&<>"]/g, (m) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
-      bonusLeaderboardList.innerHTML += `
-        <div class="leaderboard-row leaderboard-row-you">
-          <div class="leaderboard-rank">${you.place}</div>
-          <div class="leaderboard-main">
-            <span class="leaderboard-name">${safeYou}</span>
-            <span class="leaderboard-meta">Wave ${you.waveReached} — your best</span>
-          </div>
-          <div class="leaderboard-score">+${you.bonusScore}</div>
-        </div>
-      `;
-    }
-    const best = rows[0];
-    bonusLeaderboardSubtitle.textContent = you
-      ? `Record: Wave ${best.wave_reached} by ${best.player_name}. You: #${you.place} of ${totalPlayers}.`
-      : `Record: Wave ${best.wave_reached} by ${best.player_name} (bonus +${best.bonus_score}).`;
+        <div class="leaderboard-score">+${bonus}</div>
+      </div>
+    `;
+    bonusLeaderboardSubtitle.textContent = `Endless record: Wave ${waveReached} by ${champion.player_name || "Anonim"}.`;
   }catch(error){
       bonusLeaderboardList.innerHTML = '<div class="leaderboard-empty">Rankings are temporarily unavailable.</div>';
       bonusLeaderboardSubtitle.textContent = "Connect Netlify Functions + Neon for the global Rankings.";
@@ -5025,12 +5490,12 @@ const CAMPAIGN_COMPLETION_PRESENTATION = Object.freeze({
     quotes:ACT_ONE_COMPLETE_QUOTES
   }),
   act2: Object.freeze({
-    artwork:"assets/ui/act2-complete-background.webp",
-    artworkAlt:"The Field of Dawn after Lord Marshal Vael's defeat.",
-    ariaLabel:"Campaign complete. Choose Endless Mode or the World Map.",
-    eyebrow:"CAMPAIGN COMPLETE",
-    title:"THE FIELD OF DAWN HOLDS",
-    subtitle:"ASHEN BASTION ENDURES · ENDLESS MODE AWAITS",
+    artwork:"assets/ui/act3-teaser.webp",
+    artworkAlt:"A broken bridge crossing the abyss toward the distant Crown of Night.",
+    ariaLabel:"Act II complete. Preview Act III, enter Endless Mode, or return to the World Map.",
+    eyebrow:"ACT II COMPLETE",
+    title:"THE CROWN OF NIGHT",
+    subtitle:"ACT III LIES BEYOND THE VEIL · COMING SOON",
     quotes:ACT_TWO_COMPLETE_QUOTES
   })
 });
@@ -5050,7 +5515,8 @@ function showCampaignCompletionOverlay(mode = "act2", options = {}){
   if(campaignCompleteSubtitle) campaignCompleteSubtitle.textContent = presentation.subtitle;
   if(endlessUnlockReward) endlessUnlockReward.textContent = campaignCompletionRewardText;
   continueActTwoBtn?.classList.toggle("hidden", campaignCompletionMode !== "act1");
-  enterEndlessBtn?.classList.toggle("campaign-complete-btn-primary", campaignCompletionMode === "act2");
+  previewActThreeBtn?.classList.toggle("hidden", campaignCompletionMode !== "act2");
+  enterEndlessBtn?.classList.remove("campaign-complete-btn-primary");
   if(endlessUnlockText){
     const quotes = presentation.quotes;
     endlessUnlockText.textContent = `“${quotes[Math.floor(Math.random() * quotes.length)]}”`;
@@ -5588,6 +6054,7 @@ function maybeSaveBestEndlessRun(){
     localStorage.setItem("sdcBestEndlessBossPairs", String(nextBestPairs));
     bestEndlessWave = nextBestWave;
     bestEndlessBossPairs = nextBestPairs;
+    scheduleCloudGameStatePush();
   }catch(e){}
 }
 
@@ -10278,7 +10745,8 @@ heroSkillRespecBtn?.addEventListener("click",handleHeroSkillRespec);
 let worldMapAct = 1;
 const WORLD_MAP_ART = Object.freeze({
   1: "assets/ui/world-map.webp",
-  2: "assets/ui/world-map-act2.webp"
+  2: "assets/ui/world-map-act2.webp",
+  3: "assets/ui/act3-teaser.webp"
 });
 
 function hasCompletedActOne(){
@@ -10289,6 +10757,14 @@ function hasCompletedActOne(){
     return endlessUnlocked || localStorage.getItem("sdcEndlessUnlocked") === "1";
   }catch(e){
     return endlessUnlocked;
+  }
+}
+
+function hasCompletedActTwo(){
+  try{
+    return localStorage.getItem("sdcAct2Complete") === "1";
+  }catch(e){
+    return false;
   }
 }
 
@@ -10341,6 +10817,8 @@ const WORLDMAP_HOTSPOTS = {
 
 function renderWorldMap(){
   if(!worldMapBoard) return;
+  const actThreeAvailable = hasCompletedActTwo();
+  if(worldMapAct === 3 && !actThreeAvailable) worldMapAct = 2;
   const highest = highestUnlockedStage();
   const firstStage = worldMapAct === 2 ? 7 : 1;
   const lastStage = worldMapAct === 2 ? CAMPAIGN_FINAL_STAGE : ACT_ONE_FINAL_STAGE;
@@ -10349,10 +10827,16 @@ function renderWorldMap(){
     : Math.min(ACT_ONE_FINAL_STAGE, highest);
   worldMapBoard.innerHTML = "";
   worldMapOverlay?.classList.toggle("showing-act-two", worldMapAct === 2);
+  worldMapOverlay?.classList.toggle("showing-act-three", worldMapAct === 3);
   worldMapActOneBtn?.classList.toggle("active", worldMapAct === 1);
   worldMapActTwoBtn?.classList.toggle("active", worldMapAct === 2);
+  worldMapActThreeBtn?.classList.toggle("active", worldMapAct === 3);
   worldMapActOneBtn?.setAttribute("aria-pressed", String(worldMapAct === 1));
   worldMapActTwoBtn?.setAttribute("aria-pressed", String(worldMapAct === 2));
+  worldMapActThreeBtn?.setAttribute("aria-pressed", String(worldMapAct === 3));
+  worldMapActThreeBtn?.classList.toggle("hidden", !actThreeAvailable);
+  worldMapActThreeDivider?.classList.toggle("hidden", !actThreeAvailable);
+  worldMapActSwitch?.classList.toggle("act-three-visible", actThreeAvailable);
   if(worldMapActTwoBtn){
     worldMapActTwoBtn.disabled = false;
     worldMapActTwoBtn.title = hasCompletedActOne()
@@ -10364,9 +10848,23 @@ function renderWorldMap(){
     if(worldMapImage.getAttribute("src") !== nextMapSrc){
       worldMapImage.setAttribute("src", nextMapSrc);
     }
-    worldMapImage.alt = worldMapAct === 2
-      ? "Act II route across the lands east of Ashen Bastion"
-      : "World map of Ashen Bastion";
+    worldMapImage.alt = worldMapAct === 3
+      ? "The bridge across the abyss toward the Crown of Night"
+      : (worldMapAct === 2
+        ? "Act II route across the lands east of Ashen Bastion"
+        : "World map of Ashen Bastion");
+  }
+
+  if(worldMapAct === 3){
+    worldMapBoard.innerHTML = `
+      <section class="worldmap-act3-teaser" aria-label="Act III teaser">
+        <div class="worldmap-act3-seal" aria-hidden="true">III</div>
+        <p>Beyond the Veil</p>
+        <h3>The Crown of Night</h3>
+        <span>Coming Soon</span>
+        <small>The broken causeway ends at a kingdom no scout has returned from.</small>
+      </section>`;
+    return;
   }
 
   for(let stage=firstStage; stage<=lastStage; stage++){
@@ -10407,7 +10905,7 @@ function openWorldMap(){
     const hasSave = !!loadSavedRun();
     worldMapResumeBtn.classList.toggle("hidden", !hasSave);
   }
-  if(currentStage > ACT_ONE_FINAL_STAGE) worldMapAct = 2;
+  if(worldMapAct !== 3 && currentStage > ACT_ONE_FINAL_STAGE) worldMapAct = 2;
   worldMapEndlessBtn?.classList.toggle("hidden", !endlessUnlocked);
   renderWorldMap();
   worldMapOverlay?.classList.remove("hidden");
@@ -10445,6 +10943,13 @@ worldMapActOneBtn?.addEventListener("click",(event)=>{
 worldMapActTwoBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   worldMapAct = 2;
+  renderWorldMap();
+});
+
+worldMapActThreeBtn?.addEventListener("click",(event)=>{
+  event.stopPropagation();
+  if(!hasCompletedActTwo()) return;
+  worldMapAct = 3;
   renderWorldMap();
 });
 
@@ -10553,6 +11058,16 @@ continueActTwoBtn?.addEventListener("click", ()=>{
     `Act II begins at The Broken Gate. +${getStageClearGoldReward(ACT_ONE_FINAL_STAGE)} gold — protect all three caravans.`,
     { applyAttrition:false }
   );
+});
+
+previewActThreeBtn?.addEventListener("click", ()=>{
+  if(campaignCompletionMode !== "act2" || !hasCompletedActTwo()) return;
+  hideCampaignCompletionOverlay();
+  resetGame();
+  hasStarted = false;
+  runStateMachine.send("RETURN_TO_MENU", { mode:"campaign", reason:"act-three-preview" });
+  worldMapAct = 3;
+  openWorldMap();
 });
 
 enterEndlessBtn?.addEventListener("click", ()=>{
@@ -10988,6 +11503,8 @@ mobileLayoutMedia.addEventListener?.("change", syncMobileHudLayout);
 panelHeaderLogoutBtn?.addEventListener("click", async (event)=>{
   event.preventDefault();
   try{
+    if(cloudGameAccountAuthed) await pushCloudGameState();
+    if(leyAccountAuthed) await pushLeyMeta();
     await apiClient.post("logout", null, {
       credentials: "include"
     });

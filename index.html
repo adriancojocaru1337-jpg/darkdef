@@ -30,8 +30,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=6037f7faf4" />
-  <link rel="stylesheet" href="completion-screen.css?v=9f7d1f3615" />
+  <link rel="stylesheet" href="style.css?v=d736ed8a21" />
+  <link rel="stylesheet" href="completion-screen.css?v=83b3fc076b" />
   <link rel="stylesheet" href="stage-intermission.css?v=40c17f4d43" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
@@ -263,13 +263,16 @@
         <div class="campaign-complete-footer">
           <p class="gameover-quote endless-unlocked-copy endless-unlocked-quote" id="endlessUnlockText">&ldquo;The portal is broken. The eastern road is not.&rdquo;</p>
           <p class="endless-unlocked-copy endless-unlocked-reward" id="endlessUnlockReward">Act I clear reward: +200 gold</p>
-          <div class="campaign-complete-actions">
-            <button class="campaign-complete-btn campaign-complete-btn-primary" id="continueActTwoBtn" type="button">
-              <span>Continue to</span><strong>Act II</strong>
-            </button>
-            <button class="campaign-complete-btn campaign-complete-btn-endless" id="enterEndlessBtn" type="button">
-              <span>Enter</span><strong>Endless</strong>
-            </button>
+            <div class="campaign-complete-actions">
+              <button class="campaign-complete-btn campaign-complete-btn-primary" id="continueActTwoBtn" type="button">
+                <span>Continue to</span><strong>Act II</strong>
+              </button>
+              <button class="campaign-complete-btn campaign-complete-btn-primary hidden" id="previewActThreeBtn" type="button">
+                <span>Preview</span><strong>Act III</strong>
+              </button>
+              <button class="campaign-complete-btn campaign-complete-btn-endless" id="enterEndlessBtn" type="button">
+                <span>Enter</span><strong>Endless</strong>
+              </button>
             <button class="campaign-complete-btn campaign-complete-btn-secondary" id="backToMenuFromEndlessBtn" type="button">
               <span>Return to</span><strong>World Map</strong>
             </button>
@@ -361,7 +364,7 @@
         </button>
       </div>
       <div class="hero-leaderboard-head">
-        <h3>Endless<br />Champion</h3>
+        <h3>Endless Champion</h3>
         <span class="hero-laurel" aria-hidden="true">🏆</span>
       </div>
       <div class="hero-leaderboard-sub" id="bonusLeaderboardSubtitle">Loading the best bonus scores...</div>
@@ -501,6 +504,15 @@
                   <span class="act-switch-kicker">Eastern Campaign</span>
                   <strong>Act II</strong>
                   <small>The Road to Dawn</small>
+                </span>
+              </button>
+              <span class="act-switch-divider hidden" id="worldMapActThreeDivider" aria-hidden="true">◆</span>
+              <button class="hidden" id="worldMapActThreeBtn" type="button" aria-pressed="false">
+                <span class="act-switch-emblem act-switch-emblem-locked" aria-hidden="true">III</span>
+                <span class="act-switch-copy">
+                  <span class="act-switch-kicker">Beyond the Veil</span>
+                  <strong>Act III</strong>
+                  <small>Coming Soon</small>
                 </span>
               </button>
             </div>
@@ -788,7 +800,7 @@
   </main>
 
   <script src="js/core/event-bus.js?v=558f1f340b"></script>
-  <script src="js/core/profile-store.js?v=84e63bc5e2"></script>
+  <script src="js/core/profile-store.js?v=c307a7dbb2"></script>
   <script src="js/core/api-client.js?v=8a604d59d6"></script>
   <script src="js/core/run-state-machine.js?v=730624aa27"></script>
   <script src="js/core/run-rng.js?v=e0572e6cbb"></script>
@@ -805,7 +817,7 @@
   <script src="js/systems/equipment-system.js?v=68019be46d"></script>
   <script src="js/systems/hero-stat-pipeline.js?v=76b448f708"></script>
   <script src="js/systems/hero-skill-tree-system.js?v=730b549e71"></script>
-  <script src="game.js?v=ac8be6a7da"></script>
+  <script src="game.js?v=2a0b3aaf32"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>
