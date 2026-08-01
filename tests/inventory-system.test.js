@@ -231,6 +231,35 @@ test("getCurrency reports craftable crystals and essence to next", () => {
   assert.equal(currency.essenceToNextCrystal, 70);
 });
 
+test("spends an exact essence amount for tower repairs", () => {
+  const { store, inventory } = harness();
+  store.update((profile) => {
+    profile.prestige.currency = 35;
+    return profile;
+  });
+
+  const result = inventory.spendEssence(10, "campaign:tower-repair");
+
+  assert.equal(result.accepted, true);
+  assert.equal(result.essenceSpent, 10);
+  assert.equal(result.currency.essence, 25);
+  assert.equal(store.getSnapshot().prestige.currency, 25);
+});
+
+test("rejects a tower repair when essence is insufficient", () => {
+  const { store, inventory } = harness();
+  store.update((profile) => {
+    profile.prestige.currency = 9;
+    return profile;
+  });
+
+  const result = inventory.spendEssence(10, "campaign:tower-repair");
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.reason, "insufficient_essence");
+  assert.equal(store.getSnapshot().prestige.currency, 9);
+});
+
 test("salvage feeds essence that then crafts a crystal end to end", () => {
   const { store, inventory } = harness();
   const items = [];

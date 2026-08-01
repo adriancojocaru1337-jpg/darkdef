@@ -23,22 +23,23 @@ test("each campaign act has an original lossless heraldic emblem", () => {
   }
 });
 
-test("act selectors use illustrated accessible button content", () => {
+test("the compact act switcher contains only the two playable acts", () => {
   assert.match(index, /id="worldMapActOneBtn"[\s\S]*?act-switch-emblem[\s\S]*?act1-emblem\.webp/);
   assert.match(index, /id="worldMapActTwoBtn"[\s\S]*?act-switch-emblem[\s\S]*?act2-emblem\.webp/);
   assert.match(index, /<strong>Act I<\/strong>/);
   assert.match(index, /<strong>Act II<\/strong>/);
-  assert.match(index, /id="worldMapActThreeBtn"[\s\S]*?<strong>Act III<\/strong>[\s\S]*?<small>Coming Soon<\/small>/);
+  assert.doesNotMatch(index, /worldMapActThreeBtn|worldMapActThreeDivider/);
   assert.match(game, /worldMapActOneBtn\?\.setAttribute\("aria-pressed"/);
   assert.match(game, /worldMapActTwoBtn\?\.setAttribute\("aria-pressed"/);
-  assert.match(game, /worldMapActThreeBtn\?\.setAttribute\("aria-pressed"/);
+  assert.doesNotMatch(game, /worldMapActThreeBtn|worldMapActThreeDivider|act-three-visible/);
 });
 
 test("act selectors have distinct active, hover and mobile treatments", () => {
   assert.match(css, /\.worldmap-act-switch button\.active/);
   assert.match(css, /#worldMapActTwoBtn\{--act-color:/);
-  assert.match(css, /#worldMapActThreeBtn\{--act-color:/);
-  assert.match(css, /\.worldmap-act-switch\.act-three-visible/);
   assert.match(css, /\.worldmap-act-switch button:hover/);
+  assert.match(css, /grid-template-columns:repeat\(2, minmax\(0, 136px\)\)/);
+  assert.match(css, /height:42px/);
   assert.match(css, /@media \(max-width:620px\)/);
+  assert.match(css, /@media \(max-width:620px\)\{[\s\S]*?\.worldmap-resume-chip,[\s\S]*?top:54px/);
 });

@@ -70,6 +70,31 @@ test("later stages unlock the complete base-item pool", () => {
   assert.ok(seen.has("warden_blade"));
 });
 
+test("set drops preserve their set identity in the reward item", () => {
+  const rng = {
+    seed: "forced-set",
+    next: () => 0.5,
+    weighted: () => "rare",
+    pick: (values) => values[0],
+    shuffle: (values) => [...values],
+    int: () => 0
+  };
+  const definition = DarkDefense.ITEM_DEFINITIONS.artificer_maul;
+  const bundle = DarkDefense.createRewardGenerator({
+    rng,
+    definitions: { artificer_maul: definition }
+  }).generateBossReward({
+    sourceId: "boss:set:test",
+    mode: "campaign",
+    stage: 4,
+    wave: 5
+  });
+
+  assert.equal(bundle.items[0].setId, "bastion_artificer");
+  assert.equal(bundle.items[0].setName, "Bastion Artificer");
+  assert.equal(bundle.items[0].setColor, "#5eead4");
+});
+
 test("pity counters advance after low rarity rewards", () => {
   const bundle = generateLowRoll({ pityState: { rare: 1, epic: 2 } });
 

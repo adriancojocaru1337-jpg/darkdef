@@ -98,6 +98,44 @@ test("unequip only clears the slot and invalid items are rejected", () => {
   assert.ok(store.getSnapshot().inventory.items.some((item) => item.instanceId === "itm_armor"));
 });
 
+test("Bastion Artificer set bonuses activate at two, three and five pieces", () => {
+  const { store, equipment } = harness();
+  const setDefinitions = Object.values(DarkDefense.ITEM_DEFINITIONS)
+    .filter((definition) => definition.setId === "bastion_artificer");
+  store.update((profile) => {
+    profile.inventory.items.push(...setDefinitions.map((definition) => ({
+      instanceId: `itm_${definition.id}`,
+      definitionId: definition.id,
+      name: definition.name,
+      slot: definition.slot,
+      setId: definition.setId,
+      power: 20,
+      coreStat: { id: definition.coreStat, value: definition.coreMin },
+      affixes: [],
+      boundHeroId: null
+    })));
+    return profile;
+  });
+
+  assert.equal(setDefinitions.length, 5);
+  equipment.equip("itm_artificer_maul");
+  equipment.equip("itm_artificer_greatcoat");
+  let progress = equipment.getSetProgress()[0];
+  assert.deepEqual(progress.activeBonuses.map((bonus) => bonus.pieces), [2]);
+  assert.equal(progress.activeBonuses[0].repairCostReduction, 2);
+
+  equipment.equip("itm_artificer_greaves");
+  progress = equipment.getSetProgress()[0];
+  assert.deepEqual(progress.activeBonuses.map((bonus) => bonus.pieces), [2, 3]);
+  assert.equal(progress.activeBonuses[1].freeRepairs, 1);
+
+  equipment.equip("itm_artificer_signet");
+  equipment.equip("itm_artificer_core");
+  progress = equipment.getSetProgress()[0];
+  assert.deepEqual(progress.activeBonuses.map((bonus) => bonus.pieces), [2, 3, 5]);
+  assert.equal(progress.activeBonuses[2].heavyDamageReduction, 1);
+});
+
 test("hero stat pipeline composes flat and percentage equipment bonuses", () => {
   const { equipment } = harness();
   equipment.equip("itm_weapon");

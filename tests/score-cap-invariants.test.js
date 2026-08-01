@@ -105,6 +105,37 @@ test("logging out drops the cached account name", () => {
   assert.match(logout.slice(0, 500), /localStorage\.removeItem\("sdcPlayerName"\)/);
 });
 
+test("authenticated accounts never need the leaderboard name popup", () => {
+  const game = fs.readFileSync(path.join(__dirname, "..", "game.js"), "utf8");
+  const sessionLoader = game.slice(
+    game.indexOf("async function loadPanelUserSession"),
+    game.indexOf("function refreshUnitShopCards")
+  );
+  const resolver = game.slice(
+    game.indexOf("async function resolveLeaderboardPlayerName"),
+    game.indexOf("async function submitStoryLeaderboardScore")
+  );
+
+  assert.match(sessionLoader, /cacheAuthenticatedLeaderboardName\(data\.user\.username\)/);
+  assert.match(game, /panelUserSessionPromise = loadPanelUserSession\(\)/);
+  assert.match(resolver, /await panelUserSessionPromise/);
+  assert.ok(
+    resolver.indexOf("await panelUserSessionPromise") < resolver.indexOf("requestLeaderboardName"),
+    "the name popup can open before account identity finishes loading"
+  );
+  assert.equal(
+    (game.match(/await resolveLeaderboardPlayerName\(/g) || []).length,
+    3,
+    "Story, Daily and Endless must share the authenticated identity resolver"
+  );
+});
+
+test("renaming refreshes the same authenticated leaderboard identity", () => {
+  const game = fs.readFileSync(path.join(__dirname, "..", "game.js"), "utf8");
+  const rename = game.slice(game.indexOf("async function buyRename"), game.indexOf("function setHeroRenameFeedback"));
+  assert.match(rename, /cacheAuthenticatedLeaderboardName\(data\.username\)/);
+});
+
 /* Hero names on the Hero Power board. submit-loadout already persists the name
    inside hero_loadouts.loadout->>'heroName', so this needed no new column. */
 

@@ -42,7 +42,8 @@ test("Act I pauses for debrief and reserve management before its choices", () =>
   const branch = game.match(
     /resolution\.type === "act2-start"[\s\S]*?return;\s*\} else if\(resolution\.type === "act2-complete"/
   )?.[0] || "";
-  assert.match(branch, /moveUnitsToReserve\(\{ degradeLevels:1, notify:true \}\)/);
+  assert.match(branch, /createStageDamagePlan\(ACT_ONE_FINAL_STAGE\)/);
+  assert.doesNotMatch(branch, /moveUnitsToReserve\(/);
   assert.match(branch, /beginStageIntermission\(\{/);
   assert.match(branch, /STAGE_INTERMISSION_DESTINATIONS\.ACT_ONE_COMPLETE/);
   assert.doesNotMatch(branch, /transitionToCampaignStage\(nextStage/);

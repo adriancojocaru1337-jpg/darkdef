@@ -38,7 +38,7 @@ test("the Stage 12 finale reveals a real Act III preview action", () => {
 
 test("Act III remains a non-playable teaser and appears only after Act II", () => {
   assert.match(game, /function hasCompletedActTwo\(\)/);
-  assert.match(game, /worldMapActThreeBtn\?\.classList\.toggle\("hidden", !actThreeAvailable\)/);
+  assert.doesNotMatch(index, /worldMapActThreeBtn|worldMapActThreeDivider/);
   assert.match(game, /if\(worldMapAct === 3\)\{[\s\S]*?worldmap-act3-teaser[\s\S]*?Coming Soon[\s\S]*?return;/);
   assert.match(game, /3: "assets\/ui\/act3-teaser\.webp"/);
   assert.doesNotMatch(game, /data-worldmap-stage="13"/);

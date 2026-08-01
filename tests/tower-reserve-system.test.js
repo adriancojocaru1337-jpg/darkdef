@@ -150,6 +150,47 @@ test("moving an army outside a stage clear does not degrade or delete it", () =>
   assert.equal(reserve.archer[0].auraType, "wealth");
 });
 
+test("only unrepaired damaged towers suffer attrition", () => {
+  const system = createSystem();
+  const reserve = emptyReserve();
+  system.returnToReserve([
+    { id: 11, type: "archer", level: 1, damage: 10 },
+    { id: 12, type: "archer", level: 3, specialization: "heavy", damage: 20 },
+    { id: 13, type: "bomb", level: 2, damage: 20 }
+  ], reserve, { degradeLevels: 1, degradeUnitIds: [12] });
+
+  assert.deepEqual(reserve.archer.map((tower) => tower.level), [1, 2]);
+  assert.equal(reserve.archer[1].specialization, null);
+  assert.equal(reserve.bomb[0].level, 2);
+});
+
+test("boss damage affects more towers while preserving a safe reserve floor", () => {
+  const system = createSystem();
+  const army = Array.from({ length: 8 }, (_, index) => ({ id: index + 1, type: "archer", level: 2 }));
+  const normal = system.createDamagePlan(army, { stage: 5, heavy: false, repairCost: 10 });
+  const boss = system.createDamagePlan(army, { stage: 6, heavy: true, repairCost: 10 });
+  const fortifiedBoss = system.createDamagePlan(army, {
+    stage: 6,
+    heavy: true,
+    repairCost: 8,
+    damageReduction: 1
+  });
+
+  assert.equal(normal.damagedUnitIds.length, 2);
+  assert.equal(boss.damagedUnitIds.length, 4);
+  assert.equal(boss.repairCost, 10);
+  assert.equal(boss.repairedUnitIds.length, 0);
+  assert.equal(fortifiedBoss.damagedUnitIds.length, 3);
+  assert.equal(fortifiedBoss.repairCost, 8);
+  assert.deepEqual(
+    system.createDamagePlan(army, { stage: 6, heavy: true, repairCost: 10 }).damagedUnitIds,
+    boss.damagedUnitIds
+  );
+
+  const smallArmy = system.createDamagePlan(army.slice(0, 3), { stage: 6, heavy: true });
+  assert.equal(smallArmy.damagedUnitIds.length, 1);
+});
+
 test("reserve deployment priority can be changed without altering towers", () => {
   const system = createSystem();
   const reserve = emptyReserve();
@@ -167,17 +208,16 @@ test("reserve deployment priority can be changed without altering towers", () =>
   assert.equal(reserve.archer[0].auraType, "wealth");
 });
 
-test("campaign stage clears invoke attrition exactly once", () => {
+test("campaign stage clears finalize only unrepaired damage exactly once", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "game.js"), "utf8");
-  const attritionCalls = source.match(
-    /moveUnitsToReserve\(\{ degradeLevels:1, notify:true \}\)/g
-  ) || [];
+  const selectiveCalls = source.match(/degradeUnitIds:status\.unrepairedUnitIds/g) || [];
 
-  assert.equal(attritionCalls.length, 4);
+  assert.equal(selectiveCalls.length, 1);
   assert.match(source, /function transitionToCampaignStage[\s\S]*?degradeLevels:1/);
-  assert.match(source, /resolution\.type === "campaign-next-stage"[\s\S]*?degradeLevels:1/);
-  assert.match(source, /resolution\.type === "act2-start"[\s\S]*?degradeLevels:1/);
-  assert.match(source, /resolution\.type === "act2-complete"[\s\S]*?degradeLevels:1/);
+  assert.match(source, /resolution\.type === "campaign-next-stage"[\s\S]*?createStageDamagePlan\(clearedStage\)/);
+  assert.match(source, /resolution\.type === "act2-start"[\s\S]*?createStageDamagePlan\(ACT_ONE_FINAL_STAGE\)/);
+  assert.match(source, /resolution\.type === "act2-complete"[\s\S]*?createStageDamagePlan\(clearedStage\)/);
+  assert.match(source, /completeStageIntermission[\s\S]*?finalizeStageDamage\(intermission\)/);
   assert.match(source, /completeStageIntermission[\s\S]*?applyAttrition:false/);
   assert.match(source, /continueActTwoBtn[\s\S]*?applyAttrition:false/);
   assert.match(source, /if\(carryCampaignArmy\) moveUnitsToReserve\(\);/);
