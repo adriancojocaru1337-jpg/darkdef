@@ -7,6 +7,7 @@
 
   function createRewardGenerator(options = {}) {
     const definitions = options.definitions || DarkDefense.ITEM_DEFINITIONS || {};
+    const sets = options.sets || DarkDefense.ITEM_SETS || {};
     const rarities = options.rarities || DarkDefense.ITEM_RARITIES || {};
     const affixes = options.affixes || DarkDefense.ITEM_AFFIXES || {};
     const tables = options.tables || DarkDefense.REWARD_TABLES || {};
@@ -128,6 +129,7 @@
         rarity.powerMultiplier * (1 + (itemLevel - 1) * 0.035)
       );
       const instanceKey = `${context.sourceId}:${itemIndex}`;
+      const itemSet = sets[definition.setId] || null;
 
       return {
         item: {
@@ -136,6 +138,9 @@
           name: definition.name,
           icon: definition.icon,
           slot: definition.slot,
+          setId: itemSet?.id || null,
+          setName: itemSet?.name || null,
+          setColor: itemSet?.color || null,
           level: itemLevel,
           rarity: rarity.id,
           rarityName: rarity.name,

@@ -89,8 +89,51 @@
       return rebuilt;
     }
 
+    function damageScore(unit, index, stage) {
+      const key = `${Math.max(0, Math.floor(Number(stage) || 0))}:${unit?.id ?? index}`;
+      let hash = 2166136261;
+      for (let cursor = 0; cursor < key.length; cursor += 1) {
+        hash ^= key.charCodeAt(cursor);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0;
+    }
+
+    function createDamagePlan(units, options = {}) {
+      const army = Array.isArray(units) ? units : [];
+      const heavy = options.heavy === true;
+      const reserveFloor = Math.max(0, Math.floor(Number(options.reserveFloor ?? 2) || 0));
+      const available = Math.max(0, army.length - reserveFloor);
+      const cap = heavy ? 4 : 2;
+      const minimum = heavy ? 2 : 1;
+      const ratioTarget = Math.ceil(army.length * (heavy ? 0.5 : 0.25));
+      const damageReduction = Math.max(0, Math.floor(Number(options.damageReduction) || 0));
+      const damageCount = Math.max(0,
+        Math.min(available, cap, Math.max(minimum, ratioTarget)) - damageReduction
+      );
+      const damagedUnitIds = army
+        .map((unit, index) => ({
+          id: unit?.id ?? index,
+          score: damageScore(unit, index, options.stage)
+        }))
+        .sort((a, b) => a.score - b.score || String(a.id).localeCompare(String(b.id)))
+        .slice(0, damageCount)
+        .map((entry) => entry.id);
+      return {
+        version: 1,
+        heavy,
+        repairCost: Math.max(1, Math.floor(Number(options.repairCost) || 10)),
+        damagedUnitIds,
+        repairedUnitIds: [],
+        resolved: false
+      };
+    }
+
     function returnToReserve(units, reservePool, options = {}) {
       const degradeLevels = Math.max(0, Math.floor(options.degradeLevels || 0));
+      const selectiveDamage = Array.isArray(options.degradeUnitIds)
+        ? new Set(options.degradeUnitIds.map((id) => String(id)))
+        : null;
       const report = {
         returned: 0,
         dismissed: 0,
@@ -100,8 +143,11 @@
       };
 
       for (const unit of units || []) {
+        const unitDegradeLevels = selectiveDamage === null || selectiveDamage.has(String(unit?.id))
+          ? degradeLevels
+          : 0;
         const currentLevel = Math.max(1, Math.floor(Number(unit?.level) || 1));
-        const targetLevel = currentLevel - degradeLevels;
+        const targetLevel = currentLevel - unitDegradeLevels;
         const entry = {
           type: unit?.type || "unknown",
           name: unitTypes[unit?.type]?.name || unit?.name || "Tower",
@@ -120,14 +166,14 @@
           continue;
         }
 
-        const copy = degradeLevels > 0
+        const copy = unitDegradeLevels > 0
           ? rebuildAtLevel(unit, targetLevel)
           : clone(unit);
         if (!copy || !reservePool[unit.type]) continue;
         resetTransientState(copy);
         reservePool[unit.type].push(copy);
         report.returned += 1;
-        if (degradeLevels > 0) report.degraded += 1;
+        if (unitDegradeLevels > 0) report.degraded += 1;
         report.entries.push(entry);
       }
 
@@ -161,6 +207,7 @@
 
     return Object.freeze({
       rebuildAtLevel,
+      createDamagePlan,
       returnToReserve,
       sortReserveForDeployment,
       moveReserveUnit

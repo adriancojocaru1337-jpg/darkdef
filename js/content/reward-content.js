@@ -53,6 +53,36 @@
     }
   });
 
+  DarkDefense.ITEM_SETS = freezeEntries({
+    bastion_artificer: {
+      id: "bastion_artificer",
+      name: "Bastion Artificer",
+      icon: "\u2692",
+      color: "#5eead4",
+      description: "Field-forged equipment that keeps the Bastion's towers battle-ready.",
+      bonuses: Object.freeze([
+        Object.freeze({
+          pieces: 2,
+          name: "Efficient Repairs",
+          description: "Damaged towers cost 8 Essence each to repair.",
+          repairCostReduction: 2
+        }),
+        Object.freeze({
+          pieces: 3,
+          name: "Master Artificer",
+          description: "The first damaged tower is repaired automatically after every stage.",
+          freeRepairs: 1
+        }),
+        Object.freeze({
+          pieces: 5,
+          name: "Fortified Column",
+          description: "Act-boss battle damage affects one fewer tower.",
+          heavyDamageReduction: 1
+        })
+      ])
+    }
+  });
+
   DarkDefense.ITEM_DEFINITIONS = freezeEntries({
     warden_blade: {
       id: "warden_blade",
@@ -113,6 +143,61 @@
       coreStat: "cooldown_reduction_pct",
       coreMin: 0.025,
       coreMax: 0.055
+    },
+    artificer_maul: {
+      id: "artificer_maul",
+      name: "Artificer's Maul",
+      icon: "\u2692",
+      slot: "weapon",
+      minStage: 4,
+      setId: "bastion_artificer",
+      coreStat: "hero_damage_flat",
+      coreMin: 7,
+      coreMax: 12
+    },
+    artificer_greatcoat: {
+      id: "artificer_greatcoat",
+      name: "Riveted Greatcoat",
+      icon: "\u26E8",
+      slot: "armor",
+      minStage: 4,
+      setId: "bastion_artificer",
+      coreStat: "hero_max_hp_flat",
+      coreMin: 20,
+      coreMax: 36
+    },
+    artificer_greaves: {
+      id: "artificer_greaves",
+      name: "Cinderstep Greaves",
+      icon: "\uD83E\uDD7E",
+      slot: "boots",
+      minStage: 4,
+      setId: "bastion_artificer",
+      coreStat: "hero_move_speed_pct",
+      coreMin: 0.03,
+      coreMax: 0.065
+    },
+    artificer_signet: {
+      id: "artificer_signet",
+      name: "Quartermaster's Signet",
+      icon: "\uD83D\uDC8D",
+      slot: "ring",
+      minStage: 4,
+      setId: "bastion_artificer",
+      coreStat: "ability_damage_pct",
+      coreMin: 0.05,
+      coreMax: 0.1
+    },
+    artificer_core: {
+      id: "artificer_core",
+      name: "Embercoil Core",
+      icon: "\u2699",
+      slot: "charm",
+      minStage: 4,
+      setId: "bastion_artificer",
+      coreStat: "cooldown_reduction_pct",
+      coreMin: 0.03,
+      coreMax: 0.06
     }
   });
 

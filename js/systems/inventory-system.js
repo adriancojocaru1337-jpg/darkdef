@@ -199,6 +199,32 @@
       };
     }
 
+    function spendEssence(amount, reason = "inventory:essence-spent") {
+      const requested = Math.max(0, Math.floor(Number(amount) || 0));
+      const before = getCurrency();
+      if (requested < 1) {
+        return { accepted: false, reason: "invalid_amount", required: requested, essence: before.essence };
+      }
+      if (before.essence < requested) {
+        return { accepted: false, reason: "insufficient_essence", required: requested, essence: before.essence };
+      }
+      const persisted = profileStore.update((draft) => {
+        draft.prestige = draft.prestige || { rank: 0, currency: 0, upgrades: {} };
+        const essence = Math.max(0, Math.floor(Number(draft.prestige.currency) || 0));
+        if (essence < requested) return draft;
+        draft.prestige.currency = essence - requested;
+        return draft;
+      }, String(reason || "inventory:essence-spent"));
+      const result = {
+        accepted: persisted,
+        reason: persisted ? "spent" : "persistence_failed",
+        essenceSpent: persisted ? requested : 0,
+        currency: getCurrency()
+      };
+      if (persisted) events?.emit?.("inventory:essence-spent", clone(result));
+      return result;
+    }
+
     // Spends essence and reports how many Crystals were produced. It does NOT
     // store the Crystals itself — the caller deposits them into the shared
     // Ascension wallet so essence-crafted Crystals are the same currency as
@@ -257,6 +283,7 @@
       discard,
       previewSalvage,
       getCurrency,
+      spendEssence,
       craftCrystal
     });
   }

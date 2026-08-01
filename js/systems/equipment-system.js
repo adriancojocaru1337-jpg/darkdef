@@ -11,6 +11,7 @@
     const profileStore = options.profileStore;
     const events = options.events || DarkDefense.events || null;
     const definitions = options.definitions || DarkDefense.ITEM_DEFINITIONS || {};
+    const sets = options.sets || DarkDefense.ITEM_SETS || {};
     const slots = options.slots || DarkDefense.EQUIPMENT_SLOTS || [];
     const slotIds = new Set(slots.map((slot) => slot.id));
     if (!profileStore?.getSnapshot || !profileStore?.update) {
@@ -66,6 +67,34 @@
 
     function isEquipped(instanceId, heroId) {
       return Object.values(getEquippedIds(heroId)).includes(instanceId);
+    }
+
+    function getSetProgress(heroId) {
+      const equippedItems = getEquippedItems(heroId);
+      return Object.values(sets).map((set) => {
+        const setDefinitions = Object.values(definitions)
+          .filter((definition) => definition.setId === set.id);
+        const equippedPieces = equippedItems.filter((item) => {
+          const definitionSetId = definitions[item?.definitionId]?.setId;
+          return (definitionSetId || item?.setId) === set.id;
+        });
+        const bonuses = (Array.isArray(set.bonuses) ? set.bonuses : []).map((bonus) => ({
+          ...clone(bonus),
+          active: equippedPieces.length >= bonus.pieces
+        }));
+        return {
+          id: set.id,
+          name: set.name,
+          icon: set.icon,
+          color: set.color,
+          description: set.description,
+          equippedPieces: equippedPieces.length,
+          totalPieces: setDefinitions.length,
+          equippedDefinitionIds: equippedPieces.map((item) => item.definitionId),
+          bonuses,
+          activeBonuses: bonuses.filter((bonus) => bonus.active)
+        };
+      });
     }
 
     function equip(instanceId, heroId) {
@@ -136,6 +165,7 @@
       getEquippedIds,
       getEquippedItems,
       getLoadout,
+      getSetProgress,
       isEquipped,
       equip,
       unequip
