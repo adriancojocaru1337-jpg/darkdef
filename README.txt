@@ -1,3 +1,48 @@
+Ashen Bastion v0.11.32 - Account leaderboard identity fix
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- Authenticated players now use their account username automatically for Story, Daily and Endless Rankings.
+- Score submission waits for the in-flight account check before deciding whether a guest-name prompt is needed.
+- Login and username rename refresh the cached leaderboard identity; logout clears it before returning to guest play.
+- The server remains authoritative and continues to attach authenticated submissions to the signed-in account.
+
+Ashen Bastion v0.11.31 - Bastion Artificer equipment set
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- Adds five Bastion Artificer pieces, one for every equipment slot, to boss loot from Stage 4 onward.
+- 2 pieces: damaged towers cost 8 Essence each to repair.
+- 3 pieces: the first damaged tower is repaired automatically after every stage.
+- 5 pieces: Act-boss battle damage affects one fewer tower.
+- Inventory now shows set identity, equipped progress, piece pips and active/locked bonus thresholds.
+- Boss loot, Loot Cache and equipment cards retain the set identity through local and Cloud Save data.
+- Stage Debrief distinguishes free set repairs from Essence repairs and safely restores them from run saves.
+
+Ashen Bastion v0.11.30 - Battle damage and field repairs
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- replaced automatic army-wide attrition with a post-stage battle-damage choice
+- normal stage clears damage up to 1-2 deployed towers; Act I and Act II finales
+  can damage 2-4, while at least two towers remain battle-ready
+- each damaged tower can be repaired for 10 Essence, individually or with
+  Repair All, preserving its full level before it enters Reserve
+- unrepaired towers keep the original consequence: -1 level, with level-1
+  towers destroyed and specializations removed when falling below level 3
+- damage selections, completed repairs and Essence spending survive save/resume;
+  older intermission saves remain compatible
+
+Ashen Bastion v0.11.29 - Compact act selectors
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- removed the non-playable Act III icon from the World Map selector; its teaser
+  remains available through the Act II completion Preview action
+- reduced the ACT I / ACT II switcher footprint and softened its frame, shadow
+  and active glow so it sits naturally over the illustrated map
+- added compact mobile sizing and regression coverage for the two-act layout
+
 Ashen Bastion v0.11.28 - Act III teaser
 
 No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.

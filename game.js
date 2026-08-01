@@ -81,6 +81,7 @@ const inventoryPityStat = document.getElementById("inventoryPityStat");
 const claimAllLootBtn = document.getElementById("claimAllLootBtn");
 const lootCacheList = document.getElementById("lootCacheList");
 const equipmentSlots = document.getElementById("equipmentSlots");
+const inventorySetPanel = document.getElementById("inventorySetPanel");
 const inventoryItems = document.getElementById("inventoryItems");
 const inventoryFilter = document.getElementById("inventoryFilter");
 const inventorySort = document.getElementById("inventorySort");
@@ -147,8 +148,6 @@ const worldMapImage = document.getElementById("worldMapImage");
 const worldMapActSwitch = document.getElementById("worldMapActSwitch");
 const worldMapActOneBtn = document.getElementById("worldMapActOneBtn");
 const worldMapActTwoBtn = document.getElementById("worldMapActTwoBtn");
-const worldMapActThreeBtn = document.getElementById("worldMapActThreeBtn");
-const worldMapActThreeDivider = document.getElementById("worldMapActThreeDivider");
 const campaignObjective = document.getElementById("campaignObjective");
 const campaignObjectiveIcon = document.getElementById("campaignObjectiveIcon");
 const campaignObjectiveTitle = document.getElementById("campaignObjectiveTitle");
@@ -218,6 +217,8 @@ const stageReservePane = document.getElementById("stageReservePane");
 const stageDebriefRewards = document.getElementById("stageDebriefRewards");
 const stageAttritionSummary = document.getElementById("stageAttritionSummary");
 const stageAttritionList = document.getElementById("stageAttritionList");
+const stageEssenceBalance = document.getElementById("stageEssenceBalance");
+const stageRepairAllBtn = document.getElementById("stageRepairAllBtn");
 const stageNextMission = document.getElementById("stageNextMission");
 const stageReserveList = document.getElementById("stageReserveList");
 const stageIntermissionHint = document.getElementById("stageIntermissionHint");
@@ -272,7 +273,20 @@ function setPanelUserLabel(name, crestId = null){
   }
 }
 
+let authenticatedLeaderboardName = "";
+let panelUserSessionPromise = null;
+
+function cacheAuthenticatedLeaderboardName(name){
+  const username = String(name || "").trim().slice(0, 20);
+  authenticatedLeaderboardName = username;
+  if(username){
+    try{ localStorage.setItem("sdcPlayerName", username); }catch(_){}
+  }
+  return username;
+}
+
 async function loadPanelUserSession(){
+  authenticatedLeaderboardName = "";
   setPanelUserLabel("Guest");
   panelHeaderUserLink?.setAttribute("href", "/account.html");
   panelHeaderLogoutBtn?.classList.add("hidden");
@@ -282,6 +296,7 @@ async function loadPanelUserSession(){
       cache: "no-store"
     });
     if(!data?.authenticated || !data?.user?.username) return;
+    cacheAuthenticatedLeaderboardName(data.user.username);
     setPanelUserLabel(data.user.username, data.user.crestId || null);
     panelHeaderUserLink?.setAttribute("href", "/command-table.html");
     panelHeaderLogoutBtn?.classList.remove("hidden");
@@ -294,6 +309,7 @@ async function loadPanelUserSession(){
     ]);
     submitHeroPower();
   }catch(_){
+    authenticatedLeaderboardName = "";
     cloudGameAccountAuthed = false;
     cloudGameAccountId = "";
     setPanelUserLabel("Guest");
@@ -1476,6 +1492,7 @@ const equipmentSystem = window.DarkDefense.createEquipmentSystem({
   profileStore,
   events: window.DarkDefense.events,
   definitions: window.DarkDefense.ITEM_DEFINITIONS,
+  sets: window.DarkDefense.ITEM_SETS,
   slots: window.DarkDefense.EQUIPMENT_SLOTS
 });
 
@@ -2617,9 +2634,9 @@ async function buyRename(){
       // The server charges atomically with the account rename.
       if(data.leyMeta) adoptLeyMeta(data.leyMeta);
       setPanelUserLabel(data.username, null);
-      // The submit path reads the name from localStorage; without this every
-      // run after a rename keeps writing the old name into leaderboard_scores.
-      try{ localStorage.setItem("sdcPlayerName", data.username); }catch(_){}
+      // Keep every client-side Rankings surface aligned with the authoritative
+      // account username immediately after a rename.
+      cacheAuthenticatedLeaderboardName(data.username);
       tone("sine", 620, 940, .12, .03);
       pushNotification("achievement","Renamed",`You are now ${data.username}. −${RENAME_CRYSTAL_COST} ✦`);
       setRenameFeedback(`Done — you are now ${data.username}.`);
@@ -3154,13 +3171,14 @@ function renderBossLootReward(){
   const pityLabel = pendingLootReward?.pity?.triggered
     ? ` · ${pendingLootReward.pity.triggered === "epic" ? "Epic" : "Rare"} pity guarantee`
     : "";
+  const setLabel = item.setName ? ` · ${item.setName} Set` : "";
   bossLootReward.style.setProperty("--loot-color", item.rarityColor || "#60a5fa");
   bossLootReward.innerHTML = `
     <div class="boss-loot-icon">${item.icon}</div>
     <div class="boss-loot-copy">
       <div class="boss-loot-label">Item secured in Loot Cache</div>
       <div class="boss-loot-name">${item.rarityName} ${item.name}</div>
-      <div class="boss-loot-meta">Lv.${item.level} · ${item.slot} · ${affixSummary}${pityLabel}</div>
+      <div class="boss-loot-meta">Lv.${item.level} · ${item.slot}${setLabel} · ${affixSummary}${pityLabel}</div>
     </div>
     <div class="boss-loot-power"><span>Power</span>${item.power}</div>
   `;
@@ -3211,6 +3229,12 @@ function safeItemColor(value){
   return /^#[0-9a-f]{6}$/i.test(color) ? color : "#94a3b8";
 }
 
+function getInventoryItemSet(item){
+  const definition = window.DarkDefense.ITEM_DEFINITIONS[item?.definitionId] || {};
+  const setId = definition.setId || item?.setId;
+  return setId ? window.DarkDefense.ITEM_SETS[setId] || null : null;
+}
+
 function itemStatLabel(statId){
   return String(statId || "")
     .replace(/^hero_/, "")
@@ -3251,6 +3275,7 @@ function equipmentSlotPrompt(slotId){
 function inventoryItemCard(item){
   const equipped = equipmentSystem.isEquipped(item.instanceId);
   const color = safeItemColor(item.rarityColor);
+  const itemSet = getInventoryItemSet(item);
   const salvageAmount = Math.max(0, Math.floor(Number(window.DarkDefense.salvageValue(item)) || 0));
   const statLines = itemStatLines(item).map((stat) => `
     <div class="inventory-item-stat${stat.core ? " core" : ""}">
@@ -3266,6 +3291,7 @@ function inventoryItemCard(item){
       </div>
       <div class="inventory-item-rarity">${escapeInventoryHtml(item.rarityName || item.rarity || "Item")}</div>
       <h3>${escapeInventoryHtml(item.name || item.definitionId)}</h3>
+      ${itemSet ? `<div class="inventory-item-set">${escapeInventoryHtml(itemSet.icon)} ${escapeInventoryHtml(itemSet.name)} Set</div>` : ""}
       <div class="inventory-item-meta">Lv.${Math.max(1, Math.floor(Number(item.level) || 1))} · ${escapeInventoryHtml(item.slot || "unknown")}</div>
       <div class="inventory-item-stats">${statLines}</div>
       <div class="inventory-item-actions">
@@ -3374,12 +3400,45 @@ function renderInventoryOverlay(){
           <div class="equipment-slot-copy">
             <span>${escapeInventoryHtml(slot.name)}</span>
             <strong>${item ? escapeInventoryHtml(item.name) : "Empty slot"}</strong>
-            <small>${item ? `${escapeInventoryHtml(item.rarityName || item.rarity)} · Power ${Math.round(Number(item.power) || 0)}` : equipmentSlotPrompt(slot.id)}</small>
+            <small>${item ? `${escapeInventoryHtml(item.rarityName || item.rarity)} · Power ${Math.round(Number(item.power) || 0)}${getInventoryItemSet(item) ? ` · ${escapeInventoryHtml(getInventoryItemSet(item).name)}` : ""}` : equipmentSlotPrompt(slot.id)}</small>
           </div>
           ${item ? `<button type="button" data-unequip-slot="${escapeInventoryHtml(slot.id)}">Unequip</button>` : ""}
         </article>
       `;
     }).join("");
+  }
+
+  if(inventorySetPanel){
+    const setProgress = equipmentSystem.getSetProgress()[0];
+    if(setProgress){
+      const filledPips = Array.from({ length:setProgress.totalPieces }, (_, index) =>
+        `<i class="${index < setProgress.equippedPieces ? "filled" : ""}"></i>`
+      ).join("");
+      inventorySetPanel.style.setProperty("--set-color", safeItemColor(setProgress.color));
+      inventorySetPanel.innerHTML = `
+        <div class="inventory-set-head">
+          <span class="inventory-set-icon">${escapeInventoryHtml(setProgress.icon)}</span>
+          <div>
+            <span>Equipment Set</span>
+            <strong>${escapeInventoryHtml(setProgress.name)}</strong>
+          </div>
+          <b>${setProgress.equippedPieces} / ${setProgress.totalPieces}</b>
+        </div>
+        <div class="inventory-set-pips" aria-label="${setProgress.equippedPieces} of ${setProgress.totalPieces} pieces equipped">${filledPips}</div>
+        <div class="inventory-set-bonuses">
+          ${setProgress.bonuses.map((bonus) => `
+            <div class="inventory-set-bonus ${bonus.active ? "active" : "locked"}">
+              <span>${bonus.active ? "ACTIVE" : `${bonus.pieces} PIECES`}</span>
+              <strong>${escapeInventoryHtml(bonus.name)}</strong>
+              <small>${escapeInventoryHtml(bonus.description)}</small>
+            </div>
+          `).join("")}
+        </div>
+        <p>Set pieces begin dropping from Stage 4 bosses.</p>
+      `;
+    }else{
+      inventorySetPanel.innerHTML = "";
+    }
   }
 
   if(inventoryItems){
@@ -3696,7 +3755,7 @@ function showAuraRewardOverlay(){
   renderAuraRewardCards();
   updateAuraRerollButton();
   renderBossLootReward();
-  auraRewardText.textContent = `The boss has been defeated. Choose 1 of ${pendingAuraDraft.length} legendary auras, then apply it to a single tower. The aura remains bound while that tower survives between-stage attrition.`;
+  auraRewardText.textContent = `The boss has been defeated. Choose 1 of ${pendingAuraDraft.length} legendary auras, then apply it to a single tower. Field repairs can preserve that tower after battle damage.`;
   const upcomingClearReward = pendingBossResolution?.type === "campaign-next-stage" ? getStageClearGoldReward(Math.max(1, pendingBossResolution.nextStage - 1)) : 0;
   if(auraRewardBonus){
     auraRewardBonus.textContent = upcomingClearReward > 0 ? `Stage clear reward: +${upcomingClearReward} gold` : "";
@@ -3774,7 +3833,7 @@ function applyPendingAuraToUnit(unit){
   pendingAuraChoice = null;
   hideAuraRewardOverlay();
 
-  pushNotification("achievement", "Aura applied", `${unit.name} received ${appliedAuraName}. The aura remains bound while the tower survives stage attrition.`);
+  pushNotification("achievement", "Aura applied", `${unit.name} received ${appliedAuraName}. Repair this tower after battle damage to protect its level and aura.`);
   showPopup(
     cellCenter(unit.c, unit.r).x,
     cellCenter(unit.c, unit.r).y - 18,
@@ -3854,7 +3913,7 @@ function resolveBossWaveCompletion(){
     const livesBeforeReward = lives;
     const clearReward = grantCampaignStageClear(clearedStage, resolution.nextStage);
     pushNotification("stage","Region Cleared",`${STAGES[clearedStage]?.name || `Stage ${clearedStage}`} cleared — moving on to ${STAGES[resolution.nextStage]?.name || "the next region"}!`);
-    const attrition = moveUnitsToReserve({ degradeLevels:1, notify:true });
+    const damage = createStageDamagePlan(clearedStage);
     setMessage(`Stage ${clearedStage} secured. Review the battle report and prepare your reserve.`);
     beginStageIntermission({
       destination:STAGE_INTERMISSION_DESTINATIONS.NEXT_STAGE,
@@ -3866,7 +3925,7 @@ function resolveBossWaveCompletion(){
         bossCrystals:8 + 4 * clearedStage,
         healed:Math.max(0, lives - livesBeforeReward)
       },
-      attrition
+      damage
     });
     return;
   } else if(resolution.type === "act2-start") {
@@ -3878,9 +3937,9 @@ function resolveBossWaveCompletion(){
       rewardTitle:"Act I reward"
     });
     pushNotification("stage","Act I Complete",`The Dark Portal has fallen. Stage ${nextStage} and Endless Mode are now unlocked.`);
-    const attrition = moveUnitsToReserve({ degradeLevels:1, notify:true });
+    const damage = createStageDamagePlan(ACT_ONE_FINAL_STAGE);
     wave = 1;
-    campaignCompletionRewardText = `Act I clear reward: +${clearReward} gold · Towers suffered stage attrition`;
+    campaignCompletionRewardText = `Act I clear reward: +${clearReward} gold · Field repairs resolved`;
     setMessage("Act I complete. Review the battle report before choosing the next road.");
     beginStageIntermission({
       destination:STAGE_INTERMISSION_DESTINATIONS.ACT_ONE_COMPLETE,
@@ -3892,7 +3951,7 @@ function resolveBossWaveCompletion(){
         bossCrystals:8 + 4 * ACT_ONE_FINAL_STAGE,
         healed:Math.max(0, lives - livesBeforeReward)
       },
-      attrition,
+      damage,
       completionRewardText:campaignCompletionRewardText
     });
     return;
@@ -3905,7 +3964,7 @@ function resolveBossWaveCompletion(){
       rewardTitle:"Act II reward",
       runComplete:true
     });
-    const attrition = moveUnitsToReserve({ degradeLevels:1, notify:true });
+    const damage = createStageDamagePlan(clearedStage);
     try { localStorage.setItem("sdcAct2Complete","1"); } catch(e){}
     pushNotification("stage","Act II Complete","The Field of Dawn is secure. Every Act II region is now cleared.");
     campaignCompletionRewardText = `Act II clear reward: +${clearReward} gold · Campaign conquered`;
@@ -3920,7 +3979,7 @@ function resolveBossWaveCompletion(){
         bossCrystals:8 + 4 * clearedStage,
         healed:Math.max(0, lives - livesBeforeReward)
       },
-      attrition,
+      damage,
       completionRewardText:campaignCompletionRewardText
     });
     return;
@@ -4089,20 +4148,35 @@ async function loadBonusLeaderboard(){
   }
 }
 
+function getCachedLeaderboardPlayerName(){
+  if(authenticatedLeaderboardName) return authenticatedLeaderboardName;
+  try{ return String(localStorage.getItem("sdcPlayerName") || "").trim().slice(0, 20); }
+  catch(_){ return ""; }
+}
+
+async function resolveLeaderboardPlayerName(modeLabel, helperText){
+  let playerName = getCachedLeaderboardPlayerName();
+  if(!playerName && panelUserSessionPromise){
+    try{ await panelUserSessionPromise; }catch(_){}
+    playerName = getCachedLeaderboardPlayerName();
+  }
+  if(!playerName){
+    playerName = await requestLeaderboardName(modeLabel, helperText);
+  }
+  playerName = String(playerName || "").trim().slice(0, 20);
+  if(playerName){
+    try{ localStorage.setItem("sdcPlayerName", playerName); }catch(_){}
+  }
+  return playerName;
+}
+
 async function submitStoryLeaderboardScore(finalStage=currentStage, runComplete=true){
   if(currentMode !== "campaign") return;
-  let playerName = "";
-  try{
-    playerName = localStorage.getItem("sdcPlayerName") || "";
-  }catch(e){}
-  if(!playerName){
-    playerName = await requestLeaderboardName("Story", "Choose the name that will appear for your campaign run.");
-  }
-  playerName = playerName.trim().slice(0, 20);
+  const playerName = await resolveLeaderboardPlayerName(
+    "Story",
+    "Choose the name that will appear for your campaign run."
+  );
   if(!playerName) return;
-  try{
-    localStorage.setItem("sdcPlayerName", playerName);
-  }catch(e){}
   try{
     await ensureLeaderboardRun("campaign");
     const submittedRunId = leaderboardRun.runId;
@@ -4130,14 +4204,11 @@ async function submitStoryLeaderboardScore(finalStage=currentStage, runComplete=
 /* ===== Daily Challenge Leaderboard ===== */
 async function submitDailyLeaderboardScore(){
   if(!dailyChallengeActive || !activeDailyChallenge) return;
-  let playerName = "";
-  try{ playerName = localStorage.getItem("sdcPlayerName") || ""; }catch(e){}
-  if(!playerName){
-      playerName = await requestLeaderboardName("Daily Challenge", "Choose the name that will appear in today's challenge Rankings.");
-  }
-  playerName = playerName.trim().slice(0, 20);
+  const playerName = await resolveLeaderboardPlayerName(
+    "Daily Challenge",
+    "Choose the name that will appear in today's challenge Rankings."
+  );
   if(!playerName){ loadDailyLeaderboardIntoGameOver(); return; }
-  try{ localStorage.setItem("sdcPlayerName", playerName); }catch(e){}
   try{
     await ensureLeaderboardRun("daily");
     const submittedRunId = leaderboardRun.runId;
@@ -4232,18 +4303,11 @@ async function submitBonusLeaderboardScore(runComplete = true){
       pushNotification("stage", "Not submitted", "Endless runs need to reach Wave 2 to enter the Rankings.");
     return;
   }
-  let playerName = "";
-  try{
-    playerName = localStorage.getItem("sdcPlayerName") || "";
-  }catch(e){}
-  if(!playerName){
-    playerName = await requestLeaderboardName("Endless Bonus", "Choose the name that will appear for your endless run.");
-  }
-  playerName = playerName.trim().slice(0, 20);
+  const playerName = await resolveLeaderboardPlayerName(
+    "Endless Bonus",
+    "Choose the name that will appear for your endless run."
+  );
   if(!playerName) return;
-  try{
-    localStorage.setItem("sdcPlayerName", playerName);
-  }catch(e){}
   try{
     await ensureLeaderboardRun("endless");
     const submittedRunId = leaderboardRun.runId;
@@ -5660,14 +5724,148 @@ function moveUnitsToReserve(options = {}){
   selectedPlacedUnitId=null;
   hideTowerMenu();
   if(options.notify && (report.returned > 0 || report.dismissed > 0)){
-    const returnedText = report.returned > 0
-      ? `${report.returned} ${report.returned === 1 ? "tower returns" : "towers return"} to reserve at -1 level`
-      : "No towers return to reserve";
+    const repairedCount = Math.max(0, Math.floor(Number(options.repairedCount) || 0));
+    const returnedText = `${report.returned} ${report.returned === 1 ? "tower returns" : "towers return"} to reserve`;
+    const damageText = report.degraded > 0
+      ? ` ${report.degraded} unrepaired ${report.degraded === 1 ? "tower loses" : "towers lose"} one level.`
+      : " No tower loses a level.";
+    const repairedText = repairedCount > 0
+      ? ` ${repairedCount} ${repairedCount === 1 ? "tower was repaired" : "towers were repaired"} with Essence.`
+      : "";
     const lostText = report.dismissed > 0
       ? ` ${report.dismissed} level-1 ${report.dismissed === 1 ? "tower was" : "towers were"} lost${report.auraDismissed > 0 ? `, including ${report.auraDismissed} aura-bound` : ""}.`
       : "";
-    pushNotification("stage", "Army attrition", `${returnedText}.${lostText}`);
+    pushNotification("stage", "Battle damage resolved", `${returnedText}.${damageText}${repairedText}${lostText}`);
   }
+  return report;
+}
+
+const STAGE_DAMAGE_REPAIR_COST = 10;
+
+function isHeavyBattleDamageStage(stage){
+  return stage === ACT_ONE_FINAL_STAGE || stage === CAMPAIGN_FINAL_STAGE;
+}
+
+function getActiveEquipmentSetEffects(){
+  const effects = {
+    repairCostReduction:0,
+    freeRepairs:0,
+    heavyDamageReduction:0,
+    bonusNames:[]
+  };
+  for(const progress of equipmentSystem.getSetProgress()){
+    for(const bonus of progress.activeBonuses){
+      effects.repairCostReduction += Math.max(0, Math.floor(Number(bonus.repairCostReduction) || 0));
+      effects.freeRepairs += Math.max(0, Math.floor(Number(bonus.freeRepairs) || 0));
+      effects.heavyDamageReduction += Math.max(0, Math.floor(Number(bonus.heavyDamageReduction) || 0));
+      effects.bonusNames.push(`${progress.name}: ${bonus.name}`);
+    }
+  }
+  return effects;
+}
+
+function normalizeStageDamagePlan(plan){
+  if(!plan || typeof plan !== "object") return null;
+  const damagedUnitIds = Array.isArray(plan.damagedUnitIds) ? [...new Set(plan.damagedUnitIds)] : [];
+  const damagedKeys = new Set(damagedUnitIds.map((id)=>String(id)));
+  const repairedUnitIds = Array.isArray(plan.repairedUnitIds)
+    ? [...new Set(plan.repairedUnitIds)].filter((id)=>damagedKeys.has(String(id)))
+    : [];
+  const freeRepairUnitIds = Array.isArray(plan.freeRepairUnitIds)
+    ? [...new Set(plan.freeRepairUnitIds)].filter((id)=>damagedKeys.has(String(id)))
+    : [];
+  const repairedKeys = new Set(repairedUnitIds.map((id)=>String(id)));
+  freeRepairUnitIds.forEach((id)=>repairedKeys.add(String(id)));
+  return {
+    version:2,
+    heavy:plan.heavy === true,
+    repairCost:Math.max(1, Math.floor(Number(plan.repairCost) || STAGE_DAMAGE_REPAIR_COST)),
+    damagedUnitIds,
+    repairedUnitIds:damagedUnitIds.filter((id)=>repairedKeys.has(String(id))),
+    freeRepairUnitIds,
+    setBonusNames:Array.isArray(plan.setBonusNames)
+      ? plan.setBonusNames.filter((name)=>typeof name === "string").slice(0, 8)
+      : [],
+    resolved:plan.resolved === true
+  };
+}
+
+function createStageDamagePlan(clearedStage){
+  const heavy = isHeavyBattleDamageStage(clearedStage);
+  const setEffects = getActiveEquipmentSetEffects();
+  const plan = towerReserveSystem.createDamagePlan(units, {
+    stage:clearedStage,
+    heavy,
+    repairCost:Math.max(1, STAGE_DAMAGE_REPAIR_COST - setEffects.repairCostReduction),
+    damageReduction:heavy ? setEffects.heavyDamageReduction : 0,
+    reserveFloor:2
+  });
+  const freeRepairUnitIds = plan.damagedUnitIds.slice(0, setEffects.freeRepairs);
+  return {
+    ...plan,
+    version:2,
+    repairedUnitIds:[...freeRepairUnitIds],
+    freeRepairUnitIds,
+    setBonusNames:[...setEffects.bonusNames]
+  };
+}
+
+function getStageDamageStatus(intermission){
+  const plan = normalizeStageDamagePlan(intermission?.damage);
+  if(!plan) return null;
+  const repairedKeys = new Set(plan.repairedUnitIds.map((id)=>String(id)));
+  const freeRepairKeys = new Set(plan.freeRepairUnitIds.map((id)=>String(id)));
+  const unrepairedUnitIds = plan.damagedUnitIds.filter((id)=>!repairedKeys.has(String(id)));
+  return { plan, repairedKeys, freeRepairKeys, unrepairedUnitIds };
+}
+
+function getDamagedTower(unitId){
+  return units.find((unit)=>String(unit?.id) === String(unitId)) || null;
+}
+
+function repairStageDamage(unitIds){
+  const intermission = pendingStageIntermission;
+  if(!intermission || intermission.phase !== "debrief") return false;
+  const status = getStageDamageStatus(intermission);
+  if(!status || status.plan.resolved) return false;
+  const requestedKeys = new Set((Array.isArray(unitIds) ? unitIds : [unitIds]).map((id)=>String(id)));
+  const repairIds = status.unrepairedUnitIds.filter((id)=>requestedKeys.has(String(id)) && getDamagedTower(id));
+  if(!repairIds.length) return false;
+  const totalCost = repairIds.length * status.plan.repairCost;
+  const spent = inventorySystem.spendEssence(totalCost, "campaign:tower-repair");
+  if(!spent.accepted){
+    if(stageIntermissionHint) stageIntermissionHint.textContent = `Not enough Essence. These repairs require ${totalCost} Essence.`;
+    tone("sine", 180, 120, .1, .025);
+    return false;
+  }
+  const repairedKeys = new Set(status.plan.repairedUnitIds.map((id)=>String(id)));
+  repairIds.forEach((id)=>repairedKeys.add(String(id)));
+  intermission.damage.repairedUnitIds = status.plan.damagedUnitIds.filter((id)=>repairedKeys.has(String(id)));
+  const repairedLabel = repairIds.length === 1 ? "Tower repaired" : `${repairIds.length} towers repaired`;
+  setMessage(`${repairedLabel} for ${totalCost} Essence. Its full level will be preserved.`);
+  tone("sine", 520, 760, .12, .028);
+  updateStageIntermissionView();
+  saveRunState();
+  updateUI();
+  return true;
+}
+
+function finalizeStageDamage(intermission){
+  const status = getStageDamageStatus(intermission);
+  if(!status || status.plan.resolved) return intermission?.attrition || null;
+  const report = moveUnitsToReserve({
+    degradeLevels:1,
+    degradeUnitIds:status.unrepairedUnitIds,
+    repairedCount:status.plan.repairedUnitIds.length,
+    notify:true
+  });
+  intermission.damage = {
+    ...status.plan,
+    repairedUnitIds:[...status.plan.repairedUnitIds],
+    resolved:true
+  };
+  intermission.attrition = report;
+  towerReserveSystem.sortReserveForDeployment(reservePool);
   return report;
 }
 
@@ -5730,7 +5928,86 @@ function renderStageDebrief(intermission){
     `).join("");
   }
 
+  const damageStatus = getStageDamageStatus(intermission);
+  if(damageStatus && !damageStatus.plan.resolved){
+    const { plan, repairedKeys, freeRepairKeys, unrepairedUnitIds } = damageStatus;
+    const essence = inventorySystem.getCurrency().essence;
+    const damagedUnits = plan.damagedUnitIds
+      .map((unitId)=>getDamagedTower(unitId))
+      .filter(Boolean);
+    const safeCount = Math.max(0, units.length - damagedUnits.length);
+    if(stageEssenceBalance) stageEssenceBalance.textContent = String(essence);
+    if(stageAttritionSummary){
+      const chips = [
+        `<span class="stage-summary-chip lost">${damagedUnits.length} damaged</span>`,
+        `<span class="stage-summary-chip">${safeCount} battle-ready</span>`
+      ];
+      if(plan.repairedUnitIds.length > 0){
+        chips.push(`<span class="stage-summary-chip repaired">${plan.repairedUnitIds.length} repaired</span>`);
+      }
+      if(plan.setBonusNames.length > 0){
+        chips.push('<span class="stage-summary-chip set-bonus">⚒ Artificer set active</span>');
+      }
+      stageAttritionSummary.innerHTML = chips.join("");
+    }
+    if(stageRepairAllBtn){
+      const totalCost = unrepairedUnitIds.length * plan.repairCost;
+      stageRepairAllBtn.classList.toggle("hidden", damagedUnits.length === 0);
+      stageRepairAllBtn.disabled = unrepairedUnitIds.length === 0 || essence < totalCost;
+      stageRepairAllBtn.textContent = unrepairedUnitIds.length === 0
+        ? "All Repaired"
+        : `Repair All · ${totalCost}`;
+      stageRepairAllBtn.title = unrepairedUnitIds.length === 0
+        ? "Every damaged tower has been repaired"
+        : (essence >= totalCost
+          ? `Spend ${totalCost} Essence to preserve every damaged tower`
+          : `Requires ${totalCost} Essence; you have ${essence}`);
+    }
+    if(stageAttritionList){
+      stageAttritionList.innerHTML = damagedUnits.length ? damagedUnits.map((unit) => {
+        const meta = getTowerIntermissionMeta(unit.type);
+        const repaired = repairedKeys.has(String(unit.id));
+        const freeRepair = freeRepairKeys.has(String(unit.id));
+        const fromLevel = Math.max(1, Math.floor(Number(unit.level) || 1));
+        const targetLevel = fromLevel - 1;
+        const notes = [];
+        if(repaired){
+          notes.push(freeRepair
+            ? "Master Artificer · Repaired automatically"
+            : "Field repairs complete · Full strength preserved");
+        }else{
+          notes.push(targetLevel < 1 ? "Will be destroyed if left unrepaired" : "Will return to Reserve one level lower");
+          if(unit.specialization && targetLevel < 3) notes.push("Specialization at risk");
+          if(unit.auraType){
+            const auraName = unit.auraName || getAuraData(unit.auraType)?.name || "Legendary aura";
+            notes.push(targetLevel < 1 ? `${auraName} will be lost` : `${auraName} retained`);
+          }
+        }
+        const canRepair = !repaired && essence >= plan.repairCost;
+        const unitKey = escapeInventoryHtml(String(unit.id));
+        return `
+          <div class="stage-attrition-row ${repaired ? "repaired" : `damaged${targetLevel < 1 ? " lost" : ""}`}">
+            <span class="stage-tower-sigil" style="--tower-color:${meta.color}">${meta.glyph}</span>
+            <div class="stage-tower-copy">
+              <strong>${meta.name}</strong>
+              <span>${notes.join(" · ")}</span>
+            </div>
+            <div class="stage-damage-controls">
+              <span class="stage-level-change">Lv.${fromLevel} <b>→</b> ${repaired ? `Lv.${fromLevel}` : (targetLevel < 1 ? "LOST" : `Lv.${targetLevel}`)}</span>
+              <button class="stage-repair-button${repaired ? " is-repaired" : ""}" type="button" data-repair-unit="${unitKey}" ${repaired || !canRepair ? "disabled" : ""} title="${repaired ? (freeRepair ? "Repaired automatically by Master Artificer" : "Tower repaired") : (canRepair ? `Spend ${plan.repairCost} Essence` : `Requires ${plan.repairCost} Essence; you have ${essence}`)}">
+                ${repaired ? (freeRepair ? "Set Repair" : "Repaired") : `Repair · ${plan.repairCost}`}
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("") : '<div class="stage-empty-message">The army escaped this battle without repairable tower damage.</div>';
+    }
+    return;
+  }
+
   const report = intermission.attrition || {};
+  if(stageEssenceBalance) stageEssenceBalance.textContent = String(inventorySystem.getCurrency().essence);
+  stageRepairAllBtn?.classList.add("hidden");
   if(stageAttritionSummary){
     const chips = [
       `<span class="stage-summary-chip">${Math.max(0, report.returned || 0)} survived</span>`,
@@ -5840,12 +6117,16 @@ function updateStageIntermissionView(){
   const intermission = pendingStageIntermission;
   if(!intermission || !stageIntermissionOverlay) return;
   const reservePhase = intermission.phase === "reserve";
+  const damageStatus = getStageDamageStatus(intermission);
+  const unrepairedCount = damageStatus?.unrepairedUnitIds.length || 0;
   stageIntermissionOverlay.dataset.phase = reservePhase ? "reserve" : "debrief";
   if(stageIntermissionKicker) stageIntermissionKicker.textContent = reservePhase ? "RESERVE MANAGEMENT" : `STAGE ${intermission.clearedStage} DEBRIEF`;
   if(stageIntermissionTitle) stageIntermissionTitle.textContent = reservePhase ? "PREPARE THE COLUMN" : `${STAGES[intermission.clearedStage]?.name || "Region"} SECURED`;
   if(stageIntermissionSubtitle) stageIntermissionSubtitle.textContent = reservePhase
     ? "Set the free redeployment order for every tower type before the army marches."
-    : "Rewards are secured. Every deployed tower now suffers one level of campaign attrition.";
+    : (damageStatus?.plan.heavy
+      ? "The act boss inflicted heavy battle damage. Repair selected towers before they return to Reserve."
+      : "Part of the deployed army suffered battle damage. Repairs preserve each tower's full level.");
   stageDebriefStep?.classList.toggle("active", !reservePhase);
   stageReserveStep?.classList.toggle("active", reservePhase);
   stageDebriefPane?.classList.toggle("hidden", reservePhase);
@@ -5866,11 +6147,17 @@ function updateStageIntermissionView(){
     }
   }else{
     renderStageDebrief(intermission);
-    if(stageIntermissionHint) stageIntermissionHint.textContent = "Level-1 towers are lost completely, even when carrying a legendary aura.";
+    if(stageIntermissionHint){
+      stageIntermissionHint.textContent = damageStatus
+        ? (unrepairedCount > 0
+          ? `${unrepairedCount} damaged ${unrepairedCount === 1 ? "tower remains" : "towers remain"}. Unrepaired towers lose one level; level-1 towers are lost.`
+          : "All battle damage is covered. Every tower will return at full strength.")
+        : "Level-1 towers are lost completely, even when carrying a legendary aura.";
+    }
     if(stageIntermissionContinueBtn){
       const strong = stageIntermissionContinueBtn.querySelector("strong");
       const span = stageIntermissionContinueBtn.querySelector("span");
-      if(span) span.textContent = "Continue to";
+      if(span) span.textContent = damageStatus && unrepairedCount > 0 ? "Accept damage & continue" : "Continue to";
       if(strong) strong.textContent = "Reserve Management";
     }
   }
@@ -5890,7 +6177,6 @@ function hideStageIntermission(){
 }
 
 function beginStageIntermission(options){
-  towerReserveSystem.sortReserveForDeployment(reservePool);
   const intermission = {
     destination:options.destination,
     phase:"debrief",
@@ -5904,6 +6190,7 @@ function beginStageIntermission(options){
       degraded:0,
       entries:[]
     }),
+    damage:normalizeStageDamagePlan(options.damage),
     completionRewardText:options.completionRewardText || ""
   };
   showStageIntermission(intermission);
@@ -5915,6 +6202,7 @@ function completeStageIntermission(){
   const intermission = pendingStageIntermission;
   if(!intermission) return;
   if(intermission.phase !== "reserve"){
+    finalizeStageDamage(intermission);
     intermission.phase = "reserve";
     updateStageIntermissionView();
     saveRunState();
@@ -6212,7 +6500,8 @@ function restoreRunState(save){
             degraded:0,
             entries:[],
             ...(save.stageIntermission.attrition || {})
-          }
+          },
+          damage:normalizeStageDamagePlan(save.stageIntermission.damage)
         }
       : null;
   heroSystem.restoreRunState(save.hero);
@@ -10749,11 +11038,6 @@ const WORLD_MAP_ART = Object.freeze({
   3: "assets/ui/act3-teaser.webp"
 });
 
-// Flip to true once Act III has playable stages. Until then the switcher only
-// offers the two shipped acts and the teaser is reached from the Stage 12
-// finale, which keeps the header narrow enough to stay on a single row.
-const ACT_THREE_IN_SWITCHER = false;
-
 function hasCompletedActOne(){
   try{
     // Endless and Stage 7 are awarded together when Stage 6 is cleared. The
@@ -10823,10 +11107,8 @@ const WORLDMAP_HOTSPOTS = {
 function renderWorldMap(){
   if(!worldMapBoard) return;
   const actThreeUnlocked = hasCompletedActTwo();
-  // Act III is still a teaser, so it stays out of the act switcher for now. The
-  // Stage 12 finale can still push the player into the Act III preview, which is
-  // why the reset below keys off the unlock and not off the switcher flag.
-  const actThreeAvailable = ACT_THREE_IN_SWITCHER && actThreeUnlocked;
+  // Act III remains a finale-only teaser until it has playable stages. Keeping
+  // it out of this switcher leaves campaign navigation focused on Acts I and II.
   if(worldMapAct === 3 && !actThreeUnlocked) worldMapAct = 2;
   const highest = highestUnlockedStage();
   const firstStage = worldMapAct === 2 ? 7 : 1;
@@ -10839,13 +11121,8 @@ function renderWorldMap(){
   worldMapOverlay?.classList.toggle("showing-act-three", worldMapAct === 3);
   worldMapActOneBtn?.classList.toggle("active", worldMapAct === 1);
   worldMapActTwoBtn?.classList.toggle("active", worldMapAct === 2);
-  worldMapActThreeBtn?.classList.toggle("active", worldMapAct === 3);
   worldMapActOneBtn?.setAttribute("aria-pressed", String(worldMapAct === 1));
   worldMapActTwoBtn?.setAttribute("aria-pressed", String(worldMapAct === 2));
-  worldMapActThreeBtn?.setAttribute("aria-pressed", String(worldMapAct === 3));
-  worldMapActThreeBtn?.classList.toggle("hidden", !actThreeAvailable);
-  worldMapActThreeDivider?.classList.toggle("hidden", !actThreeAvailable);
-  worldMapActSwitch?.classList.toggle("act-three-visible", actThreeAvailable);
   if(worldMapActTwoBtn){
     worldMapActTwoBtn.disabled = false;
     worldMapActTwoBtn.title = hasCompletedActOne()
@@ -10952,13 +11229,6 @@ worldMapActOneBtn?.addEventListener("click",(event)=>{
 worldMapActTwoBtn?.addEventListener("click",(event)=>{
   event.stopPropagation();
   worldMapAct = 2;
-  renderWorldMap();
-});
-
-worldMapActThreeBtn?.addEventListener("click",(event)=>{
-  event.stopPropagation();
-  if(!hasCompletedActTwo()) return;
-  worldMapAct = 3;
   renderWorldMap();
 });
 
@@ -11113,6 +11383,18 @@ backToMenuFromEndlessBtn?.addEventListener("click", ()=>{
   openWorldMap();
 });
 
+stageAttritionList?.addEventListener("click", (event)=>{
+  const button = event.target.closest("[data-repair-unit]");
+  if(!button || button.disabled) return;
+  repairStageDamage(button.dataset.repairUnit);
+});
+
+stageRepairAllBtn?.addEventListener("click", ()=>{
+  const status = getStageDamageStatus(pendingStageIntermission);
+  if(!status || !status.unrepairedUnitIds.length) return;
+  repairStageDamage(status.unrepairedUnitIds);
+});
+
 stageIntermissionContinueBtn?.addEventListener("click", ()=>{
   completeStageIntermission();
 });
@@ -11142,7 +11424,7 @@ applyStage(1,true);
 if(!maybeShowResumeOverlay()){
   openWorldMap();
 }
-loadPanelUserSession();
+panelUserSessionPromise = loadPanelUserSession();
 loadBonusLeaderboard();
 /* No run token is minted at boot any more. Every page load used to create one,
    and most were never submitted — that is where the 'active'/'expired' litter in
@@ -11521,6 +11803,7 @@ panelHeaderLogoutBtn?.addEventListener("click", async (event)=>{
        logging out keeps submitting under the account's username while the row
        carries no user_id — the same score shows on the board under a name the
        submitter no longer owns. */
+    authenticatedLeaderboardName = "";
     try{ localStorage.removeItem("sdcPlayerName"); }catch(_){}
     window.location.reload();
   }catch(_){}

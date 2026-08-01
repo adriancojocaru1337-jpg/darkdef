@@ -30,9 +30,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=749101e55d" />
+  <link rel="stylesheet" href="style.css?v=727576bd60" />
   <link rel="stylesheet" href="completion-screen.css?v=83b3fc076b" />
-  <link rel="stylesheet" href="stage-intermission.css?v=40c17f4d43" />
+  <link rel="stylesheet" href="stage-intermission.css?v=39eb9b3532" />
   <script src="/crest.js"></script>
   <script src="/account-bar.js" defer></script>
   <script src="site-nav.js?v=c199e0a0dd" defer></script>
@@ -102,7 +102,7 @@
     <div class="overlay-card overlay-reward">
       <div class="reward-kicker">Boss Reward</div>
       <h1>Choose a legendary aura</h1>
-      <p id="auraRewardText">You defeated the boss. Choose an aura and bind it to one tower. The aura remains only while that tower survives between-stage attrition.</p>
+      <p id="auraRewardText">You defeated the boss. Choose an aura and bind it to one tower. Field repairs can preserve that tower after battle damage.</p>
       <div class="boss-loot-reward hidden" id="bossLootReward" aria-live="polite"></div>
       <div class="reward-grid" id="auraRewardList"></div>
       <div class="reward-bonus" id="auraRewardBonus">Stage clear reward: +0 gold</div>
@@ -175,6 +175,7 @@
             </div>
           </div>
           <div class="equipment-slots" id="equipmentSlots"></div>
+          <div class="inventory-set-panel" id="inventorySetPanel" aria-live="polite"></div>
         </section>
 
         <section class="inventory-bag-panel">
@@ -302,10 +303,16 @@
         <section class="stage-attrition-panel">
           <div class="stage-section-heading">
             <div>
-              <span>Between-stage attrition</span>
-              <h2>Army Condition</h2>
+              <span>Post-battle damage</span>
+              <h2>Field Repairs</h2>
             </div>
-            <div class="stage-attrition-summary" id="stageAttritionSummary"></div>
+            <div class="stage-damage-overview">
+              <div class="stage-attrition-summary" id="stageAttritionSummary"></div>
+              <div class="stage-damage-actions">
+                <span class="stage-essence-balance">Essence <strong id="stageEssenceBalance">0</strong></span>
+                <button class="stage-repair-all" id="stageRepairAllBtn" type="button">Repair All</button>
+              </div>
+            </div>
           </div>
           <div class="stage-attrition-list" id="stageAttritionList"></div>
         </section>
@@ -504,15 +511,6 @@
                   <span class="act-switch-kicker">Eastern Campaign</span>
                   <strong>Act II</strong>
                   <small>The Road to Dawn</small>
-                </span>
-              </button>
-              <span class="act-switch-divider hidden" id="worldMapActThreeDivider" aria-hidden="true">◆</span>
-              <button class="hidden" id="worldMapActThreeBtn" type="button" aria-pressed="false">
-                <span class="act-switch-emblem act-switch-emblem-locked" aria-hidden="true">III</span>
-                <span class="act-switch-copy">
-                  <span class="act-switch-kicker">Beyond the Veil</span>
-                  <strong>Act III</strong>
-                  <small>Coming Soon</small>
                 </span>
               </button>
             </div>
@@ -805,19 +803,19 @@
   <script src="js/core/run-state-machine.js?v=730624aa27"></script>
   <script src="js/core/run-rng.js?v=e0572e6cbb"></script>
   <script src="js/content/combat-content.js?v=f74fb37eac"></script>
-  <script src="js/content/reward-content.js?v=137ce21de0"></script>
+  <script src="js/content/reward-content.js?v=d6b2a32d98"></script>
   <script src="js/content/hero-skill-content.js?v=0a62381034"></script>
   <script src="js/systems/enemy-behavior-system.js?v=8ee77a5eed"></script>
   <script src="js/systems/boss-phase-system.js?v=90c571a2dc"></script>
-  <script src="js/systems/tower-reserve-system.js?v=3a44b2e158"></script>
+  <script src="js/systems/tower-reserve-system.js?v=512d2ccabf"></script>
   <script src="js/systems/hero-system.js?v=032c9f5d6b"></script>
-  <script src="js/systems/reward-generator.js?v=cd51d4e87f"></script>
+  <script src="js/systems/reward-generator.js?v=f28fdbfb8c"></script>
   <script src="js/systems/reward-inbox.js?v=78e4afff96"></script>
-  <script src="js/systems/inventory-system.js?v=1a086c3cfd"></script>
-  <script src="js/systems/equipment-system.js?v=68019be46d"></script>
+  <script src="js/systems/inventory-system.js?v=f6cfc21846"></script>
+  <script src="js/systems/equipment-system.js?v=16c5b041de"></script>
   <script src="js/systems/hero-stat-pipeline.js?v=76b448f708"></script>
   <script src="js/systems/hero-skill-tree-system.js?v=730b549e71"></script>
-  <script src="game.js?v=4e663a1afd"></script>
+  <script src="game.js?v=326e6d77a7"></script>
   <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
 </body>
 </html>
