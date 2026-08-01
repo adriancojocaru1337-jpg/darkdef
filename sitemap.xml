@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://darkdefense.netlify.app/</loc>
+    <loc>https://ashenbastion.com/</loc>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://darkdefense.netlify.app/guide.html</loc>
+    <loc>https://ashenbastion.com/guide.html</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://darkdefense.netlify.app/about.html</loc>
+    <loc>https://ashenbastion.com/about.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://darkdefense.netlify.app/how-to-play.html</loc>
+    <loc>https://ashenbastion.com/how-to-play.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://darkdefense.netlify.app/best-tower-defense-browser-game-strategy.html</loc>
+    <loc>https://ashenbastion.com/best-tower-defense-browser-game-strategy.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://darkdefense.netlify.app/leaderboards.html</loc>
+    <loc>https://ashenbastion.com/leaderboards.html</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://darkdefense.netlify.app/account.html</loc>
+    <loc>https://ashenbastion.com/account.html</loc>
     <priority>0.8</priority>
   </url>
 </urlset>

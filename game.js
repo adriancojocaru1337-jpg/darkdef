@@ -10749,6 +10749,11 @@ const WORLD_MAP_ART = Object.freeze({
   3: "assets/ui/act3-teaser.webp"
 });
 
+// Flip to true once Act III has playable stages. Until then the switcher only
+// offers the two shipped acts and the teaser is reached from the Stage 12
+// finale, which keeps the header narrow enough to stay on a single row.
+const ACT_THREE_IN_SWITCHER = false;
+
 function hasCompletedActOne(){
   try{
     // Endless and Stage 7 are awarded together when Stage 6 is cleared. The
@@ -10817,8 +10822,12 @@ const WORLDMAP_HOTSPOTS = {
 
 function renderWorldMap(){
   if(!worldMapBoard) return;
-  const actThreeAvailable = hasCompletedActTwo();
-  if(worldMapAct === 3 && !actThreeAvailable) worldMapAct = 2;
+  const actThreeUnlocked = hasCompletedActTwo();
+  // Act III is still a teaser, so it stays out of the act switcher for now. The
+  // Stage 12 finale can still push the player into the Act III preview, which is
+  // why the reset below keys off the unlock and not off the switcher flag.
+  const actThreeAvailable = ACT_THREE_IN_SWITCHER && actThreeUnlocked;
+  if(worldMapAct === 3 && !actThreeUnlocked) worldMapAct = 2;
   const highest = highestUnlockedStage();
   const firstStage = worldMapAct === 2 ? 7 : 1;
   const lastStage = worldMapAct === 2 ? CAMPAIGN_FINAL_STAGE : ACT_ONE_FINAL_STAGE;

@@ -1,4 +1,10 @@
-const DEFAULT_APP_BASE_URL = "https://darkdefense.netlify.app";
+const DEFAULT_APP_BASE_URL = "https://ashenbastion.com";
+// The site moved to its own domain; the old Netlify subdomain and the www host
+// stay allow-listed so links, bookmarks and in-flight sessions keep working.
+const LEGACY_APP_BASE_URLS = [
+  "https://www.ashenbastion.com",
+  "https://darkdefense.netlify.app"
+];
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 function toUrl(value) {
@@ -16,7 +22,8 @@ function configuredAppUrls(env = process.env) {
     env.APP_BASE_URL,
     env.URL,
     env.DEPLOY_PRIME_URL,
-    DEFAULT_APP_BASE_URL
+    DEFAULT_APP_BASE_URL,
+    ...LEGACY_APP_BASE_URLS
   ].map(toUrl).filter(Boolean);
 }
 
@@ -39,6 +46,7 @@ function getPasswordResetBaseUrl(env = process.env) {
 
 module.exports = {
   DEFAULT_APP_BASE_URL,
+  LEGACY_APP_BASE_URLS,
   isAllowedOrigin,
   getPasswordResetBaseUrl
 };

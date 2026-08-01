@@ -7,10 +7,16 @@ const {
 } = require("../netlify/functions/request-security");
 
 test("origin validation requires an exact configured origin", () => {
+  assert.equal(isAllowedOrigin("https://ashenbastion.com", {}), true);
+  assert.equal(isAllowedOrigin("https://ashenbastion.com/account.html", {}), true);
+  assert.equal(isAllowedOrigin("https://ashenbastion.com.attacker.example", {}), false);
+  assert.equal(isAllowedOrigin("https://ashenbastion.com@attacker.example", {}), false);
+});
+
+test("the previous hosts stay allow-listed after the domain move", () => {
+  assert.equal(isAllowedOrigin("https://www.ashenbastion.com", {}), true);
   assert.equal(isAllowedOrigin("https://darkdefense.netlify.app", {}), true);
-  assert.equal(isAllowedOrigin("https://darkdefense.netlify.app/account.html", {}), true);
   assert.equal(isAllowedOrigin("https://darkdefense.netlify.app.attacker.example", {}), false);
-  assert.equal(isAllowedOrigin("https://darkdefense.netlify.app@attacker.example", {}), false);
 });
 
 test("local development origins allow only exact loopback hosts", () => {
@@ -24,5 +30,5 @@ test("password reset base URL comes only from trusted environment", () => {
     getPasswordResetBaseUrl({ APP_BASE_URL: "https://play.ashen.example/game/" }),
     "https://play.ashen.example/game"
   );
-  assert.equal(getPasswordResetBaseUrl({}), "https://darkdefense.netlify.app");
+  assert.equal(getPasswordResetBaseUrl({}), "https://ashenbastion.com");
 });
