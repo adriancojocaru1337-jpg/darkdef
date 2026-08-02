@@ -115,7 +115,7 @@ async function reject({ statusCode, error, ipHash, playerName, runId, payload, s
     try {
       await sql`
         insert into blocked_ips (ip_hash, blocked_until, reason)
-        values (${ipHash}, now() + interval '${BLOCK_MINUTES} minutes', ${error})
+        values (${ipHash}, now() + make_interval(mins => ${BLOCK_MINUTES}), ${error})
         on conflict (ip_hash)
         do update set blocked_until = greatest(blocked_ips.blocked_until, excluded.blocked_until), reason = excluded.reason, updated_at = now()
       `;
