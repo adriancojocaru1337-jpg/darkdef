@@ -515,14 +515,20 @@ exports.handler = async function handler(event) {
     }
     return json(200, { ok: true });
   } catch (error) {
+    /* Anything thrown outside the commit block lands here: the blocklist probe,
+       the rate-limit counts, the run lookup. It used to be recorded as a bare
+       "Failed to save score", indistinguishable from a commit failure, which is
+       why the real fault stayed invisible. Carry the detail here too. */
+    const detail = dbDetail(error);
+    console.error("submit-score failed before commit", detail);
     await logSubmissionAttempt({
       ipHash,
       playerName,
       runId,
       accepted: false,
-      rejectionReason: "Failed to save score",
+      rejectionReason: `Failed to save score: ${detail}`,
       payload
     });
-    return json(500, { error: "Failed to save score" });
+    return json(500, { error: `Failed to save score: ${detail}` });
   }
 };
