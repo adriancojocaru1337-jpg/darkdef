@@ -2,6 +2,7 @@
 # downloadable unless blocked. These are not secrets, but the schema files map
 # out every table, column and index the anti-cheat relies on, and there is no
 # reason to hand that out.
+https://darkdefense.netlify.app/*  https://ashenbastion.com/:splat  301!
 /setup_*.sql       /setup_blocked   404
 /netlify.toml      /blocked         404
 /package.json      /blocked         404
