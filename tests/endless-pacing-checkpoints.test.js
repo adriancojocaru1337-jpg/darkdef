@@ -44,7 +44,8 @@ test("a daily run never checkpoints to the endless board", () => {
 });
 
 test("the server keeps a checkpointed run active and upserts its row", () => {
-  assert.match(submitScore, /const isCheckpoint = body\.runComplete === false && run\.mode === "endless"/);
+  assert.match(submitScore, /const isEndlessCheckpoint = body\.runComplete === false && run\.mode === "endless"/);
+  assert.match(submitScore, /const isCheckpoint = isEndlessCheckpoint \|\| isCampaignCheckpoint/);
   assert.match(submitScore, /status = \$\{isCheckpoint \? "active" : "submitted"\}/);
   // One row per run, updated in place — not a new row per checkpoint.
   assert.match(submitScore, /on conflict \(run_id\) do update set/);
@@ -142,5 +143,5 @@ test("no run token is minted at page load", () => {
   const boot = client.slice(client.indexOf("loadPanelUserSession();"));
   const bootTail = boot.slice(0, 600);
   assert.doesNotMatch(bootTail, /prewarmLeaderboardRun\("campaign"\);/);
-  assert.match(client, /if\(!leaderboardRun\.runId && !leaderboardRunPromise\) prewarmLeaderboardRun\(\);/);
+  assert.match(client, /if\(!hasValidLeaderboardRun\(currentLeaderboardMode\(\)\) && !leaderboardRunPromise\) prewarmLeaderboardRun\(\);/);
 });

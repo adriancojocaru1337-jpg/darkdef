@@ -50,7 +50,7 @@ test("a stale start-run response cannot overwrite a newer token", () => {
 
 test("the first wave of a run guarantees a token exists", () => {
   const fn = source.match(/function startWave\([\s\S]*?\n  ensureAudio\(\);/)[0];
-  assert.match(fn, /if\(!leaderboardRun\.runId && !leaderboardRunPromise\) prewarmLeaderboardRun\(\);/);
+  assert.match(fn, /if\(!hasValidLeaderboardRun\(currentLeaderboardMode\(\)\) && !leaderboardRunPromise\) prewarmLeaderboardRun\(\);/);
 });
 
 test("a daily challenge reports the daily board, not endless", () => {
