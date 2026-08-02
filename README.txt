@@ -1,3 +1,21 @@
+Ashen Bastion v0.11.34 - Act II reinforcements in Endless
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- Cinder Skirmishers enter Endless after wave 10 at an 8% spawn weight.
+- Hollow Binders join from wave 21 at 6%, followed by Ley Revenants from wave 31 at 5%.
+- Act II bosses join the random two-boss Endless rotation beginning with wave 20.
+- The first boss pair remains Act I-only, and the previous pair is still avoided when another pairing is available.
+
+Ashen Bastion v0.11.33 - Story leaderboard reliability fix
+
+No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.
+
+- Story progress checkpoints at act boundaries instead of consuming submissions after every stage.
+- Completing Act I keeps the same campaign run active; completing Act II closes and submits that run.
+- Campaign transitions preserve the run token and wall-clock timing at x2 and x3 speed.
+- Signed-in players receive their global Story placement even when they finish outside the Top 10.
+
 Ashen Bastion v0.11.32 - Account leaderboard identity fix
 
 No schema change. No new SQL to run beyond setup_game_state.sql from v0.11.27.

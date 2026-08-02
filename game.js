@@ -691,7 +691,9 @@ const STAGES = {
 
 const ACT_ONE_FINAL_STAGE = 6;
 const CAMPAIGN_FINAL_STAGE = Math.max(...Object.keys(STAGES).map(Number));
-const ENDLESS_BOSS_STAGE_IDS = Object.freeze([1,2,3,4,5,6]);
+const ENDLESS_ACT_ONE_BOSS_STAGE_IDS = Object.freeze([1,2,3,4,5,6]);
+const ENDLESS_BOSS_STAGE_IDS = Object.freeze([1,2,3,4,5,6,7,8,9,10,11,12]);
+const ENDLESS_BOSS_ACT_TWO_UNLOCK_WAVE = 20;
 
 const WORLDMAP_META = {
   1: { icon:"🌲", color:"#84cc16", blurb:"Where it begins. Ancient roots stir." },
@@ -3863,7 +3865,14 @@ function grantCampaignStageClear(clearedStage, nextUnlockedStage, options = {}){
     pushNotification("gold", options.rewardTitle || "Stage reward",`Stage ${clearedStage} clear reward: +${clearReward} gold.`);
   }
 
-  submitStoryLeaderboardScore(clearedStage, options.runComplete === true);
+  // Story used to submit after every stage. A fast x2/x3 campaign could then
+  // hit the per-name submission limit before Stage 12, so the final Act II
+  // result was the one score that never reached Rankings. Keep one campaign
+  // token alive: checkpoint at the Act I boundary, then finalize at Act II.
+  const shouldSubmitStory = options.runComplete === true || clearedStage === ACT_ONE_FINAL_STAGE;
+  if(shouldSubmitStory){
+    submitStoryLeaderboardScore(clearedStage, options.runComplete === true);
+  }
   if(Number.isFinite(nextUnlockedStage)){
     try{
       const prev = Math.max(1, Number(localStorage.getItem("sdcFurthestStage") || 1));
@@ -3894,7 +3903,11 @@ function transitionToCampaignStage(nextStage, message, options = {}){
   }
   applyStage(nextStage, false);
   startRunFlow("campaign-next-stage");
-  prewarmLeaderboardRun("campaign");
+  // Preserve the active campaign token across stage transitions. Its server
+  // start time must cover the same cumulative score/kills sent at Act II.
+  if(!hasValidLeaderboardRun("campaign") && !leaderboardRunPromise){
+    prewarmLeaderboardRun("campaign");
+  }
   const routeNotice = getStageRouteNotice(nextStage);
   setMessage(`${message || `${STAGES[nextStage]?.name || "Next region"} — redeploy your reserve towers and hold the line.`}${routeNotice}`);
   saveRunState();
@@ -4073,15 +4086,26 @@ async function requestLeaderboardRun(modeHint=currentLeaderboardMode()){
 function retireLeaderboardRun(submittedRunId, mode){
   if(leaderboardRun.runId && submittedRunId && leaderboardRun.runId !== submittedRunId) return;
   leaderboardRun = { runId:"", runToken:"", expiresAt:0, clientStartedAt:0, mode };
-  // A stage clear already prewarms the next token; don't mint a second one and
-  // burn through the 30-per-10-minutes start-run budget.
+  // Final submissions mint the next token. Campaign checkpoints never reach
+  // this function, so their original server start time survives into Act II.
   if(!leaderboardRunPromise) prewarmLeaderboardRun(mode);
 }
 
 let leaderboardRunWarningShown = false;
 
+function hasValidLeaderboardRun(modeHint=currentLeaderboardMode(), leewayMs=5000){
+  const mode = modeHint || currentLeaderboardMode();
+  return Boolean(
+    leaderboardRun.runId
+    && leaderboardRun.runToken
+    && leaderboardRun.mode === mode
+    && leaderboardRun.expiresAt > (Date.now() + Math.max(0, Number(leewayMs) || 0))
+  );
+}
+
 function prewarmLeaderboardRun(modeHint=currentLeaderboardMode()){
-  leaderboardRunPromise = requestLeaderboardRun(modeHint)
+
+  const request = requestLeaderboardRun(modeHint)
     .then((run)=>{ leaderboardRunWarningShown = false; return run; })
     .catch((error)=>{
       // Swallowing this silently used to hide start-run failures (429 from the
@@ -4094,8 +4118,11 @@ function prewarmLeaderboardRun(modeHint=currentLeaderboardMode()){
       }
       return null;
     })
-    .finally(()=>{ leaderboardRunPromise = null; });
-  return leaderboardRunPromise;
+    .finally(()=>{
+      if(leaderboardRunPromise === request) leaderboardRunPromise = null;
+    });
+  leaderboardRunPromise = request;
+  return request;
 }
 
 async function ensureLeaderboardRun(modeHint=currentLeaderboardMode()){
@@ -4194,8 +4221,12 @@ async function submitStoryLeaderboardScore(finalStage=currentStage, runComplete=
       runComplete: Boolean(runComplete),
       runSeed: runRng.seed
     });
-    retireLeaderboardRun(submittedRunId, "campaign");
+    if(runComplete){
+      retireLeaderboardRun(submittedRunId, "campaign");
       pushNotification("achievement", "Story Rankings submitted", `${playerName} reached stage ${finalStage} with score ${totalScore()}.`);
+    }else{
+      pushNotification("stage", "Story progress saved", `${playerName} secured Act I at stage ${finalStage}. The same ranked run continues into Act II.`);
+    }
   }catch(error){
       pushNotification("stage", "Story Rankings offline", "The campaign score could not be submitted right now.");
   }
@@ -5526,10 +5557,16 @@ function getBossPairKey(pair){
   return [...pair].sort((a,b)=>a-b).join("-");
 }
 
+function getEndlessBossStageIds(waveNumber = stageWave){
+  return waveNumber >= ENDLESS_BOSS_ACT_TWO_UNLOCK_WAVE
+    ? ENDLESS_BOSS_STAGE_IDS
+    : ENDLESS_ACT_ONE_BOSS_STAGE_IDS;
+}
+
 function pickRandomEndlessBossPair(){
-  // Endless remains the echo of Act I's six horrors. Human Act II bosses do
-  // not enter the random pair pool.
-  const ids = [...ENDLESS_BOSS_STAGE_IDS];
+  // The first pair remains an Act I encounter. From wave 20 onward, the six
+  // Act II bosses join the pool and can be paired with either act.
+  const ids = [...getEndlessBossStageIds()];
   const allPairs = [];
   for(let i = 0; i < ids.length; i++){
     for(let j = i + 1; j < ids.length; j++){
@@ -6928,7 +6965,7 @@ function startWave(autoTriggered=false){
   // Safety net: whatever entry path started this run, make sure the server has
   // seen it begin. Minting the token at Game Over instead would make
   // started_at equal submitted_at and the score would be thrown away.
-  if(!leaderboardRun.runId && !leaderboardRunPromise) prewarmLeaderboardRun();
+  if(!hasValidLeaderboardRun(currentLeaderboardMode()) && !leaderboardRunPromise) prewarmLeaderboardRun();
   ensureAudio();
   const stage=STAGES[currentStage];
   const threatProfile = getWaveThreatProfile();
@@ -7002,6 +7039,15 @@ function getBossHpBonus(stageNumber){
   return 1.0;
 }
 
+function getEndlessActTwoSpecialWeights(waveNumber = stageWave){
+  if(waveNumber <= 10) return null;
+  return {
+    cinder_skirmisher:.08,
+    hollow_binder:waveNumber >= 21 ? .06 : 0,
+    ley_revenant:waveNumber >= 31 ? .05 : 0
+  };
+}
+
 function enemyTemplateForSpawn(indexFromEnd){
   const stage=STAGES[currentStage];
   if(currentMode === "endless" && isCurrentWaveBoss() && indexFromEnd <= pendingEndlessBossPair.length){
@@ -7018,11 +7064,14 @@ function enemyTemplateForSpawn(indexFromEnd){
       return {type:"armored", hpMult:1.55*stage.difficulty, speed:.082+currentStage*.0025, reward:26};
     }
   }
-  const roll=runRng.next();
+  let roll=runRng.next();
   const actTwoWeights = currentMode === "campaign" ? stage.enemyWeights : null;
-  if(actTwoWeights){
+  const endlessSpecialWeights = currentMode === "endless"
+    ? getEndlessActTwoSpecialWeights(stageWave)
+    : null;
+  if(actTwoWeights || endlessSpecialWeights){
     const difficultyWave = getDifficultyWaveNumber();
-    const specialWeights = stage.specialEnemyWeights || {};
+    const specialWeights = endlessSpecialWeights || stage.specialEnemyWeights || {};
     let cursor = Math.max(0, specialWeights.cinder_skirmisher || 0);
     if(roll < cursor){
       return {
@@ -7050,28 +7099,34 @@ function enemyTemplateForSpawn(indexFromEnd){
         reward:34
       };
     }
-    cursor += Math.max(0, actTwoWeights.fast || 0);
-    if(roll < cursor){
-      return {
-        type:"fast",
-        hpMult:.56 * stage.difficulty,
-        speed:Math.min(.205, .125 + difficultyWave * .0022),
-        reward:20
-      };
+    if(actTwoWeights){
+      cursor += Math.max(0, actTwoWeights.fast || 0);
+      if(roll < cursor){
+        return {
+          type:"fast",
+          hpMult:.56 * stage.difficulty,
+          speed:Math.min(.205, .125 + difficultyWave * .0022),
+          reward:20
+        };
+      }
+      cursor += Math.max(0, actTwoWeights.tank || 0);
+      if(roll < cursor){
+        return { type:"tank", hpMult:2.05*stage.difficulty, speed:.076+currentStage*.0015, reward:32 };
+      }
+      cursor += Math.max(0, actTwoWeights.splitter || 0);
+      if(roll < cursor){
+        return { type:"splitter", hpMult:1.38*stage.difficulty, speed:.082+currentStage*.0014, reward:22 };
+      }
+      cursor += Math.max(0, actTwoWeights.armored || 0);
+      if(roll < cursor){
+        return { type:"armored", hpMult:1.62*stage.difficulty, speed:.086+currentStage*.0015, reward:30 };
+      }
+      return { type:"normal", hpMult:1.05*stage.difficulty, speed:.096+difficultyWave*.0025, reward:24 };
     }
-    cursor += Math.max(0, actTwoWeights.tank || 0);
-    if(roll < cursor){
-      return { type:"tank", hpMult:2.05*stage.difficulty, speed:.076+currentStage*.0015, reward:32 };
-    }
-    cursor += Math.max(0, actTwoWeights.splitter || 0);
-    if(roll < cursor){
-      return { type:"splitter", hpMult:1.38*stage.difficulty, speed:.082+currentStage*.0014, reward:22 };
-    }
-    cursor += Math.max(0, actTwoWeights.armored || 0);
-    if(roll < cursor){
-      return { type:"armored", hpMult:1.62*stage.difficulty, speed:.086+currentStage*.0015, reward:30 };
-    }
-    return { type:"normal", hpMult:1.05*stage.difficulty, speed:.096+difficultyWave*.0025, reward:24 };
+
+    // Special mobs take a controlled share of an Endless wave. Rescale the
+    // remaining roll so the original fast/tank/splitter mix stays intact.
+    roll = (roll - cursor) / Math.max(.0001, 1 - cursor);
   }
   if(roll < 0.18 + currentStage*0.01){
     const isLateStageFast = currentStage >= 5;
