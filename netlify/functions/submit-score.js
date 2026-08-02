@@ -326,11 +326,17 @@ exports.handler = async function handler(event) {
          remains the true run start (which makes the runtime floor stricter, not
          weaker), and the leaderboard row is upserted on run_id rather than
          duplicated. Only the final submission closes the run. */
-      const isCheckpoint = body.runComplete === false && run.mode === "endless";
+      const isEndlessCheckpoint = body.runComplete === false && run.mode === "endless";
+      // Story keeps one token for the whole campaign. Act I is a durable
+      // checkpoint on the board; Act II updates the same run_id and closes it.
+      // This prevents x2/x3 campaigns from making twelve separate submissions
+      // and hitting the rate limit immediately before the Stage 12 result.
+      const isCampaignCheckpoint = body.runComplete === false && run.mode === "campaign";
+      const isCheckpoint = isEndlessCheckpoint || isCampaignCheckpoint;
 
       // Without a counter column, bound checkpoint spam by requiring a gap
       // between them. The token expires in 6h, so this caps a run's writes.
-      if (isCheckpoint) {
+      if (isEndlessCheckpoint) {
         const sinceLastMs = Date.now() - new Date(run.updated_at || run.started_at).getTime();
         if (sinceLastMs < 45_000) {
           return reject({ statusCode: 429, error: "Checkpoint too soon", ipHash, playerName, runId, payload, runDbId });
