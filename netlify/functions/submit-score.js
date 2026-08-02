@@ -15,7 +15,13 @@ const { estimatedMinRuntimeMs } = require("./run-pacing");
 const SECRET = process.env.RUN_TOKEN_SECRET || process.env.LEADERBOARD_SECRET || "dark-defense-dev-secret";
 
 const MEMORY_RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const MEMORY_RATE_LIMIT_MAX_REQUESTS = 20;
+/* Endless banks a checkpoint every 5 waves and Story checkpoints at the Act I
+   boundary, so a single honest session legitimately makes many more calls than
+   the original 20. */
+const MEMORY_RATE_LIMIT_MAX_REQUESTS = 60;
+const IP_ACCEPTED_LIMIT = 40;
+const NAME_ACCEPTED_LIMIT = 24;
+const BLOCK_MINUTES = 10;
 const memoryRateLimitCache = new Map();
 
 function sanitizeName(name) {
@@ -35,6 +41,22 @@ function memoryRateLimited(ip) {
 
 function signRunToken(runId, expiresAt) {
   return crypto.createHmac("sha256", SECRET).update(`${runId}.${expiresAt}`).digest("hex");
+}
+
+/* The old handler collapsed every database failure into "Failed to save score".
+   A missing unique index on leaderboard_scores.run_id therefore looked exactly
+   like a network blip for weeks, and score_submissions recorded nothing useful.
+   Keep the player-facing string generic, but persist the driver's own message so
+   one query on score_submissions names the real fault. */
+function dbDetail(error) {
+  const code = error?.code ? `${error.code} ` : "";
+  const message = String(error?.message || error || "unknown error");
+  return `${code}${message}`.slice(0, 180);
+}
+
+function isMissingConflictTarget(error) {
+  return error?.code === "42P10"
+    || /no unique or exclusion constraint/i.test(String(error?.message || ""));
 }
 
 function safeFloor(value) {
@@ -93,7 +115,7 @@ async function reject({ statusCode, error, ipHash, playerName, runId, payload, s
     try {
       await sql`
         insert into blocked_ips (ip_hash, blocked_until, reason)
-        values (${ipHash}, now() + interval '30 minutes', ${error})
+        values (${ipHash}, now() + make_interval(mins => ${BLOCK_MINUTES}), ${error})
         on conflict (ip_hash)
         do update set blocked_until = greatest(blocked_ips.blocked_until, excluded.blocked_until), reason = excluded.reason, updated_at = now()
       `;
@@ -192,11 +214,11 @@ exports.handler = async function handler(event) {
     }
 
     if (scoreTotal < 0 || bonus < 0 || waveReached < 1 || killsCount < 0 || elapsedMs < 0) {
-      return reject({ statusCode: 400, error: "Rejected score", ipHash, playerName, runId, payload, suspicious: true });
+      return reject({ statusCode: 400, error: "Rejected score", ipHash, playerName, runId, payload });
     }
 
     if (scoreTotal > 5_000_000 || bonus > 5_000_000 || waveReached > 5_000 || killsCount > 50_000 || elapsedMs > 1000 * 60 * 60 * 12) {
-      return reject({ statusCode: 400, error: "Rejected score", ipHash, playerName, runId, payload, suspicious: true });
+      return reject({ statusCode: 400, error: "Rejected score", ipHash, playerName, runId, payload });
     }
 
     const blocked = await sql`
@@ -215,10 +237,11 @@ exports.handler = async function handler(event) {
       select count(*)::int as attempts
       from score_submissions
       where ip_hash = ${ipHash}
+        and accepted = true
         and created_at > now() - interval '15 minutes'
     `;
 
-    if ((recentIpAttempts?.[0]?.attempts || 0) >= 20) {
+    if ((recentIpAttempts?.[0]?.attempts || 0) >= IP_ACCEPTED_LIMIT) {
       return reject({ statusCode: 429, error: "Too many recent score attempts", ipHash, playerName, runId, payload });
     }
 
@@ -226,10 +249,11 @@ exports.handler = async function handler(event) {
       select count(*)::int as attempts
       from score_submissions
       where player_name = ${playerName}
+        and accepted = true
         and created_at > now() - interval '10 minutes'
     `;
 
-    if ((recentNameAttempts?.[0]?.attempts || 0) >= 8) {
+    if ((recentNameAttempts?.[0]?.attempts || 0) >= NAME_ACCEPTED_LIMIT) {
       return reject({ statusCode: 429, error: "Too many recent submissions for this name", ipHash, playerName, runId, payload });
     }
 
@@ -250,7 +274,7 @@ exports.handler = async function handler(event) {
     const expectedToken = signRunToken(run.run_id, expiresAtMs);
 
     if (run.status !== "active") {
-      return reject({ statusCode: 409, error: "Run already used", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+      return reject({ statusCode: 409, error: "Run already used", ipHash, playerName, runId, payload, runDbId });
     }
 
     if (!["endless", "campaign", "daily"].includes(run.mode)) {
@@ -279,18 +303,18 @@ exports.handler = async function handler(event) {
     }
 
     if (killsCount < waveReached - 1) {
-      return reject({ statusCode: 400, error: "Impossible kill count", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+      return reject({ statusCode: 400, error: "Impossible kill count", ipHash, playerName, runId, payload, runDbId });
     }
 
     const maxBonus = computeMaxBonus(waveReached, killsCount);
     const maxScore = computeMaxScore(run.mode, waveReached, killsCount, bonus);
     if (bonus > maxBonus || scoreTotal > maxScore) {
-      return reject({ statusCode: 400, error: "Suspicious score rejected", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+      return reject({ statusCode: 400, error: "Suspicious score rejected", ipHash, playerName, runId, payload, runDbId });
     }
 
     const minimumScoreFloor = Math.max(0, baseScoreForKills(killsCount) + bonus);
     if (scoreTotal < minimumScoreFloor * 0.4) {
-      return reject({ statusCode: 400, error: "Inconsistent score payload", ipHash, playerName, runId, payload, suspicious: true, runDbId });
+      return reject({ statusCode: 400, error: "Inconsistent score payload", ipHash, playerName, runId, payload, runDbId });
     }
 
     const runStartedAtMs = new Date(run.started_at).getTime();
@@ -343,7 +367,16 @@ exports.handler = async function handler(event) {
         }
       }
 
-      const committed = await sql`
+      /* The run claim and the score row are one statement: either the run is
+         consumed and the score lands, or neither happens.
+
+         The user_profiles upsert used to ride along in the same CTE. That made
+         a fragile, purely cosmetic write (lifetime kill counters) able to
+         destroy the score itself — and it did, invisibly, for every mode. It is
+         now a separate, non-fatal step. */
+      let committed;
+      try {
+        committed = await sql`
         with claimed_run as (
           update game_runs
           set
@@ -373,32 +406,44 @@ exports.handler = async function handler(event) {
             kills = excluded.kills,
             player_name = excluded.player_name
           returning id
-        ),
-        updated_profile as (
-          insert into user_profiles
-            (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
-          select
-            ${sessionUserId}::bigint,
-            ${profile.bestEndlessScore},
-            ${profile.bestStoryStage},
-            ${profile.lifetimeKills},
-            ${profile.lifetimeRuns},
-            now()
-          from claimed_run
-          where ${sessionUserId}::bigint is not null
-          on conflict (user_id)
-          do update set
-            best_endless_score = greatest(user_profiles.best_endless_score, excluded.best_endless_score),
-            best_story_stage = greatest(user_profiles.best_story_stage, excluded.best_story_stage),
-            total_kills = user_profiles.total_kills + excluded.total_kills,
-            total_runs = user_profiles.total_runs + excluded.total_runs,
-            updated_at = now()
-          returning user_id
         )
         select
           exists(select 1 from claimed_run) as claimed,
           exists(select 1 from inserted_score) as score_inserted
       `;
+      } catch (conflictError) {
+        /* Self-healing path for a database whose leaderboard_scores.run_id has
+           no unique index: `create table if not exists` never added one to a
+           table that predates the column, so ON CONFLICT raises 42P10 and every
+           submission was lost. Emulate the upsert until the migration is run. */
+        if (!isMissingConflictTarget(conflictError)) throw conflictError;
+        console.warn("leaderboard_scores.run_id has no unique index — run setup_v0_11_35_upsert_constraint_fix.sql");
+        const claimed = await sql`
+          update game_runs
+          set
+            status = ${isCheckpoint ? "active" : "submitted"},
+            submitted_at = ${isCheckpoint ? null : new Date().toISOString()},
+            player_name = ${playerName},
+            score_total = ${scoreTotal},
+            bonus_score = ${bonus},
+            wave_reached = ${waveReached},
+            kills = ${killsCount},
+            updated_at = now()
+          where id = ${runDbId}
+            and status = 'active'
+          returning id
+        `;
+        await sql`delete from leaderboard_scores where run_id = ${runId}`;
+        const inserted = claimed.length ? await sql`
+          insert into leaderboard_scores
+            (player_name, score_total, bonus_score, wave_reached, kills, mode, run_id, ip_hash, user_id, daily_key)
+          values
+            (${playerName}, ${scoreTotal}, ${bonus}, ${waveReached}, ${killsCount},
+             ${run.mode}, ${runId}, ${ipHash}, ${sessionUserId}, ${dailyKey})
+          returning id
+        ` : [];
+        committed = [{ claimed: claimed.length > 0, score_inserted: inserted.length > 0 }];
+      }
 
       if (!committed[0]?.claimed || !committed[0]?.score_inserted) {
         return reject({
@@ -410,6 +455,30 @@ exports.handler = async function handler(event) {
           payload,
           runDbId
         });
+      }
+
+      /* Lifetime profile counters. Deliberately after the commit and swallowed:
+         the score is already on the board and must stay there even if this
+         fails. */
+      if (sessionUserId) {
+        try {
+          await sql`
+            insert into user_profiles
+              (user_id, best_endless_score, best_story_stage, total_kills, total_runs, updated_at)
+            values
+              (${sessionUserId}::bigint, ${profile.bestEndlessScore}, ${profile.bestStoryStage},
+               ${profile.lifetimeKills}, ${profile.lifetimeRuns}, now())
+            on conflict (user_id)
+            do update set
+              best_endless_score = greatest(user_profiles.best_endless_score, excluded.best_endless_score),
+              best_story_stage = greatest(user_profiles.best_story_stage, excluded.best_story_stage),
+              total_kills = user_profiles.total_kills + excluded.total_kills,
+              total_runs = user_profiles.total_runs + excluded.total_runs,
+              updated_at = now()
+          `;
+        } catch (profileError) {
+          console.error("user_profiles update failed (score kept)", dbDetail(profileError));
+        }
       }
 
       await logSubmissionAttempt({
@@ -424,19 +493,42 @@ exports.handler = async function handler(event) {
       if (String(txError?.message || '').toLowerCase().includes('duplicate')) {
         return reject({ statusCode: 409, error: 'Run already submitted', ipHash, playerName, runId, payload, runDbId });
       }
-      throw txError;
+      /* Release the run so the player can retry instead of meeting
+         "Run already used" on the next attempt. */
+      try {
+        await sql`
+          update game_runs
+          set status = 'active', submitted_at = null, updated_at = now()
+          where id = ${runDbId} and status = 'submitted'
+        `;
+      } catch (_) {}
+      console.error("submit-score commit failed", dbDetail(txError));
+      return reject({
+        statusCode: 500,
+        error: `Failed to save score: ${dbDetail(txError)}`,
+        ipHash,
+        playerName,
+        runId,
+        payload,
+        runDbId
+      });
     }
-
     return json(200, { ok: true });
   } catch (error) {
+    /* Anything thrown outside the commit block lands here: the blocklist probe,
+       the rate-limit counts, the run lookup. It used to be recorded as a bare
+       "Failed to save score", indistinguishable from a commit failure, which is
+       why the real fault stayed invisible. Carry the detail here too. */
+    const detail = dbDetail(error);
+    console.error("submit-score failed before commit", detail);
     await logSubmissionAttempt({
       ipHash,
       playerName,
       runId,
       accepted: false,
-      rejectionReason: "Failed to save score",
+      rejectionReason: `Failed to save score: ${detail}`,
       payload
     });
-    return json(500, { error: "Failed to save score" });
+    return json(500, { error: `Failed to save score: ${detail}` });
   }
 };
