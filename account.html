@@ -179,6 +179,40 @@
     .forgot-shell.hidden{ display:none; }
     .forgot-shell p{ margin:0 0 12px; color:var(--muted); font-size:12.5px; line-height:1.6; }
 
+    .verify-banner{
+      margin-top:14px; padding:13px 15px;
+      border-radius:13px;
+      background:rgba(251,191,36,.07);
+      border:1px solid rgba(251,191,36,.24);
+      display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    }
+    .verify-banner.hidden{ display:none; }
+    .verify-banner p{ margin:0; color:#fde68a; font-size:12.5px; line-height:1.6; flex:1 1 240px; }
+    .verify-banner.verified{
+      background:rgba(34,197,94,.07);
+      border-color:rgba(34,197,94,.24);
+    }
+    .verify-banner.verified p{ color:#bbf7d0; }
+
+    /* --- Account security --- */
+    .security-block{
+      margin-top:14px; padding:15px;
+      border-radius:13px;
+      background:rgba(255,255,255,.028);
+      border:1px solid rgba(255,255,255,.055);
+    }
+    .security-head{ display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+    .security-head strong{ display:block; font-family:'Cinzel', serif; font-size:15px; letter-spacing:.02em; }
+    .security-head .panel-kicker{ color:var(--accent); }
+    .security-copy{ margin:8px 0 0; color:var(--muted); font-size:12.5px; line-height:1.6; }
+    .security-form{ display:grid; gap:12px; margin-top:13px; }
+    .security-form.hidden{ display:none; }
+    .security-current{
+      margin-top:11px; padding:11px 13px; border-radius:11px;
+      background:rgba(8,17,31,.5); border:1px solid rgba(148,163,184,.1);
+      color:#dbeafe; font-size:12.5px; word-break:break-all;
+    }
+
     /* --- Toast --- */
     .auth-status{
       position:fixed; right:18px; bottom:18px;
@@ -380,7 +414,7 @@
             </div>
             <button class="btn btn-primary auth-submit" type="submit">Create account</button>
           </form>
-          <p class="auth-note">Nothing else required &mdash; no confirmation step, no newsletter. You are signed in the moment you register.</p>
+          <p class="auth-note">You are signed in the moment you register. We send one confirmation email so you can recover the account later &mdash; no newsletter, nothing else.</p>
         </section>
 
         <section class="auth-pane hidden" id="loginPane">
@@ -430,6 +464,10 @@
             <button class="btn btn-secondary" id="logoutBtn" type="button">Logout</button>
           </div>
           <div class="session-meta" id="sessionMeta">Loading account summary...</div>
+          <div class="verify-banner hidden" id="verifyBanner">
+            <p id="verifyBannerText">Confirm your email so you can recover your account if you ever lose your password.</p>
+            <button class="btn btn-secondary" id="resendVerificationBtn" type="button">Send confirmation link</button>
+          </div>
           <div class="session-stats">
             <div class="session-stat"><span>Best Endless Score</span><strong id="bestEndlessStat">0</strong></div>
             <div class="session-stat"><span>Best Story Stage</span><strong id="bestStoryStat">1</strong></div>
@@ -459,6 +497,55 @@
             <div class="crest-save-row">
               <button class="btn btn-secondary" id="saveCrestBtn" type="button">Save crest</button>
             </div>
+          </div>
+
+          <div class="security-block">
+            <div class="security-head">
+              <div>
+                <div class="panel-kicker">Security</div>
+                <strong>Change password</strong>
+              </div>
+              <button class="btn btn-secondary" id="togglePasswordFormBtn" type="button">Change password</button>
+            </div>
+            <p class="security-copy">Changing your password signs you out everywhere else. This browser stays signed in.</p>
+            <form class="security-form hidden" id="changePasswordForm">
+              <div class="field">
+                <label for="currentPassword">Current password</label>
+                <input id="currentPassword" name="currentPassword" type="password" autocomplete="current-password" placeholder="Your current password" required />
+              </div>
+              <div class="field">
+                <label for="newPassword">New password</label>
+                <input id="newPassword" name="newPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="At least 8 characters" required />
+              </div>
+              <div class="field">
+                <label for="confirmNewPassword">Confirm new password</label>
+                <input id="confirmNewPassword" name="confirmNewPassword" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="Repeat the new password" required />
+              </div>
+              <button class="btn btn-primary auth-submit" type="submit">Update password</button>
+            </form>
+          </div>
+
+          <div class="security-block">
+            <div class="security-head">
+              <div>
+                <div class="panel-kicker">Security</div>
+                <strong>Change email</strong>
+              </div>
+              <button class="btn btn-secondary" id="toggleEmailFormBtn" type="button">Change email</button>
+            </div>
+            <div class="security-current" id="currentEmailLabel">Loading current email...</div>
+            <p class="security-copy">We send a confirmation link to the new address. The change only applies once you open that link, and every device is signed out afterwards.</p>
+            <form class="security-form hidden" id="changeEmailForm">
+              <div class="field">
+                <label for="newEmail">New email</label>
+                <input id="newEmail" name="newEmail" type="email" maxlength="190" autocomplete="email" placeholder="you@example.com" required />
+              </div>
+              <div class="field">
+                <label for="emailPassword">Current password</label>
+                <input id="emailPassword" name="password" type="password" autocomplete="current-password" placeholder="Your current password" required />
+              </div>
+              <button class="btn btn-primary auth-submit" type="submit">Send confirmation link</button>
+            </form>
           </div>
         </section>
 
@@ -505,6 +592,14 @@
     const forgotPasswordToggle = document.getElementById('forgotPasswordToggle');
     const forgotPasswordBox = document.getElementById('forgotPasswordBox');
     const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+    const togglePasswordFormBtn = document.getElementById('togglePasswordFormBtn');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const toggleEmailFormBtn = document.getElementById('toggleEmailFormBtn');
+    const changeEmailForm = document.getElementById('changeEmailForm');
+    const currentEmailLabel = document.getElementById('currentEmailLabel');
+    const verifyBanner = document.getElementById('verifyBanner');
+    const verifyBannerText = document.getElementById('verifyBannerText');
+    const resendVerificationBtn = document.getElementById('resendVerificationBtn');
     let currentSessionUser = null;
     let selectedCrestId = '';
     let isChangingCrest = false;
@@ -611,6 +706,9 @@
         totalRunsStat.textContent = formatNumber(data.user.stats?.totalRuns || 0);
         isChangingCrest = !(data.user.crestId || '');
         renderCrestPicker(data.user.username, data.user.crestId || '');
+        if (currentEmailLabel) currentEmailLabel.textContent = `Current email: ${data.user.email}`;
+        renderVerifyBanner(data.user.emailVerified !== false);
+        resetSecurityForms();
       } catch (_) {
         sessionCard.classList.add('hidden');
         toggleAuthForms(true);
@@ -645,7 +743,12 @@
           showStatus(data.error || 'Failed to create account.');
           return;
         }
-        showStatus(`Account created. Welcome, ${data.user.username}.`, 'success');
+        showStatus(
+          data.verificationSent
+            ? `Account created. Check ${payload.email} for the confirmation link.`
+            : `Account created. Welcome, ${data.user.username}.`,
+          'success'
+        );
         registerForm.reset();
         await loadSession();
       } catch (_) {
@@ -757,6 +860,141 @@
         showStatus('Network error while saving crest.');
         saveCrestBtn.disabled = false;
         saveCrestBtn.textContent = 'Save crest';
+      }
+    });
+
+    function renderVerifyBanner(isVerified) {
+      if (!verifyBanner) return;
+      verifyBanner.classList.remove('hidden');
+      verifyBanner.classList.toggle('verified', isVerified);
+      if (verifyBannerText) {
+        verifyBannerText.textContent = isVerified
+          ? 'Your email is confirmed. Password recovery is available on this account.'
+          : 'Your email is not confirmed yet. Confirm it so you can recover the account if you lose your password.';
+      }
+      if (resendVerificationBtn) resendVerificationBtn.hidden = isVerified;
+    }
+
+    resendVerificationBtn?.addEventListener('click', async () => {
+      clearStatus();
+      resendVerificationBtn.disabled = true;
+      resendVerificationBtn.textContent = 'Sending...';
+      try {
+        const response = await fetch('/.netlify/functions/send-verification', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to send the confirmation email.');
+          return;
+        }
+        if (data.alreadyVerified) renderVerifyBanner(true);
+        showStatus(data.message || 'Confirmation link sent.', 'success');
+      } catch (_) {
+        showStatus('Network error while sending the confirmation email.');
+      } finally {
+        resendVerificationBtn.disabled = false;
+        resendVerificationBtn.textContent = 'Send confirmation link';
+      }
+    });
+
+    function resetSecurityForms() {
+      changePasswordForm?.reset();
+      changeEmailForm?.reset();
+      changePasswordForm?.classList.add('hidden');
+      changeEmailForm?.classList.add('hidden');
+      if (togglePasswordFormBtn) togglePasswordFormBtn.textContent = 'Change password';
+      if (toggleEmailFormBtn) toggleEmailFormBtn.textContent = 'Change email';
+    }
+
+    function toggleSecurityForm(form, button, openLabel) {
+      if (!form || !button) return;
+      const willOpen = form.classList.contains('hidden');
+      form.classList.toggle('hidden', !willOpen);
+      button.textContent = willOpen ? 'Cancel' : openLabel;
+      if (!willOpen) form.reset();
+    }
+
+    togglePasswordFormBtn?.addEventListener('click', () => {
+      clearStatus();
+      toggleSecurityForm(changePasswordForm, togglePasswordFormBtn, 'Change password');
+    });
+
+    toggleEmailFormBtn?.addEventListener('click', () => {
+      clearStatus();
+      toggleSecurityForm(changeEmailForm, toggleEmailFormBtn, 'Change email');
+    });
+
+    changePasswordForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearStatus();
+      const form = new FormData(changePasswordForm);
+      const currentPassword = String(form.get('currentPassword') || '');
+      const newPassword = String(form.get('newPassword') || '');
+      const confirmNewPassword = String(form.get('confirmNewPassword') || '');
+
+      if (newPassword !== confirmNewPassword) {
+        showStatus('The new passwords do not match.');
+        return;
+      }
+      if (newPassword.length < 8) {
+        showStatus('The new password must be at least 8 characters.');
+        return;
+      }
+
+      const submitBtn = changePasswordForm.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Updating...'; }
+      try {
+        const response = await fetch('/.netlify/functions/change-password', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to change the password.');
+          return;
+        }
+        resetSecurityForms();
+        showStatus(data.message || 'Password updated.', 'success');
+      } catch (_) {
+        showStatus('Network error while changing the password.');
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update password'; }
+      }
+    });
+
+    changeEmailForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      clearStatus();
+      const form = new FormData(changeEmailForm);
+      const payload = {
+        newEmail: String(form.get('newEmail') || '').trim(),
+        password: String(form.get('password') || '')
+      };
+
+      const submitBtn = changeEmailForm.querySelector('button[type="submit"]');
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending...'; }
+      try {
+        const response = await fetch('/.netlify/functions/change-email', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to start the email change.');
+          return;
+        }
+        resetSecurityForms();
+        showStatus(data.message || 'Confirmation link sent to the new address.', 'success');
+      } catch (_) {
+        showStatus('Network error while changing the email.');
+      } finally {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send confirmation link'; }
       }
     });
 

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Confirm Email - Ashen Bastion</title>
+  <meta name="description" content="Confirm the new email address for your Ashen Bastion account." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css?v=727576bd60" />
+  <script src="/crest.js"></script>
+  <script src="/account-bar.js" defer></script>
+  <script src="site-nav.js?v=c199e0a0dd" defer></script>
+  <style>
+    .reset-shell{max-width:720px;margin:0 auto;padding:24px}
+    .reset-card{padding:28px;border-radius:30px;background:linear-gradient(180deg, rgba(14,25,43,.94), rgba(8,17,31,.96))}
+    .reset-card h1{margin:8px 0 12px;font-size:clamp(32px,4vw,48px)}
+    .reset-card p{margin:0 0 18px;color:var(--muted);line-height:1.7}
+    .reset-status{margin-top:16px;padding:14px 16px;border-radius:16px;border:1px solid rgba(148,163,184,.12);background:rgba(8,17,31,.64);color:#dbeafe;display:none}
+    .reset-status.visible{display:block}
+    .reset-status.error{border-color:rgba(251,113,133,.22);color:#ffe4e6;background:rgba(68,18,28,.45)}
+    .reset-status.success{border-color:rgba(34,197,94,.24);color:#dcfce7;background:rgba(8,48,28,.45)}
+    .reset-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+  </style>
+</head>
+<body>
+  <main class="reset-shell">
+    <section class="glass reset-card">
+      <div class="panel-kicker">Email change</div>
+      <h1>Confirm your new email</h1>
+      <p id="confirmCopy">Checking your confirmation link...</p>
+      <button class="btn btn-primary" id="confirmBtn" type="button" hidden>Confirm this email</button>
+      <div id="confirmStatus" class="reset-status"></div>
+      <div class="reset-actions">
+        <a href="/account.html" class="btn btn-secondary">Back to Account</a>
+        <a href="/" class="btn btn-secondary">Back to Game</a>
+      </div>
+    </section>
+  </main>
+  <footer class="site-footer">Copyright © 2026 Adrian Cojocaru. All rights reserved.</footer>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const token = String(params.get('token') || '').trim();
+    const copyEl = document.getElementById('confirmCopy');
+    const statusEl = document.getElementById('confirmStatus');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    function showStatus(message, tone) {
+      statusEl.textContent = message;
+      statusEl.className = `reset-status visible ${tone || ''}`.trim();
+    }
+
+    if (!token) {
+      copyEl.textContent = 'This link is missing its confirmation token.';
+      showStatus('Open the link exactly as it appears in the email, or request the change again from your account page.', 'error');
+    } else {
+      copyEl.textContent = 'Press the button below to move your Ashen Bastion account to this email address. For security, every device will be signed out afterwards.';
+      confirmBtn.hidden = false;
+    }
+
+    confirmBtn.addEventListener('click', async () => {
+      confirmBtn.disabled = true;
+      confirmBtn.textContent = 'Confirming...';
+      try {
+        const response = await fetch('/.netlify/functions/confirm-email-change', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          showStatus(data.error || 'Failed to confirm the email change.', 'error');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'Confirm this email';
+          return;
+        }
+        confirmBtn.hidden = true;
+        copyEl.textContent = `Your account email is now ${data.email}.`;
+        showStatus(data.message || 'Email updated. Sign in again with your new address.', 'success');
+      } catch (_) {
+        showStatus('Network error while confirming the email change.', 'error');
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm this email';
+      }
+    });
+  </script>
+</body>
+</html>
