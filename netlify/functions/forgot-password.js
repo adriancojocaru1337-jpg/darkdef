@@ -10,47 +10,25 @@ const {
   sha256
 } = require("./auth-utils");
 const { getPasswordResetBaseUrl } = require("./request-security");
+const { sendMail, emailLayout, hasApiKey } = require("./mailer");
 const crypto = require("crypto");
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
 const RESET_TTL_MINUTES = 30;
 const GENERIC_MESSAGE = "If an account exists for that email, a password reset link has been sent.";
 
 async function sendResetEmail({ email, resetLink }) {
-  if (!RESEND_API_KEY) {
-    throw new Error("Missing RESEND_API_KEY");
-  }
-
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${RESEND_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      from: "Ashen Bastion <onboarding@resend.dev>",
-      to: [email],
-      subject: "Reset your Ashen Bastion password",
-      html: `
-        <div style="font-family:Arial,sans-serif;line-height:1.6;color:#0f172a;padding:24px;max-width:640px;margin:0 auto;">
-          <h1 style="margin:0 0 16px;font-size:28px;color:#0f172a;">Reset your password</h1>
-          <p style="margin:0 0 16px;">We received a request to reset the password for your Ashen Bastion account.</p>
-          <p style="margin:0 0 24px;">This link stays valid for <strong>${RESET_TTL_MINUTES} minutes</strong>.</p>
-          <p style="margin:0 0 24px;">
-            <a href="${resetLink}" style="display:inline-block;padding:14px 20px;border-radius:12px;background:#0ea5e9;color:#ffffff;text-decoration:none;font-weight:700;">Choose a new password</a>
-          </p>
-          <p style="margin:0 0 12px;">If the button does not open, use this link:</p>
-          <p style="margin:0 0 24px;word-break:break-all;">${resetLink}</p>
-          <p style="margin:0;color:#475569;">If you did not request this, you can ignore this email.</p>
-        </div>
-      `
+  await sendMail({
+    to: email,
+    subject: "Reset your Ashen Bastion password",
+    html: emailLayout({
+      title: "Reset your password",
+      intro: "We received a request to reset the password for your Ashen Bastion account.",
+      ctaLabel: "Choose a new password",
+      ctaLink: resetLink,
+      ttlMinutes: RESET_TTL_MINUTES,
+      footer: "If you did not request this, you can ignore this email."
     })
   });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Resend error: ${response.status} ${text}`);
-  }
 }
 
 exports.handler = async function handler(event) {
@@ -130,7 +108,7 @@ exports.handler = async function handler(event) {
     console.error("forgot-password failed", {
       message: error?.message || String(error),
       stack: error?.stack || null,
-      hasResendKey: Boolean(RESEND_API_KEY),
+      hasResendKey: hasApiKey,
       hasBaseUrl: Boolean(String(process.env.APP_BASE_URL || "").trim())
     });
     return json(500, { error: "Failed to start password reset." });

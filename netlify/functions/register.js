@@ -12,6 +12,7 @@ const {
   memoryRateLimited,
   getClientIp
 } = require("./auth-utils");
+const { issueVerification } = require("./verification-utils");
 
 exports.handler = async function handler(event) {
   if (event.httpMethod !== "POST") {
@@ -72,14 +73,33 @@ exports.handler = async function handler(event) {
 
     const session = await createSession({ userId: user.id, event });
 
+    // Confirmation email is best-effort: a mail outage must never block
+    // registration. The player can resend it from the account page.
+    let verificationSent = false;
+    try {
+      await issueVerification({
+        userId: user.id,
+        email: user.email,
+        username: user.username,
+        event
+      });
+      verificationSent = true;
+    } catch (mailError) {
+      console.error("register: verification email failed", {
+        message: mailError?.message || String(mailError)
+      });
+    }
+
     return json(
       201,
       {
         ok: true,
+        verificationSent,
         user: {
           id: user.id,
           email: user.email,
           username: user.username,
+          emailVerified: false,
           createdAt: user.created_at
         }
       },

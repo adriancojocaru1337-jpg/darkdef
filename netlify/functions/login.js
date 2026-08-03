@@ -10,6 +10,7 @@ const {
   TIMING_PAD_HASH,
   getClientIp
 } = require("./auth-utils");
+const { verificationRequired } = require("./verification-utils");
 
 exports.handler = async function handler(event) {
   if (event.httpMethod !== "POST") {
@@ -35,7 +36,8 @@ exports.handler = async function handler(event) {
     }
 
     const rows = await sql`
-      select id, email, username, password_hash, created_at
+      select id, email, username, password_hash, created_at,
+             coalesce(email_verified, true) as email_verified
       from users
       where email = ${login} or lower(username) = lower(${login})
       limit 1
@@ -51,6 +53,15 @@ exports.handler = async function handler(event) {
     const valid = await verifyPassword(password, user.password_hash);
     if (!valid) {
       return json(401, { error: "Invalid credentials." });
+    }
+
+    // Only enforced when REQUIRE_EMAIL_VERIFICATION=true. The password was
+    // already checked, so this reveals nothing to an attacker.
+    if (verificationRequired() && !user.email_verified) {
+      return json(403, {
+        error: "Confirm your email before signing in. Check your inbox for the confirmation link.",
+        needsVerification: true
+      });
     }
 
     await sql`
@@ -69,6 +80,7 @@ exports.handler = async function handler(event) {
           id: user.id,
           email: user.email,
           username: user.username,
+          emailVerified: Boolean(user.email_verified),
           createdAt: user.created_at
         }
       },

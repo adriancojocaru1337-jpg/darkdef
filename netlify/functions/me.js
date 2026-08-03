@@ -17,6 +17,7 @@ exports.handler = async function handler(event) {
         id: session.user_id,
         username: session.username,
         email: session.email,
+        emailVerified: session.email_verified !== false,
         createdAt: session.created_at,
         crestId: session.crest_id || null,
         stats: {
